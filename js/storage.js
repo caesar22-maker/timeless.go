@@ -322,7 +322,16 @@ const Storage = {
   },
 
   handleRealtimeProduct: function(payload) {
-    console.log("⚡ Realtime Product Event:", payload.eventType, payload.new || payload.old);
+    console.log("🔄 Realtime Product Event:", payload.eventType, payload.new || payload.old);
+
+    // Abaikan echo dari update kita sendiri (sudah di-render sebelumnya oleh saveProduct)
+    const incomingId = payload.new ? payload.new.id : (payload.old ? payload.old.id : null);
+    if (this._pendingProductSave && incomingId && this._pendingProductSave === incomingId) {
+      this._pendingProductSave = null;
+      console.log("⏭️ Lewati re-render realtime (echo dari update sendiri):", incomingId);
+      return;
+    }
+
     const data = this.getData();
     if (!data.shopProducts) data.shopProducts = [];
 
@@ -725,18 +734,8 @@ const Storage = {
     return true;
   },
 
-  // Save / Update Single Product to Supabase
+  // Save / Update Single Product to Supabase (hanya cloud — local sudah dihandle saveData())
   saveProduct: async function(product) {
-    const data = this.getData();
-    if (!data.shopProducts) data.shopProducts = [];
-    const idx = data.shopProducts.findIndex(p => p.id === product.id);
-    if (idx === -1) {
-      data.shopProducts.unshift(product);
-    } else {
-      data.shopProducts[idx] = product;
-    }
-    this.saveLocalData(data);
-
     if (this.client && this.isSupabaseConfigured()) {
       try {
         const cloudProd = this.productToCloud(product);

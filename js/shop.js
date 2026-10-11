@@ -1365,11 +1365,16 @@ const Shop = {
     }
 
     Storage.saveData(data);
-    if (typeof Storage !== 'undefined' && Storage.saveProduct) Storage.saveProduct(prodObj);
 
     App.closeModal('shop-prod-modal');
     App.showToast(`Produk "${name}" berhasil disimpan!`, "success");
     this.render();
+
+    // Sinkronkan ke Supabase Cloud setelah UI di-render (async background)
+    if (typeof Storage !== 'undefined' && Storage.saveProduct) {
+      Storage._pendingProductSave = prodObj.id; // tandai agar realtime echo tidak re-render ulang
+      Storage.saveProduct(prodObj).catch(e => console.warn("Gagal sync produk ke cloud:", e));
+    }
   },
 
   deleteProduct: function(productId) {
