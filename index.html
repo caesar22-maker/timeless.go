@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="id">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Grosir Berkah Abadi - Sistem Manajemen & Toko Grosir Modern</title>
+  
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <script>
+    tailwind.config = {
+      theme: {
+        extend: {
+          colors: {
+            brand: {
+              50: '#eff6ff',
+              100: '#dbeafe',
+              500: '#3b82f6',
+              600: '#2563eb',
+              700: '#1d4ed8',
+              800: '#1e40af',
+              900: '#1e3a8a',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <!-- FontAwesome Icons CDN -->
+  <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
+  
+  <!-- Custom Stylesheet -->
+  <link rel="stylesheet" href="css/style.css" />
+</head>
+<body class="bg-slate-50 text-slate-800 min-h-screen flex flex-col antialiased selection:bg-blue-600 selection:text-white">
+
+  <!-- TOP HEADER / BRANDING & ACCESS CONTROL BAR -->
+  <header class="sticky top-0 z-40 glass-header border-b border-slate-200/80 shadow-xs no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="flex items-center justify-between h-20">
+        
+        <!-- Store Brand & Logo -->
+        <div class="flex items-center gap-3.5 cursor-pointer" onclick="App.switchTab('shop')">
+          <div class="relative">
+            <img 
+              id="header-logo-img" 
+              src="https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=150&auto=format&fit=crop&q=80" 
+              alt="Logo Grosir" 
+              class="w-12 h-12 rounded-2xl object-cover border-2 border-blue-600 shadow-sm" 
+            />
+            <span class="absolute -bottom-1 -right-1 w-4 h-4 bg-emerald-500 border-2 border-white rounded-full"></span>
+          </div>
+          <div>
+            <div class="flex items-center gap-2">
+              <h1 class="text-xl font-black tracking-tight text-slate-900 store-brand-name">GROSIR BERKAH ABADI</h1>
+              <span class="hidden md:inline-block px-2 py-0.5 text-[10px] font-black uppercase tracking-wider bg-blue-100 text-blue-700 rounded-md">B2B Grosir</span>
+            </div>
+            <p class="text-xs text-slate-500 font-medium store-brand-tagline hidden sm:block">Pusat Grosir Sembako & Kebutuhan Usaha Terlengkap</p>
+          </div>
+        </div>
+
+        <!-- Role Badge & Header Controls -->
+        <div class="flex items-center gap-3">
+          <!-- Role Indicator -->
+          <div id="current-role-badge">
+            <!-- Rendered by App.updateHeaderUI -->
+          </div>
+
+          <!-- Store Settings Button (Employees only) -->
+          <button 
+            onclick="App.openStoreSettingsModal()" 
+            class="p-2 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-xl transition"
+            title="Pengaturan Toko, Logo, & Data JSON"
+          >
+            <i class="fa-solid fa-gear text-lg"></i>
+          </button>
+
+          <!-- Role Action Button (Login / Logout) -->
+          <div id="role-action-btn">
+            <!-- Rendered by App.updateHeaderUI -->
+          </div>
+        </div>
+      </div>
+
+      <!-- MAIN NAVIGATION TABS (4 FEATURES) -->
+      <nav class="flex items-center gap-2 py-2 border-t border-slate-100 overflow-x-auto">
+        <!-- 1. ONLINE SHOP TAB -->
+        <button 
+          data-tab="shop" 
+          onclick="App.switchTab('shop')"
+          class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap bg-blue-600 text-white shadow-sm"
+        >
+          <i class="fa-solid fa-store text-sm"></i>
+          <span>1. ONLINE SHOP</span>
+          <span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-200">Terbuka</span>
+        </button>
+
+        <!-- 2. WMS (WAREHOUSE) TAB -->
+        <button 
+          data-tab="wms" 
+          onclick="App.switchTab('wms')"
+          class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap text-slate-600 hover:bg-slate-100"
+        >
+          <i class="fa-solid fa-warehouse text-sm"></i>
+          <span>2. WMS (GUDANG)</span>
+          <i class="fa-solid fa-lock text-[11px] text-amber-500 tab-lock-icon"></i>
+        </button>
+
+        <!-- 3. DOKUMEN TAB -->
+        <button 
+          data-tab="docs" 
+          onclick="App.switchTab('docs')"
+          class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap text-slate-600 hover:bg-slate-100"
+        >
+          <i class="fa-solid fa-file-invoice-dollar text-sm"></i>
+          <span>3. DOKUMEN & FAKTUR</span>
+          <i class="fa-solid fa-lock text-[11px] text-amber-500 tab-lock-icon"></i>
+        </button>
+
+        <!-- 4. INVENTARIS ALAT TAB -->
+        <button 
+          data-tab="inventory" 
+          onclick="App.switchTab('inventory')"
+          class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap text-slate-600 hover:bg-slate-100"
+        >
+          <i class="fa-solid fa-toolbox text-sm"></i>
+          <span>4. INVENTARIS ALAT</span>
+          <i class="fa-solid fa-lock text-[11px] text-amber-500 tab-lock-icon"></i>
+        </button>
+      </nav>
+    </div>
+  </header>
+
+  <!-- MAIN APP CONTAINER -->
+  <main class="flex-1 max-w-7xl w-full mx-auto px-4 sm:px-6 lg:px-8 py-6">
+    <!-- PANEL 1: ONLINE SHOP -->
+    <section id="shop-panel" class="tab-pane">
+      <div id="shop-content">
+        <!-- Rendered by Shop.render() -->
+      </div>
+    </section>
+
+    <!-- PANEL 2: WMS (WAREHOUSE MANAGEMENT SYSTEM) -->
+    <section id="wms-panel" class="tab-pane hidden">
+      <div id="wms-content">
+        <!-- Rendered by WMS.render() -->
+      </div>
+    </section>
+
+    <!-- PANEL 3: DOKUMEN & FAKTUR -->
+    <section id="docs-panel" class="tab-pane hidden">
+      <div id="docs-content">
+        <!-- Rendered by Documents.render() -->
+      </div>
+    </section>
+
+    <!-- PANEL 4: INVENTARIS ALAT -->
+    <section id="inventory-panel" class="tab-pane hidden">
+      <div id="inventory-content">
+        <!-- Rendered by Inventory.render() -->
+      </div>
+    </section>
+  </main>
+
+  <!-- FOOTER -->
+  <footer class="bg-slate-900 text-slate-400 py-10 border-t border-slate-800 mt-12 no-print">
+    <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+      <div class="grid grid-cols-1 md:grid-cols-4 gap-8 mb-8">
+        <div class="md:col-span-2">
+          <h4 class="text-white font-black text-lg mb-2 store-brand-name">GROSIR BERKAH ABADI</h4>
+          <p class="text-xs leading-relaxed max-w-md mb-3 store-brand-tagline">
+            Penyedia kebutuhan pokok, sembako, makanan olahan, dan perlengkapan usaha terlengkap dengan sistem harga grosir bertingkat terjangkau.
+          </p>
+          <p class="text-[11px] text-slate-500">
+            Akses Pegawai: Password default <code class="text-amber-400 font-mono">12344321</code> untuk membuka modul WMS, Dokumen Faktur, dan Inventaris Alat.
+          </p>
+        </div>
+
+        <div>
+          <h5 class="text-white font-bold text-xs uppercase tracking-wider mb-3">4 Modul Terintegrasi</h5>
+          <ul class="text-xs space-y-1.5">
+            <li><a href="javascript:void(0)" onclick="App.switchTab('shop')" class="hover:text-white transition">1. Online Shop Grosir</a></li>
+            <li><a href="javascript:void(0)" onclick="App.switchTab('wms')" class="hover:text-white transition">2. WMS & Manajemen Rak</a></li>
+            <li><a href="javascript:void(0)" onclick="App.switchTab('docs')" class="hover:text-white transition">3. Dokumen & Faktur Niaga</a></li>
+            <li><a href="javascript:void(0)" onclick="App.switchTab('inventory')" class="hover:text-white transition">4. Inventaris & Servis Alat</a></li>
+          </ul>
+        </div>
+
+        <div>
+          <h5 class="text-white font-bold text-xs uppercase tracking-wider mb-3">Kontak & Layanan</h5>
+          <p class="text-xs leading-relaxed">WhatsApp: <span class="text-slate-200">0812-3456-7890</span></p>
+          <p class="text-xs leading-relaxed">Jam Operasional: <span class="text-slate-200">Senin - Sabtu (07.30 - 17.30 WIB)</span></p>
+          <p class="text-xs leading-relaxed">Pengiriman: <span class="text-slate-200">Armada Truk Toko & Ekspedisi</span></p>
+        </div>
+      </div>
+
+      <div class="pt-6 border-t border-slate-800 text-center text-xs text-slate-500">
+        &copy; 2026 Grosir Berkah Abadi. Seluruh hak cipta dilindungi. Sistem Manajemen & E-Commerce Toko Grosir.
+      </div>
+    </div>
+  </footer>
+
+  <!-- Toast Notification Root -->
+  <div id="toast-container"></div>
+
+  <!-- JAVASCRIPT MODULES -->
+  <script src="js/data.js"></script>
+  <script src="js/storage.js"></script>
+  <script src="js/wms.js"></script>
+  <script src="js/documents.js"></script>
+  <script src="js/shop.js"></script>
+  <script src="js/inventory.js"></script>
+  <script src="js/app.js"></script>
+</body>
+</html>
