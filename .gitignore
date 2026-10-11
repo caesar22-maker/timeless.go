@@ -1,0 +1,11 @@
+# Dependencies
+node_modules/
+.npm/
+
+# OS metadata
+.DS_Store
+Thumbs.db
+
+# Logs & scratch
+*.log
+scratch/

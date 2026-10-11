@@ -30,6 +30,13 @@
   <!-- FontAwesome Icons CDN -->
   <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.5.1/css/all.min.css" />
   
+  <!-- Leaflet.js Real Google Maps-style Interactive Map CDN -->
+  <link rel="stylesheet" href="https://unpkg.com/leaflet@1.9.4/dist/leaflet.css" />
+  <script src="https://unpkg.com/leaflet@1.9.4/dist/leaflet.js"></script>
+
+  <!-- Supabase JS Client v2 CDN for Real-Time Multi-Device Database Sync -->
+  <script src="https://cdn.jsdelivr.net/npm/@supabase/supabase-js@2"></script>
+
   <!-- Custom Stylesheet -->
   <link rel="stylesheet" href="css/style.css" />
 </head>
@@ -61,10 +68,20 @@
         </div>
 
         <!-- Role Badge & Header Controls -->
-        <div class="flex items-center gap-3">
+        <div class="flex items-center gap-2.5">
+          <!-- Customer Account Badge -->
+          <div id="customer-account-badge">
+            <!-- Rendered by App.updateHeaderUI -->
+          </div>
+
           <!-- Role Indicator -->
           <div id="current-role-badge">
             <!-- Rendered by App.updateHeaderUI -->
+          </div>
+
+          <!-- Cloud Sync Status Indicator -->
+          <div id="cloud-sync-badge" onclick="App.openStoreSettingsModal()" class="cursor-pointer" title="Status Database Cloud Supabase (Klik untuk pengaturan)">
+            <!-- Rendered by Storage.updateSyncBadge / App.updateHeaderUI -->
           </div>
 
           <!-- Store Settings Button (Employees only) -->
@@ -83,49 +100,60 @@
         </div>
       </div>
 
-      <!-- MAIN NAVIGATION TABS (4 FEATURES) -->
+      <!-- MAIN NAVIGATION TABS (5 FEATURES) -->
       <nav class="flex items-center gap-2 py-2 border-t border-slate-100 overflow-x-auto">
-        <!-- 1. ONLINE SHOP TAB -->
+        <!-- 1. ONLINE SHOP & UMKM TAB (Customer & Admin) -->
         <button 
           data-tab="shop" 
           onclick="App.switchTab('shop')"
           class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap bg-blue-600 text-white shadow-sm"
         >
           <i class="fa-solid fa-store text-sm"></i>
-          <span>1. ONLINE SHOP</span>
+          <span>1. ONLINE SHOP & UMKM</span>
           <span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-200">Terbuka</span>
         </button>
 
-        <!-- 2. WMS (WAREHOUSE) TAB -->
+        <!-- 2. LACAK PENGIRIMAN TAB (Customer & Admin) -->
+        <button 
+          data-tab="tracking" 
+          onclick="App.switchTab('tracking')"
+          class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap text-slate-600 hover:bg-slate-100"
+        >
+          <i class="fa-solid fa-truck-fast text-sm"></i>
+          <span>2. LACAK PENGIRIMAN</span>
+          <span class="px-1.5 py-0.2 rounded text-[10px] bg-blue-100 text-blue-700">Terbuka</span>
+        </button>
+
+        <!-- 3. WMS (WAREHOUSE) TAB (Admin Only) -->
         <button 
           data-tab="wms" 
           onclick="App.switchTab('wms')"
           class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap text-slate-600 hover:bg-slate-100"
         >
           <i class="fa-solid fa-warehouse text-sm"></i>
-          <span>2. WMS (GUDANG)</span>
+          <span>3. WMS (GUDANG)</span>
           <i class="fa-solid fa-lock text-[11px] text-amber-500 tab-lock-icon"></i>
         </button>
 
-        <!-- 3. DOKUMEN TAB -->
+        <!-- 4. DOKUMEN TAB (Admin Only) -->
         <button 
           data-tab="docs" 
           onclick="App.switchTab('docs')"
           class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap text-slate-600 hover:bg-slate-100"
         >
           <i class="fa-solid fa-file-invoice-dollar text-sm"></i>
-          <span>3. DOKUMEN & FAKTUR</span>
+          <span>4. DOKUMEN & FAKTUR</span>
           <i class="fa-solid fa-lock text-[11px] text-amber-500 tab-lock-icon"></i>
         </button>
 
-        <!-- 4. INVENTARIS ALAT TAB -->
+        <!-- 5. INVENTARIS ALAT TAB (Admin Only) -->
         <button 
           data-tab="inventory" 
           onclick="App.switchTab('inventory')"
           class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap text-slate-600 hover:bg-slate-100"
         >
           <i class="fa-solid fa-toolbox text-sm"></i>
-          <span>4. INVENTARIS ALAT</span>
+          <span>5. INVENTARIS ALAT</span>
           <i class="fa-solid fa-lock text-[11px] text-amber-500 tab-lock-icon"></i>
         </button>
       </nav>
@@ -141,21 +169,28 @@
       </div>
     </section>
 
-    <!-- PANEL 2: WMS (WAREHOUSE MANAGEMENT SYSTEM) -->
+    <!-- PANEL 2: LACAK PENGIRIMAN -->
+    <section id="tracking-panel" class="tab-pane hidden">
+      <div id="tracking-content">
+        <!-- Rendered by Orders.renderTrackingPanel() -->
+      </div>
+    </section>
+
+    <!-- PANEL 3: WMS (WAREHOUSE MANAGEMENT SYSTEM) -->
     <section id="wms-panel" class="tab-pane hidden">
       <div id="wms-content">
         <!-- Rendered by WMS.render() -->
       </div>
     </section>
 
-    <!-- PANEL 3: DOKUMEN & FAKTUR -->
+    <!-- PANEL 4: DOKUMEN & FAKTUR -->
     <section id="docs-panel" class="tab-pane hidden">
       <div id="docs-content">
         <!-- Rendered by Documents.render() -->
       </div>
     </section>
 
-    <!-- PANEL 4: INVENTARIS ALAT -->
+    <!-- PANEL 5: INVENTARIS ALAT -->
     <section id="inventory-panel" class="tab-pane hidden">
       <div id="inventory-content">
         <!-- Rendered by Inventory.render() -->
@@ -170,20 +205,21 @@
         <div class="md:col-span-2">
           <h4 class="text-white font-black text-lg mb-2 store-brand-name">GROSIR BERKAH ABADI</h4>
           <p class="text-xs leading-relaxed max-w-md mb-3 store-brand-tagline">
-            Penyedia kebutuhan pokok, sembako, makanan olahan, dan perlengkapan usaha terlengkap dengan sistem harga grosir bertingkat terjangkau.
+            Penyedia kebutuhan pokok, sembako, makanan olahan, dan produk UMKM terlengkap dengan harga satuan pasti terjangkau.
           </p>
           <p class="text-[11px] text-slate-500">
-            Akses Pegawai: Password default <code class="text-amber-400 font-mono">12344321</code> untuk membuka modul WMS, Dokumen Faktur, dan Inventaris Alat.
+            Akses Admin: Masuk dengan Akun Google terdaftar dan masukkan password keamanan admin untuk membuka modul WMS, Dokumen Faktur, Inventaris Alat, dan Edit Katalog.
           </p>
         </div>
 
         <div>
-          <h5 class="text-white font-bold text-xs uppercase tracking-wider mb-3">4 Modul Terintegrasi</h5>
+          <h5 class="text-white font-bold text-xs uppercase tracking-wider mb-3">5 Fitur Terintegrasi</h5>
           <ul class="text-xs space-y-1.5">
-            <li><a href="javascript:void(0)" onclick="App.switchTab('shop')" class="hover:text-white transition">1. Online Shop Grosir</a></li>
-            <li><a href="javascript:void(0)" onclick="App.switchTab('wms')" class="hover:text-white transition">2. WMS & Manajemen Rak</a></li>
-            <li><a href="javascript:void(0)" onclick="App.switchTab('docs')" class="hover:text-white transition">3. Dokumen & Faktur Niaga</a></li>
-            <li><a href="javascript:void(0)" onclick="App.switchTab('inventory')" class="hover:text-white transition">4. Inventaris & Servis Alat</a></li>
+            <li><a href="javascript:void(0)" onclick="App.switchTab('shop')" class="hover:text-white transition">1. Online Shop & Katalog UMKM</a></li>
+            <li><a href="javascript:void(0)" onclick="App.switchTab('tracking')" class="hover:text-white transition">2. Lacak Pengiriman</a></li>
+            <li><a href="javascript:void(0)" onclick="App.switchTab('wms')" class="hover:text-white transition">3. WMS & Manajemen Rak</a></li>
+            <li><a href="javascript:void(0)" onclick="App.switchTab('docs')" class="hover:text-white transition">4. Dokumen & Faktur Niaga</a></li>
+            <li><a href="javascript:void(0)" onclick="App.switchTab('inventory')" class="hover:text-white transition">5. Inventaris & Servis Alat</a></li>
           </ul>
         </div>
 
@@ -209,6 +245,7 @@
   <script src="js/storage.js"></script>
   <script src="js/wms.js"></script>
   <script src="js/documents.js"></script>
+  <script src="js/orders.js"></script>
   <script src="js/shop.js"></script>
   <script src="js/inventory.js"></script>
   <script src="js/app.js"></script>

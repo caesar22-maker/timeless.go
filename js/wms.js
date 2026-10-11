@@ -320,13 +320,13 @@ const WMS = {
         <div class="w-20 h-20 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-amber-200">
           <i class="fa-solid fa-lock"></i>
         </div>
-        <h3 class="text-2xl font-bold text-slate-800 mb-2">Akses Terkunci (Khusus Pegawai)</h3>
+        <h3 class="text-2xl font-bold text-slate-800 mb-2">Akses Terkunci (Khusus Admin)</h3>
         <p class="text-slate-500 text-sm mb-6 leading-relaxed">
-          Fitur Warehouse Management System (WMS) hanya dapat diakses oleh staff gudang dan pegawai toko. 
-          Silakan masukkan password pegawai untuk membuka semua fitur manajemen grosir.
+          Fitur Warehouse Management System (WMS) hanya dapat diakses oleh staff gudang dan admin toko. 
+          Silakan masukkan password admin untuk membuka semua fitur manajemen grosir.
         </p>
         <button onclick="App.openLoginModal()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition inline-flex items-center gap-2">
-          <i class="fa-solid fa-key"></i> Masukkan Password Pegawai
+          <i class="fa-solid fa-key"></i> Masukkan Password Admin
         </button>
       </div>
     `;
@@ -568,6 +568,10 @@ const WMS = {
     }
 
     Storage.saveData(data);
+    if (typeof Storage !== 'undefined' && Storage.saveWarehouseRecord) {
+      const savedItem = existingId ? data.wmsItems.find(w => w.id === existingId) : data.wmsItems[data.wmsItems.length - 1];
+      if (savedItem) Storage.saveWarehouseRecord(savedItem);
+    }
     App.closeModal('wms-item-modal');
     App.showToast(`Barang "${name}" berhasil disimpan!`, "success");
     this.render();
@@ -670,6 +674,9 @@ const WMS = {
     });
 
     Storage.saveData(data);
+    if (typeof Storage !== 'undefined' && Storage.saveWarehouseRecord) Storage.saveWarehouseRecord(item);
+    if (typeof Storage !== 'undefined' && Storage.saveInventoryLog) Storage.saveInventoryLog(data.wmsLogs[0]);
+
     App.closeModal('wms-inbound-modal');
     App.showToast(`Berhasil menambahkan ${qty} ${item.unit} ke stok ${item.name}!`, "success");
     this.render();
@@ -766,6 +773,9 @@ const WMS = {
     });
 
     Storage.saveData(data);
+    if (typeof Storage !== 'undefined' && Storage.saveWarehouseRecord) Storage.saveWarehouseRecord(item);
+    if (typeof Storage !== 'undefined' && Storage.saveInventoryLog) Storage.saveInventoryLog(data.wmsLogs[0]);
+
     App.closeModal('wms-outbound-modal');
     App.showToast(`Berhasil mengeluarkan ${qty} ${item.unit} dari stok ${item.name}!`, "success");
     this.render();

@@ -186,8 +186,12 @@ const Inventory = {
 
                   <div class="bg-slate-50 p-2.5 rounded-xl border border-slate-200 text-xs space-y-1 mb-3">
                     <div class="flex justify-between">
+                      <span class="text-slate-500">Jumlah Aset:</span>
+                      <span class="font-bold text-blue-700">${tool.qty || tool.quantity || 1} Unit</span>
+                    </div>
+                    <div class="flex justify-between">
                       <span class="text-slate-500">Kondisi Fisik:</span>
-                      <span class="font-bold text-slate-800">${tool.condition}</span>
+                      <span class="font-bold text-emerald-700">${tool.condition}</span>
                     </div>
                     <div class="flex justify-between">
                       <span class="text-slate-500">Operator/Pemegang:</span>
@@ -260,12 +264,12 @@ const Inventory = {
         <div class="w-20 h-20 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-amber-200">
           <i class="fa-solid fa-lock"></i>
         </div>
-        <h3 class="text-2xl font-bold text-slate-800 mb-2">Akses Terkunci (Khusus Pegawai)</h3>
+        <h3 class="text-2xl font-bold text-slate-800 mb-2">Akses Terkunci (Khusus Admin)</h3>
         <p class="text-slate-500 text-sm mb-6 leading-relaxed">
-          Fitur Inventaris Alat, Mesin Pergudangan, dan Jadwal Maintenance hanya dapat diakses oleh staff operasional toko.
+          Fitur Inventaris Alat, Mesin Pergudangan, dan Jadwal Maintenance hanya dapat diakses oleh staff operasional dan admin toko.
         </p>
         <button onclick="App.openLoginModal()" class="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-sm shadow-md transition inline-flex items-center gap-2">
-          <i class="fa-solid fa-key"></i> Masukkan Password Pegawai
+          <i class="fa-solid fa-key"></i> Masukkan Password Admin
         </button>
       </div>
     `;
@@ -368,16 +372,27 @@ const Inventory = {
               </div>
             </div>
 
-            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+            <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-4 gap-3">
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Kategori</label>
                 <select id="tool-category" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white">
+                  <option value="Security & Digital" ${tool.category === 'Security & Digital' ? 'selected' : ''}>Security & Digital (CCTV)</option>
                   <option value="Heavy Equipment" ${tool.category === 'Heavy Equipment' ? 'selected' : ''}>Heavy Equipment (Forklift)</option>
-                  <option value="Manual Equipment" ${tool.category === 'Manual Equipment' ? 'selected' : ''}>Manual Equipment (Hand Pallet)</option>
-                  <option value="Perangkat Digital" ${tool.category === 'Perangkat Digital' ? 'selected' : ''}>Perangkat Digital (Scanner)</option>
-                  <option value="Alat Ukur & Timbang" ${tool.category === 'Alat Ukur & Timbang' ? 'selected' : ''}>Alat Timbang & Ukur</option>
-                  <option value="Packaging Equipment" ${tool.category === 'Packaging Equipment' ? 'selected' : ''}>Packaging & Strapping</option>
+                  <option value="Warehouse Tool" ${tool.category === 'Warehouse Tool' ? 'selected' : ''}>Warehouse Tool (Tangga)</option>
+                  <option value="Storage & Racking" ${tool.category === 'Storage & Racking' ? 'selected' : ''}>Storage & Racking (Rak)</option>
+                  <option value="Material Handling" ${tool.category === 'Material Handling' ? 'selected' : ''}>Material Handling (Troli/Pallet)</option>
+                  <option value="Fleet & Delivery" ${tool.category === 'Fleet & Delivery' ? 'selected' : ''}>Fleet & Delivery (Mobil/Truk)</option>
+                  <option value="IT & Digital" ${tool.category === 'IT & Digital' ? 'selected' : ''}>IT & Digital (PC/Scanner/Printer)</option>
+                  <option value="Electrical & Utility" ${tool.category === 'Electrical & Utility' ? 'selected' : ''}>Electrical & Utility (Lampu/Kabel)</option>
+                  <option value="Safety Equipment" ${tool.category === 'Safety Equipment' ? 'selected' : ''}>Safety Equipment (APAR/P3K)</option>
+                  <option value="Office Furniture" ${tool.category === 'Office Furniture' ? 'selected' : ''}>Office Furniture (Meja/Kursi)</option>
+                  <option value="Cleaning Tools" ${tool.category === 'Cleaning Tools' ? 'selected' : ''}>Cleaning Tools (Sapu/Pel)</option>
+                  <option value="Facility & Utility" ${tool.category === 'Facility & Utility' ? 'selected' : ''}>Facility & Utility</option>
                 </select>
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Jumlah Unit *</label>
+                <input type="number" id="tool-qty" min="1" required value="${tool.qty || parseInt(tool.quantity) || 1}" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg font-bold text-blue-700" />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Status Operasional</label>
@@ -391,10 +406,10 @@ const Inventory = {
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Kondisi Fisik</label>
                 <select id="tool-condition" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white">
-                  <option value="Sangat Baik" ${tool.condition === 'Sangat Baik' ? 'selected' : ''}>Sangat Baik</option>
-                  <option value="Baik" ${tool.condition === 'Baik' ? 'selected' : ''}>Baik</option>
+                  <option value="Baik" ${tool.condition === 'Baik' || tool.condition === 'Sangat Baik' ? 'selected' : ''}>Baik</option>
                   <option value="Perlu Servis Ringan" ${tool.condition === 'Perlu Servis Ringan' ? 'selected' : ''}>Perlu Servis Ringan</option>
-                  <option value="Kritis" ${tool.condition === 'Kritis' ? 'selected' : ''}>Kritis</option>
+                  <option value="Rusak Ringan" ${tool.condition === 'Rusak Ringan' ? 'selected' : ''}>Rusak Ringan</option>
+                  <option value="Afkir" ${tool.condition === 'Afkir' ? 'selected' : ''}>Afkir</option>
                 </select>
               </div>
             </div>
@@ -464,6 +479,7 @@ const Inventory = {
     const name = document.getElementById("tool-name").value.trim();
     const code = document.getElementById("tool-code").value.trim();
     const category = document.getElementById("tool-category").value;
+    const qty = Number(document.getElementById("tool-qty")?.value) || 1;
     const status = document.getElementById("tool-status").value;
     const condition = document.getElementById("tool-condition").value;
     const location = document.getElementById("tool-location").value.trim();
@@ -479,14 +495,14 @@ const Inventory = {
       if (idx !== -1) {
         data.inventoryTools[idx] = {
           ...data.inventoryTools[idx],
-          name, code, category, status, condition, location, brand, purchaseYear, lastService, nextService, specs, image
+          name, code, category, qty, quantity: qty + " Unit", status, condition, location, brand, purchaseYear, lastService, nextService, specs, image
         };
       }
     } else {
       if (!data.inventoryTools) data.inventoryTools = [];
       data.inventoryTools.push({
         id: "TOOL-" + Math.floor(100 + Math.random() * 900),
-        name, code, category, status, condition, location, brand, purchaseYear, lastService, nextService, specs, image,
+        name, code, category, qty, quantity: qty + " Unit", status, condition, location, brand, purchaseYear, lastService, nextService, specs, image,
         assignedTo: "",
         maintenanceLogs: []
       });

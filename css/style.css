@@ -166,3 +166,64 @@ body {
     display: none !important;
   }
 }
+
+/* Delivery Tracking Pulse & Movement */
+.truck-pulse {
+  animation: truckFloat 2s ease-in-out infinite;
+}
+
+@keyframes truckFloat {
+  0%, 100% {
+    transform: translateY(0);
+  }
+  50% {
+    transform: translateY(-3px);
+  }
+}
+
+.route-shimmer {
+  background: linear-gradient(90deg, rgba(59,130,246,0.2) 0%, rgba(59,130,246,0.8) 50%, rgba(59,130,246,0.2) 100%);
+  background-size: 200% 100%;
+  animation: shimmerRoute 2.5s infinite linear;
+}
+
+@keyframes shimmerRoute {
+  0% { background-position: -200% 0; }
+  100% { background-position: 200% 0; }
+}
+
+/* LEAFLET GOOGLE MAPS STYLE OVERRIDES */
+.leaflet-container {
+  font-family: 'Plus Jakarta Sans', sans-serif !important;
+  border-radius: 0.75rem;
+}
+
+.leaflet-popup-content-wrapper {
+  border-radius: 0.75rem !important;
+  box-shadow: 0 10px 25px -5px rgba(0, 0, 0, 0.25) !important;
+  padding: 2px !important;
+}
+
+.leaflet-popup-content {
+  margin: 10px 12px !important;
+  line-height: 1.4 !important;
+}
+
+.leaflet-bar {
+  border: none !important;
+  border-radius: 0.5rem !important;
+  overflow: hidden;
+  box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1) !important;
+}
+
+.leaflet-bar a {
+  background-color: #1e293b !important;
+  color: #f8fafc !important;
+  border-bottom: 1px solid #334155 !important;
+}
+
+.leaflet-bar a:hover {
+  background-color: #334155 !important;
+  color: #38bdf8 !important;
+}
+

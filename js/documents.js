@@ -229,12 +229,12 @@ const Documents = {
         <div class="w-20 h-20 bg-amber-50 text-amber-600 rounded-full flex items-center justify-center text-3xl mx-auto mb-4 border border-amber-200">
           <i class="fa-solid fa-lock"></i>
         </div>
-        <h3 class="text-2xl font-bold text-slate-800 mb-2">Akses Terkunci (Khusus Pegawai)</h3>
+        <h3 class="text-2xl font-bold text-slate-800 mb-2">Akses Terkunci (Khusus Admin)</h3>
         <p class="text-slate-500 text-sm mb-6 leading-relaxed">
-          Fitur Generator Dokumen, Faktur Penjualan Grosir, dan Surat Jalan hanya dapat diakses oleh staff administrasi dan pegawai toko.
+          Fitur Generator Dokumen, Faktur Penjualan Grosir, dan Surat Jalan hanya dapat diakses oleh staff administrasi dan admin toko.
         </p>
         <button onclick="App.openLoginModal()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-md transition inline-flex items-center gap-2">
-          <i class="fa-solid fa-key"></i> Masukkan Password Pegawai
+          <i class="fa-solid fa-key"></i> Masukkan Password Admin
         </button>
       </div>
     `;
@@ -679,20 +679,26 @@ const Documents = {
           <!-- Printable Document Container -->
           <div class="p-8 overflow-y-auto bg-white text-slate-900" id="printable-document">
             <!-- Header Kop Toko -->
-            <div class="border-b-2 border-slate-800 pb-4 mb-6 flex items-start justify-between">
-              <div>
-                <h1 class="text-2xl font-black tracking-tight text-slate-900">${profile.name}</h1>
-                <p class="text-xs text-slate-600 font-medium">${profile.tagline}</p>
-                <p class="text-xs text-slate-500 mt-1">${profile.address}</p>
-                <p class="text-xs text-slate-500">Telp/WA: ${profile.phone} | Email: ${profile.email}</p>
+            <div class="border-b-2 border-slate-800 pb-4 mb-6 flex items-start justify-between gap-4">
+              <div class="flex items-start gap-4">
+                ${profile.logoUrl ? `
+                  <img src="${profile.logoUrl}" alt="Logo Toko" class="w-16 h-16 rounded-xl object-cover border border-slate-300 shadow-xs" />
+                ` : ''}
+                <div>
+                  <h1 class="text-2xl font-black tracking-tight text-slate-900">${profile.name}</h1>
+                  <p class="text-xs text-slate-600 font-medium">${profile.tagline}</p>
+                  <p class="text-xs text-slate-500 mt-1">${profile.address}</p>
+                  <p class="text-xs text-slate-500">Telp/WA: ${profile.phone} | Email: ${profile.email}</p>
+                </div>
               </div>
               <div class="text-right">
                 <span class="inline-block px-3 py-1 bg-slate-900 text-white font-black text-sm uppercase tracking-wider rounded">
                   ${doc.type}
                 </span>
                 <p class="font-mono font-bold text-sm text-slate-800 mt-2">${doc.docNumber}</p>
-                <p class="text-xs text-slate-500">Tanggal: ${Util.formatDate(doc.date)}</p>
-                ${doc.dueDate !== '-' ? `<p class="text-xs text-slate-500">Jatuh Tempo: ${Util.formatDate(doc.dueDate)}</p>` : ''}
+                <p class="text-xs text-slate-600">Tanggal Pesan: <strong class="text-slate-900">${Util.formatDate(doc.date)}</strong></p>
+                ${doc.orderTimestamp ? `<p class="text-[11px] text-slate-500 font-mono">Waktu: ${doc.orderTimestamp.split(' ')[1] || doc.orderTimestamp} WIB</p>` : ''}
+                ${doc.dueDate && doc.dueDate !== '-' ? `<p class="text-xs text-slate-500">Jatuh Tempo: ${Util.formatDate(doc.dueDate)}</p>` : ''}
               </div>
             </div>
 
@@ -774,8 +780,11 @@ const Documents = {
                   <p class="text-slate-500 mb-14">Penerima / Pembeli,</p>
                   <p class="font-bold border-t border-slate-400 pt-1 text-slate-800">( ${Util.escapeHtml(doc.clientName.split('(')[0].trim())} )</p>
                 </div>
-                <div>
+                <div class="relative">
                   <p class="text-slate-500 mb-14">Hormat Kami,</p>
+                  <span class="absolute top-4 left-1/2 -translate-x-1/2 text-[10px] font-black text-blue-700/30 uppercase tracking-widest border-2 border-dashed border-blue-700/30 rounded-full w-20 h-20 flex items-center justify-center rotate-[-15deg] pointer-events-none">
+                    STEMPEL RESMI
+                  </span>
                   <p class="font-bold border-t border-slate-400 pt-1 text-slate-800">( ${Util.escapeHtml(doc.signatureName || profile.name)} )</p>
                 </div>
               </div>
@@ -786,5 +795,67 @@ const Documents = {
     `;
 
     document.body.insertAdjacentHTML('beforeend', previewModalHtml);
+  },
+
+  // PREVIEW INVOICE BY ORDER ID OR DOC ID (USED IN TRACKING, DISPATCH, SHOP)
+  previewInvoice: function(orderOrDocId) {
+    if (!orderOrDocId) return;
+    const data = Storage.getData();
+    if (!data) return;
+
+    // 1. Search in documents by ID, docNumber, refDoc, refOrder, or notes
+    let doc = (data.documents || []).find(d => 
+      d.id === orderOrDocId || 
+      d.id === "DOC-INV-" + orderOrDocId ||
+      d.docNumber === orderOrDocId ||
+      (d.refDoc && d.refDoc === orderOrDocId) ||
+      (d.refOrder && d.refOrder === orderOrDocId) ||
+      (d.notes && d.notes.includes(orderOrDocId))
+    );
+
+    // 2. If not found in documents, look up order and auto-generate invoice
+    if (!doc && data.orders) {
+      const order = data.orders.find(o => o.id === orderOrDocId);
+      if (order) {
+        const orderDateStr = order.orderDate || new Date().toISOString();
+        const dateOnly = orderDateStr.slice(0, 10);
+        const year = dateOnly.slice(0, 4);
+        const month = dateOnly.slice(5, 7);
+        const randId = order.id.split('-')[2] || Math.floor(100 + Math.random() * 900);
+        
+        doc = {
+          id: "DOC-INV-" + order.id,
+          docNumber: `INV/GBA/${year}/${month}/${randId}`,
+          refDoc: order.id,
+          refOrder: order.id,
+          type: "Faktur Penjualan",
+          date: dateOnly,
+          orderTimestamp: order.orderDate,
+          dueDate: new Date(Date.now() + 14 * 24 * 60 * 60 * 1000).toISOString().slice(0, 10),
+          clientName: order.customerName,
+          clientPhone: order.customerPhone,
+          clientAddress: order.customerAddress,
+          paymentStatus: (order.paymentStatus && order.paymentStatus.includes("Lunas")) ? "LUNAS" : (order.paymentMethod === "COD" ? "COD / BELUM LUNAS" : "MENUNGGU PEMBAYARAN"),
+          paymentMethod: order.paymentMethod,
+          items: order.items || [],
+          discount: 0,
+          taxPercent: 0,
+          taxAmount: 0,
+          grandTotal: order.totalAmount,
+          notes: `Faktur Penjualan Resmi atas Pesanan Online Shop #${order.id}. Tanggal: ${order.orderDate}. Pengiriman: ${order.deliveryMethod || '-'}`,
+          signatureName: "Bagian Penjualan & Kasir Grosir",
+          attachmentUrl: ""
+        };
+        if (!data.documents) data.documents = [];
+        data.documents.unshift(doc);
+        Storage.saveData(data);
+      }
+    }
+
+    if (doc) {
+      this.previewDocument(doc.id);
+    } else {
+      App.showToast("Dokumen faktur tidak ditemukan untuk pesanan: " + orderOrDocId, "warning");
+    }
   }
 };

@@ -372,13 +372,12 @@ foreach ($line in $umkmLines) {
             name = $name
             category = $cat
             unit = $unit
+            price = $price
             retailPrice = $price
             stock = [math]::Round(50 + ([int]$no % 70))
             minOrder = 1
             tiers = @(
-                @{ minQty = 1; maxQty = 9; price = $tier1Price; label = "1 - 9 $unit" },
-                @{ minQty = 10; maxQty = 29; price = $tier2Price; label = "10 - 29 $unit (Grosir)" },
-                @{ minQty = 30; maxQty = 999; price = $tier3Price; label = "30+ $unit (Partai Besar)" }
+                @{ minQty = 1; maxQty = 99999; price = $price; label = "Harga Grosir Satuan" }
             )
             description = $desc
             badge = $badge
@@ -406,18 +405,20 @@ foreach ($line in $toolLines) {
             code = "AST-" + $no.PadLeft(3, '0')
             name = $name
             category = $cat
+            qty = $qty
+            quantity = "$qty Unit"
             location = "Gudang Utama & Operasional Toko"
             brand = "Standar Operasional Toko Grosir"
             purchaseYear = "2024"
             status = "Tersedia"
-            condition = if ($cond -eq "BAIK") { "Sangat Baik" } else { $cond }
+            condition = if ($cond -eq "BAIK") { "Baik" } else { $cond }
             lastService = "2026-08-15"
             nextService = "2026-11-15"
             assignedTo = "Staff Operasional ($qty Unit)"
             image = $img
             specs = $specs
             maintenanceLogs = @(
-                @{ date = "2026-08-15"; type = "Pengecekan Fisik"; technician = "Tim Inventaris"; cost = 0; notes = "Kondisi $qty unit terverifikasi $cond sesuai data aset." }
+                @{ date = "2026-08-15"; type = "Pengecekan Fisik"; technician = "Tim Inventaris"; cost = 0; notes = "Kondisi $qty unit terverifikasi $cond sesuai data aset inventaris." }
             )
         }
         $null = $toolsList.Add($toolObj)
@@ -436,7 +437,7 @@ $fullData = @{
         operationalHours = "Senin - Sabtu: 07.30 - 17.30 WIB"
         npwp = "01.234.567.8-012.000"
         bannerTitle = "KATALOG RESMI 250+ PRODUK UMKM & 50 ASET INVENTARIS"
-        bannerSubtitle = "Lengkap dengan sistem harga grosir bertingkat, dokumen faktur, dan manajemen aset gudang terintegrasi."
+        bannerSubtitle = "Lengkap dengan sistem harga grosir satuan pasti, dokumen faktur, dan manajemen aset gudang terintegrasi."
         bannerImage = "https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&auto=format&fit=crop&q=80"
         bannerBadge = "250 PRODUK UMKM TERVERIFIKASI"
     }
@@ -549,7 +550,160 @@ $fullData = @{
             attachmentUrl = ""
         }
     )
-    orders = @()
+    orders = @(
+        @{
+            id = "ORD-20260902-882"
+            customerName = "Toko Sembako Berkah Jaya (Ibu Fatimah)"
+            customerPhone = "0812-9876-5432"
+            customerAddress = "Jl. Raya Daan Mogot KM 14 No. 28, Kalideres, Jakarta Barat"
+            deliveryMethod = "Truk Toko GBA (Gratis Jabodetabek)"
+            paymentMethod = "Transfer Bank BCA (Otomatis)"
+            notes = "Mohon ditumpuk rapi di bagian depan toko, kirim pagi hari."
+            status = "Dalam Pengiriman"
+            orderDate = "2026-09-09 08:15"
+            packingStaff = "Agus Prasetyo (Gudang Blok B)"
+            qcNotes = "Seluruh 35 barang dicek utuh, masa kedaluwarsa 2027, tersegel kuat"
+            vehicle = "Truk Toko GBA 1 (CDD Box)"
+            plateNumber = "B 9821 GBA"
+            driverName = "Bpk. Joko Santoso"
+            driverPhone = "0813-8877-6655"
+            estimatedArrival = "Hari ini, Pukul 11:30 WIB (±25 menit lagi)"
+            progressPercent = 75
+            totalAmount = 1450000
+            items = @(
+                @{ name = "BLASTOZ COKLAT ARTA @6"; qty = 15; unit = "Pack"; price = 20500; subtotal = 307500 },
+                @{ name = "TANGO CRISPY ROLL ARTA @4"; qty = 20; unit = "Rtg"; price = 15500; subtotal = 310000 },
+                @{ name = "TISU NICE 900gr @20"; qty = 10; unit = "Pcs"; price = 34000; subtotal = 340000 },
+                @{ name = "BULPEN AE7 BIRU @240"; qty = 5; unit = "Pack"; price = 18250; subtotal = 91250 },
+                @{ name = "PERMEN MINTZ ARTA @24"; qty = 3; unit = "Pack"; price = 125000; subtotal = 375000 }
+            )
+            checkpoints = @(
+                @{
+                    time = "2026-09-09 10:45"
+                    title = "Armada Melintasi Gerbang Tol Cengkareng Barat"
+                    location = "Cengkareng Barat (KM 12)"
+                    desc = "Armada truk melaju lancar menuju Kalideres. Posisi sekitar 3 km dari toko pelanggan."
+                },
+                @{
+                    time = "2026-09-09 09:50"
+                    title = "Armada Truk Berangkat Keluar Gudang Pusat"
+                    location = "Kawasan Pergudangan Niaga Jaya Blok C"
+                    desc = "Armada Truk Toko GBA 1 (No. Pol B 9821 GBA) diberangkatkan oleh supir Bpk. Joko Santoso."
+                },
+                @{
+                    time = "2026-09-09 09:20"
+                    title = "Selesai Packing & Pemuatan ke Truk (Loading)"
+                    location = "Loading Dock Gudang Utama"
+                    desc = "Pemeriksaan QC selesai oleh Agus Prasetyo. 35 paket dimuat ke bak truk berpendingin."
+                },
+                @{
+                    time = "2026-09-09 08:40"
+                    title = "Pesanan Dikonfirmasi & Proses Picking Dimulai"
+                    location = "Rak B-01 & Rak D-02 Gudang"
+                    desc = "Admin gudang memverifikasi pembayaran dan menugaskan tim picker."
+                },
+                @{
+                    time = "2026-09-09 08:15"
+                    title = "Pesanan Berhasil Dibuat Pelanggan"
+                    location = "Online Shop Grosir Berkah Abadi"
+                    desc = "Pesanan baru terdaftar dengan metode Truk Toko GBA."
+                }
+            )
+        },
+        @{
+            id = "ORD-20260902-512"
+            customerName = "Minimarket Barokah Mart (Bpk. H. Sukirno)"
+            customerPhone = "0815-2233-4455"
+            customerAddress = "Jl. Meruya Ilir Raya No. 88, Kembangan, Jakarta Barat"
+            deliveryMethod = "Mobil Box Kecil (Gran Max)"
+            paymentMethod = "Bayar di Tempat (COD Grosir)"
+            notes = "Siapkan uang pas saat barang sampai."
+            status = "Sedang Dipacking"
+            orderDate = "2026-09-09 09:30"
+            packingStaff = "Budi Hartono (Gudang Blok D)"
+            qcNotes = "Dalam proses verifikasi jumlah dan packing karton tebal"
+            vehicle = "Mobil Box Kecil (Gran Max)"
+            plateNumber = "B 9142 GBA"
+            driverName = "Bpk. Rahmat Hidayat"
+            driverPhone = "0812-3344-5566"
+            estimatedArrival = "Hari ini, Pukul 14:00 WIB"
+            progressPercent = 35
+            totalAmount = 850000
+            items = @(
+                @{ name = "FRUZZ GUMMY ARTA @12"; qty = 3; unit = "Pack"; price = 175000; subtotal = 525000 },
+                @{ name = "OOPS CHIPS RTG ARTA @6"; qty = 5; unit = "Rtg"; price = 44100; subtotal = 220500 },
+                @{ name = "OOPS FUGU ARTA @12"; qty = 10; unit = "Rtg"; price = 9500; subtotal = 95000 }
+            )
+            checkpoints = @(
+                @{
+                    time = "2026-09-09 10:00"
+                    title = "Proses Packing & Pelabelan Resi Gudang"
+                    location = "Gudang Area Packaging Blok D"
+                    desc = "Staff Budi Hartono sedang membungkus pesanan dengan bubble wrap dan kardus segel."
+                },
+                @{
+                    time = "2026-09-09 09:30"
+                    title = "Pesanan Diterima oleh Sistem"
+                    location = "Online Shop Grosir Berkah Abadi"
+                    desc = "Pesanan masuk dan diteruskan ke supervisor gudang."
+                }
+            )
+        },
+        @{
+            id = "ORD-20260901-105"
+            customerName = "Koperasi Usaha Mandiri Sejahtera"
+            customerPhone = "0818-7766-5544"
+            customerAddress = "Jl. Pos Pengumben No. 12, Kebon Jeruk, Jakarta Barat"
+            deliveryMethod = "Truk Toko GBA (Gratis Jabodetabek)"
+            paymentMethod = "Transfer Bank Mandiri"
+            notes = "Diterima staf gudang koperasi."
+            status = "Selesai"
+            orderDate = "2026-09-08 13:00"
+            packingStaff = "Agus Prasetyo"
+            qcNotes = "Lulus QC 100%"
+            vehicle = "Truk Toko GBA 1 (CDD Box)"
+            plateNumber = "B 9821 GBA"
+            driverName = "Bpk. Joko Santoso"
+            driverPhone = "0813-8877-6655"
+            estimatedArrival = "Telah Sampai"
+            progressPercent = 100
+            totalAmount = 2150000
+            receivedBy = "Ibu Siti Rahma (Kepala Koperasi)"
+            podImage = "https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=500&auto=format&fit=crop&q=80"
+            items = @(
+                @{ name = "BUKU ALL STAR 38 TULIS @32"; qty = 10; unit = "Pack"; price = 24500; subtotal = 245000 },
+                @{ name = "BUKU BOXY VISION 36 @24"; qty = 10; unit = "Pack"; price = 28750; subtotal = 287500 },
+                @{ name = "HERBORIST BODY LOTION ZATUN 145ML @24"; qty = 15; unit = "Biji"; price = 25000; subtotal = 375000 },
+                @{ name = "TISU BASAH CUSSONS ISI 3 BIRU @12"; qty = 20; unit = "Slop"; price = 16750; subtotal = 335000 }
+            )
+            checkpoints = @(
+                @{
+                    time = "2026-09-08 16:30"
+                    title = "Pesanan Berhasil Diserahterimakan (Selesai)"
+                    location = "Kantor Koperasi Usaha Mandiri Sejahtera"
+                    desc = "Barang telah diterima langsung oleh Ibu Siti Rahma dalam keadaan lengkap."
+                },
+                @{
+                    time = "2026-09-08 15:45"
+                    title = "Armada Tiba di Lokasi Tujuan Pengiriman"
+                    location = "Jl. Pos Pengumben No. 12"
+                    desc = "Supir Bpk. Joko memarkirkan truk dan bersiap melakukan pembongkaran muatan."
+                },
+                @{
+                    time = "2026-09-08 14:15"
+                    title = "Armada Berangkat Menuju Lokasi"
+                    location = "Gudang Niaga Jaya"
+                    desc = "Truk berangkat membawa muatan pesanan."
+                },
+                @{
+                    time = "2026-09-08 13:00"
+                    title = "Pesanan Dibuat & Diproses"
+                    location = "Online Shop"
+                    desc = "Pesanan diproses dan diverifikasi admin."
+                }
+            )
+        }
+    )
     shopProducts = $productsList
     inventoryTools = $toolsList
 }
