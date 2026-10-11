@@ -1347,7 +1347,8 @@ const Shop = {
     const prodObj = {
       id: existingId || ("SHOP-" + Math.floor(100 + Math.random() * 900)),
       sku, name, category, unit, image,
-      retailPrice: tier1Price,
+      price: price,
+      retailPrice: price,
       stock,
       minOrder: 1,
       tiers,
