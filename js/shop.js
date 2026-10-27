@@ -42,9 +42,7 @@ const Shop = {
       { id: "Palen", name: "Palen", count: allProducts.filter(p => p.category === "Palen").length },
       { id: "ATK", name: "ATK & Buku", count: allProducts.filter(p => p.category === "ATK").length },
       { id: "Kosmetik", name: "Kosmetik & Skincare", count: allProducts.filter(p => p.category === "Kosmetik").length },
-      { id: "Keperluan Bayi & Anak", name: "Bayi & Anak", count: allProducts.filter(p => p.category === "Keperluan Bayi & Anak").length },
-      { id: "Bangunan", name: "Bangunan", count: allProducts.filter(p => p.category === "Bangunan").length },
-      { id: "Parfum", name: "Parfum", count: allProducts.filter(p => p.category === "Parfum").length }
+      { id: "Keperluan Bayi & Anak", name: "Bayi & Anak", count: allProducts.filter(p => p.category === "Keperluan Bayi & Anak").length }
     ];
 
     const totalCartItems = this.cart.reduce((sum, it) => sum + it.qty, 0);
@@ -1249,8 +1247,6 @@ const Shop = {
                   <option value="ATK" ${prod.category === 'ATK' ? 'selected' : ''}>ATK &amp; Buku</option>
                   <option value="Kosmetik" ${prod.category === 'Kosmetik' ? 'selected' : ''}>Kosmetik &amp; Skincare</option>
                   <option value="Keperluan Bayi & Anak" ${prod.category === 'Keperluan Bayi & Anak' ? 'selected' : ''}>Bayi &amp; Anak</option>
-                  <option value="Bangunan" ${prod.category === 'Bangunan' ? 'selected' : ''}>Bangunan</option>
-                  <option value="Parfum" ${prod.category === 'Parfum' ? 'selected' : ''}>Parfum</option>
                 </select>
               </div>
               <div>

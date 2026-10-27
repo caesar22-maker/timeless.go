@@ -40,34 +40,34 @@ $rawUmkm = @'
 37|B06372|SOLASI KERTAS GOLDTAPE @50|ATK|Slop|6500|Jenis: Solasi kertas. Merk: Goldtape. Isi: 50 pcs|B06372|
 38|408250001|SOLASI KERTAS JOMBOOO @66|Palen|Slop|3250|Jenis: Solasi kertas. Tipe: Jombooo. Isi: 66 pcs|408250001|
 39|B06621|SOLASI KERTAS MACIDA TEBAL@54|Palen|Slop|10500|Jenis: Solasi kertas. Merk: Macida. Tipe: Tebal. Isi: 54 pcs|B06621|
-40|2103250002|SOLASI KERTAS MACIDA TIPIS @60|Parfum|Slop|3250|Jenis: Solasi kertas. Merk: Macida. Tipe: Tipis. Isi: 60 pcs|2103250002|
+40|2103250002|SOLASI KERTAS MACIDA TIPIS @60|Palen|Slop|3250|Jenis: Solasi kertas. Merk: Macida. Tipe: Tipis. Isi: 60 pcs|2103250002|
 41|2307260006|SOLASI KERTAS MILENIUM @50|Palen|Slop|5750|Jenis: Solasi kertas. Merk: Milenium. Isi: 50 pcs|2307260006|
 42|808250015|SOLASI KERTAS OZZIE TIPIS @60|Palen|Slop|3000|Jenis: Solasi kertas. Merk: Ozzie. Tipe: Tipis. Isi: 60 pcs|808250015|
 43|B04607|SOLASI KERTAS PAJERO TEBAL @50|Palen|Slop|17500|Jenis: Solasi kertas. Tipe: Pajero Tebal. Isi: 50 pcs|B04607|
-44|B05526|LAKBAN OPP ABADI WARNA @72|Bangunan|Slop|48500|Jenis: Solasi. Merk/Tipe: Sella. Isi: 12 Pcs|B05526|
+44|B05526|LAKBAN OPP ABADI WARNA @72|Palen|Slop|48500|Jenis: Solasi. Merk/Tipe: Sella. Isi: 12 Pcs|B05526|
 45|B06396|SOLASI KERTAS SM @60|Palen|Slop|3250|Jenis: Solasi kertas. Tipe: SM. Isi: 60 pcs|B06396|
 46|905260005|KANOE TISU SERBAGUNA @40|Palen|Biji|6550|Jenis: Tisu serbaguna. Merk: Kanoe. Isi: 40 pcs|905260005|
-47|1709240001|MINITIKI TISU BASAH IOS @32|Palen|Pack|2000|Jenis: Tisu basah. Merk: Minitiki. Tipe: IOS. Isi: 32 pcs|1709240001|
-48|B03182|TISU BASAH CUSSONS ISI 2 BIRU @18|Palen|Pack|12250|Jenis: Tisu basah. Merk: Cussons. Isi kemasan: 2. Warna: Biru. Isi: 18 pcs|B03182|
-49|B03184|TISU BASAH CUSSONS ISI 2 HIJAU @18|Palen|Pack|12250|Jenis: Tisu basah. Merk: Cussons. Isi kemasan: 2. Warna: Hijau. Isi: 18 pcs|B03184|
-50|B03183|TISU BASAH CUSSONS ISI 2 UNGU @18|Palen|Pack|12250|Jenis: Tisu basah. Merk: Cussons. Isi kemasan: 2. Warna: Ungu. Isi: 18 pcs|B03183|
-51|2204260001|TISU BASAH CUSSONS ISI 3 BIRU @12|Palen|Slop|16750|Jenis: Tisu basah. Merk: Cussons. Isi kemasan: 3. Warna: Biru. Isi: 12 pcs|2204260001|
-52|1104260004|TISU BASAH CUSSONS ISI 3 HIJAU @12|Palen|Slop|16750|Jenis: Tisu basah. Merk: Cussons. Isi kemasan: 3. Warna: Hijau. Isi: 12 pcs|1104260004|
-53|2510250001|TISU BASAH CUSSONS ISI 3 UNGU/PINK @12|Palen|Slop|16750|Jenis: Tisu basah. Merk: Cussons. Isi kemasan: 3. Warna: Ungu/Pink. Isi: 12 pcs|2510250001|
-54|710250003|TISU BASAH KODOMO ISI 2 @24|Palen|Pack|11000|Jenis: Tisu basah. Merk: Kodomo. Isi kemasan: 2. Isi: 24 pcs|710250003|
-55|1204250001|TISU BASAH MINIKIDI ISI 2+BNS 40S @18|Kosmetik|Pack|10000|Jenis: Tisu basah. Merk: Minikidi. Isi: 2 + bonus 40S. Isi: 18 pcs|1204250001|
-56|2807260006|TISU BASAH MITU BANDED 2 50'S BIRU @24|Palen|Pack|11500|Jenis: Tisu basah. Merk: Mitu. Tipe: Banded 2. Isi: 50's. Warna: Biru. Isi: 24 pcs|2807260006|
-57|2807260007|TISU BASAH MITU BANDED 2 50'S PINK @24|Palen|Pack|11500|Jenis: Tisu basah. Merk: Mitu. Tipe: Banded 2. Isi: 50's. Warna: Pink. Isi: 24 pcs|2807260007|
-58|2807260008|TISU BASAH MITU BANDED 2 50'S UNGU @24|Palen|Pack|11500|Jenis: Tisu basah. Merk: Mitu. Tipe: Banded 2. Isi: 50's. Warna: Ungu. Isi: 24 pcs|2807260008|
-59|1912240004|TISU BASAH MITU ECER 5000 BIDAN @72|Palen|Pcs|4200|Jenis: Tisu basah. Merk: Mitu. Tipe: Ecer 5000 Bidan. Isi: 72 pcs|1912240004|
-60|B03171|TISU BASAH MITU ISI 2 @24|Palen|Pack|11250|Jenis: Tisu basah. Merk: Mitu. Isi kemasan: 2. Isi: 24 pcs|B03171|
-61|B03326|TISU BASAH MITU ISI 6 (5000) RTG @12|Palen|Rtg|24500|Jenis: Tisu basah. Merk: Mitu. Isi kemasan: 6. Keterangan: 5000 RTG. Isi: 12 pcs|B03326|
-62|B03027|TISU BASAH MITU RTG BIRU 4'S @12|Palen|Pack|18250|Jenis: Tisu basah. Merk: Mitu. Tipe: RTG. Isi: 4's. Warna: Biru. Isi: 12 pcs|B03027|
-63|B03028|TISU BASAH MITU RTG PING 4'S @12|Palen|Pack|18250|Jenis: Tisu basah. Merk: Mitu. Tipe: RTG. Isi: 4's. Warna: Pink. Isi: 12 pcs|B03028|
-64|310230001|TISU BASAH TIS ISI 2 @72|Palen|Pack|4000|Jenis: Tisu basah. Merk: TIS. Isi kemasan: 2. Isi: 72 pcs|310230001|
-65|B07080|TISU BASAH TINS RENTENG @12|Palen|Rtg|20000|Jenis: Tisu basah. Merk: Tins. Tipe: Renteng. Isi: 12 pcs|B07080|
-66|B06859|TISU BASAH WETKINS BIRU(2) @12|Palen|Pack|11250|Jenis: Tisu basah. Merk: Wetkins. Isi kemasan: 2. Warna: Biru. Isi: 12 pcs|B06859|
-67|B06860|TISU BASAH WETKINS PINK(2) @12|Palen|Pack|11250|Jenis: Tisu basah. Merk: Wetkins. Isi kemasan: 2. Warna: Pink. Isi: 12 pcs|B06860|
+47|1709240001|MINITIKI TISU BASAH IOS @32|Keperluan Bayi & Anak|Pack|2000|Jenis: Tisu basah. Merk: Minitiki. Tipe: IOS. Isi: 32 pcs|1709240001|
+48|B03182|TISU BASAH CUSSONS ISI 2 BIRU @18|Keperluan Bayi & Anak|Pack|12250|Jenis: Tisu basah. Merk: Cussons. Isi kemasan: 2. Warna: Biru. Isi: 18 pcs|B03182|
+49|B03184|TISU BASAH CUSSONS ISI 2 HIJAU @18|Keperluan Bayi & Anak|Pack|12250|Jenis: Tisu basah. Merk: Cussons. Isi kemasan: 2. Warna: Hijau. Isi: 18 pcs|B03184|
+50|B03183|TISU BASAH CUSSONS ISI 2 UNGU @18|Keperluan Bayi & Anak|Pack|12250|Jenis: Tisu basah. Merk: Cussons. Isi kemasan: 2. Warna: Ungu. Isi: 18 pcs|B03183|
+51|2204260001|TISU BASAH CUSSONS ISI 3 BIRU @12|Keperluan Bayi & Anak|Slop|16750|Jenis: Tisu basah. Merk: Cussons. Isi kemasan: 3. Warna: Biru. Isi: 12 pcs|2204260001|
+52|1104260004|TISU BASAH CUSSONS ISI 3 HIJAU @12|Keperluan Bayi & Anak|Slop|16750|Jenis: Tisu basah. Merk: Cussons. Isi kemasan: 3. Warna: Hijau. Isi: 12 pcs|1104260004|
+53|2510250001|TISU BASAH CUSSONS ISI 3 UNGU/PINK @12|Keperluan Bayi & Anak|Slop|16750|Jenis: Tisu basah. Merk: Cussons. Isi kemasan: 3. Warna: Ungu/Pink. Isi: 12 pcs|2510250001|
+54|710250003|TISU BASAH KODOMO ISI 2 @24|Keperluan Bayi & Anak|Pack|11000|Jenis: Tisu basah. Merk: Kodomo. Isi kemasan: 2. Isi: 24 pcs|710250003|
+55|1204250001|TISU BASAH MINIKIDI ISI 2+BNS 40S @18|Keperluan Bayi & Anak|Pack|10000|Jenis: Tisu basah. Merk: Minikidi. Isi: 2 + bonus 40S. Isi: 18 pcs|1204250001|
+56|2807260006|TISU BASAH MITU BANDED 2 50'S BIRU @24|Keperluan Bayi & Anak|Pack|11500|Jenis: Tisu basah. Merk: Mitu. Tipe: Banded 2. Isi: 50's. Warna: Biru. Isi: 24 pcs|2807260006|
+57|2807260007|TISU BASAH MITU BANDED 2 50'S PINK @24|Keperluan Bayi & Anak|Pack|11500|Jenis: Tisu basah. Merk: Mitu. Tipe: Banded 2. Isi: 50's. Warna: Pink. Isi: 24 pcs|2807260007|
+58|2807260008|TISU BASAH MITU BANDED 2 50'S UNGU @24|Keperluan Bayi & Anak|Pack|11500|Jenis: Tisu basah. Merk: Mitu. Tipe: Banded 2. Isi: 50's. Warna: Ungu. Isi: 24 pcs|2807260008|
+59|1912240004|TISU BASAH MITU ECER 5000 BIDAN @72|Keperluan Bayi & Anak|Pcs|4200|Jenis: Tisu basah. Merk: Mitu. Tipe: Ecer 5000 Bidan. Isi: 72 pcs|1912240004|
+60|B03171|TISU BASAH MITU ISI 2 @24|Keperluan Bayi & Anak|Pack|11250|Jenis: Tisu basah. Merk: Mitu. Isi kemasan: 2. Isi: 24 pcs|B03171|
+61|B03326|TISU BASAH MITU ISI 6 (5000) RTG @12|Keperluan Bayi & Anak|Rtg|24500|Jenis: Tisu basah. Merk: Mitu. Isi kemasan: 6. Keterangan: 5000 RTG. Isi: 12 pcs|B03326|
+62|B03027|TISU BASAH MITU RTG BIRU 4'S @12|Keperluan Bayi & Anak|Pack|18250|Jenis: Tisu basah. Merk: Mitu. Tipe: RTG. Isi: 4's. Warna: Biru. Isi: 12 pcs|B03027|
+63|B03028|TISU BASAH MITU RTG PING 4'S @12|Keperluan Bayi & Anak|Pack|18250|Jenis: Tisu basah. Merk: Mitu. Tipe: RTG. Isi: 4's. Warna: Pink. Isi: 12 pcs|B03028|
+64|310230001|TISU BASAH TIS ISI 2 @72|Keperluan Bayi & Anak|Pack|4000|Jenis: Tisu basah. Merk: TIS. Isi kemasan: 2. Isi: 72 pcs|310230001|
+65|B07080|TISU BASAH TINS RENTENG @12|Keperluan Bayi & Anak|Rtg|20000|Jenis: Tisu basah. Merk: Tins. Tipe: Renteng. Isi: 12 pcs|B07080|
+66|B06859|TISU BASAH WETKINS BIRU(2) @12|Keperluan Bayi & Anak|Pack|11250|Jenis: Tisu basah. Merk: Wetkins. Isi kemasan: 2. Warna: Biru. Isi: 12 pcs|B06859|
+67|B06860|TISU BASAH WETKINS PINK(2) @12|Keperluan Bayi & Anak|Pack|11250|Jenis: Tisu basah. Merk: Wetkins. Isi kemasan: 2. Warna: Pink. Isi: 12 pcs|B06860|
 68|B06676|TISU NICE 900gr @20|Palen|Pcs|34000|Jenis: Tisu Wajah. Merk: Nice. Berat: 900 gram|B06676|
 69|B06445|TISU DAPUR SERVIETTES PIRING @12|Palen|Pack|15250|Jenis: Tisu dapur. Merk/Tipe: Serviettes Piring. Isi: 12 pcs|B06445|
 70|2710230001|KOREK LAS VEGAS KOTAK @1000|Palen|Pcs|1500|Jenis: Korek. Merk: Las Vegas. Bentuk: Kotak. Isi: 1000 pcs|2710230001|
@@ -88,28 +88,28 @@ $rawUmkm = @'
 85|1610250004|HERBORIST LULUR GREENTEA 100G|Kosmetik|Biji|20000|Jenis: Lulur. Merk: Herborist. Varian: Greentea. Berat: 100 gram|1610250004|
 86|2405250002|HERBORIST LULUR ZATUN 100GR @12|Kosmetik|Pcs|20000|Jenis: Lulur. Merk: Herborist. Varian: Zaitun. Berat: 100 gram. Isi: 12 pcs|2405250002|
 87|908230002|HERBORIST MINERAL BODY SCRUB CUP @12|Kosmetik|Pcs|20000|Jenis: Mineral Body Scrub. Merk: Herborist. Bentuk: Cup. Isi: 12 pcs|908230002|
-88|B03537|HERBORIST MINYAK ZAITUN 150ML @24|Palen|Pcs|20000|Jenis: Minyak Zaitun. Merk: Herborist. Volume: 150 ml. Isi: 24 pcs|B03537|
-89|B03536|HERBORIST MINYAK ZAITUN 75ML @48|Palen|Pcs|35000|Jenis: Minyak Zaitun. Merk: Herborist. Volume: 75 ml. Isi: 48 pcs|B03536|
-90|1604230002|HERBORIST OLIVE OIL 150ML @24|Palen|Pcs|35000|Jenis: Olive Oil. Merk: Herborist. Volume: 150 ml. Isi: 24 pcs|1604230002|
-91|1604230003|HERBORIST OLIVE OIL 75ML @48|Palen|Pcs|35000|Jenis: Olive Oil. Merk: Herborist. Volume: 75 ml. Isi: 48 pcs|1604230003|
+88|B03537|HERBORIST MINYAK ZAITUN 150ML @24|Kosmetik|Pcs|20000|Jenis: Minyak Zaitun. Merk: Herborist. Volume: 150 ml. Isi: 24 pcs|B03537|
+89|B03536|HERBORIST MINYAK ZAITUN 75ML @48|Kosmetik|Pcs|35000|Jenis: Minyak Zaitun. Merk: Herborist. Volume: 75 ml. Isi: 48 pcs|B03536|
+90|1604230002|HERBORIST OLIVE OIL 150ML @24|Kosmetik|Pcs|35000|Jenis: Olive Oil. Merk: Herborist. Volume: 150 ml. Isi: 24 pcs|1604230002|
+91|1604230003|HERBORIST OLIVE OIL 75ML @48|Kosmetik|Pcs|35000|Jenis: Olive Oil. Merk: Herborist. Volume: 75 ml. Isi: 48 pcs|1604230003|
 92|B02136|BULPEN AE7 BIRU @240|ATK|Pack|18250|Jenis: Pulpen. Tipe: AE7. Warna: Biru. Isi: 240 pcs|B02136|
 93|B02006|BULPEN AE7 HTM @240|ATK|Pack|18250|Jenis: Pulpen. Tipe: AE7. Warna: Hitam. Isi: 240 pcs|B02006|
 94|B02137|BULPEN AE7 MERAH @240|ATK|Pack|18250|Jenis: Pulpen. Tipe: AE7. Warna: Merah. Isi: 240 pcs|B02137|
 95|2207260012|BULPEN CETEK ESL GP-234 BIRU @144|ATK|Pack|22000|Jenis: Pulpen Cetek. Merk: ESL. Tipe: GP-234. Warna: Biru. Isi: 144 pcs|2207260012|
 96|2207260013|BULPEN CETEK ESL GP-234 HITAM @144|ATK|Pack|22000|Jenis: Pulpen Cetek. Merk: ESL. Tipe: GP-234. Warna: Hitam. Isi: 144 pcs|2207260013|
 97|B01753|BULPEN CRISTAL LINE|ATK|Pcs|9000|Jenis: Pulpen. Tipe: Cristal Line|B01753|
-98|B03888|BULPEN DEBOZ ISI 50|Palen|Pcs|32500|Jenis: Pulpen. Merk: Deboz. Isi: 50 pcs|B03888|
-99|B04260|BULPEN EVERCOSS EV-1H/EV-1 @192|Palen|Pack|11000|Jenis: Pulpen. Merk: Evercoss. Tipe: EV-1H/EV-1. Isi: 192 pcs|B04260|
-100|B04267|BULPEN FANCY 4 WRN @96|Palen|Pack|22000|Jenis: Pulpen. Tipe: Fancy. Warna: 4 warna. Isi: 96 pcs|B04267|
+98|B03888|BULPEN DEBOZ ISI 50|ATK|Pcs|32500|Jenis: Pulpen. Merk: Deboz. Isi: 50 pcs|B03888|
+99|B04260|BULPEN EVERCOSS EV-1H/EV-1 @192|ATK|Pack|11000|Jenis: Pulpen. Merk: Evercoss. Tipe: EV-1H/EV-1. Isi: 192 pcs|B04260|
+100|B04267|BULPEN FANCY 4 WRN @96|ATK|Pack|22000|Jenis: Pulpen. Tipe: Fancy. Warna: 4 warna. Isi: 96 pcs|B04267|
 101|B00097|BULPEN FASTER C-600 @144|ATK|Pack|23000|Jenis: Pulpen. Merk: Faster. Tipe: C-600. Isi: 144 pcs|B00097|
 102|B00725|BULPEN FASTER F3 @144|ATK|Pack|23000|Jenis: Pulpen. Merk: Faster. Tipe: F3. Isi: 144 pcs|B00725|
-103|B03417|BULPEN FIRSTMAN MV-1|Palen|Pcs|18500|Jenis: Pulpen. Merk: Firstman. Tipe: MV-1|B03417|
+103|B03417|BULPEN FIRSTMAN MV-1|ATK|Pcs|18500|Jenis: Pulpen. Merk: Firstman. Tipe: MV-1|B03417|
 104|B06512|BULPEN GEL APEL KOXI 910/913 @144|ATK|Pack|12500|Jenis: Pulpen Gel. Merk: Koxi. Tipe: Apel 910/913. Isi: 144 pcs|B06512|
 105|2705230001|BULPEN GEL APEL NEON ORLEE 7008 @144|ATK|Pack|12750|Jenis: Pulpen Gel. Tipe: Apel Neon. Merk: Orlee. Model: 7008. Isi: 144 pcs|2705230001|
-106|B03453|BULPEN GEL APEL SF-6060/8080|Palen|Pack|12250|Jenis: Pulpen Gel. Tipe: Apel. Model: SF-6060/8080|B03453|
+106|B03453|BULPEN GEL APEL SF-6060/8080|ATK|Pack|12250|Jenis: Pulpen Gel. Tipe: Apel. Model: SF-6060/8080|B03453|
 107|2406230003|BULPEN GEL APEL V-TRO 301/302 @144|ATK|Pack|11000|Jenis: Pulpen Gel. Tipe: Apel V-Tro. Model: 301/302. Isi: 144 pcs|2406230003|
 108|B01542|BULPEN GEL BUNGA|ATK|Pcs|14000|Jenis: Pulpen Gel. Tipe: Bunga|B01542|
-109|B04447|BULPEN GEL CHOSCH 766|Palen|Pack|12000|Jenis: Pulpen Gel. Merk/Tipe: Chosch 766|B04447|
+109|B04447|BULPEN GEL CHOSCH 766|ATK|Pack|12000|Jenis: Pulpen Gel. Merk/Tipe: Chosch 766|B04447|
 110|2509250006|BULPEN GEL CONCEPT CGP-61B @144|ATK|Pack|19500|Jenis: Pulpen Gel. Merk: Concept. Tipe: CGP-61B. Isi: 144 pcs|2509250006|
 111|2401230003|BULPEN GEL DTIAN @192|ATK|Pack|13250|Jenis: Pulpen Gel. Merk: Dtian. Isi: 192 pcs|2401230003|
 112|3008230002|BULPEN GEL EG-V TL6549 + MIKA @192|ATK|Pack|12250|Jenis: Pulpen Gel. Tipe: EG-V TL6549 + Mika. Isi: 192 pcs|3008230002|
@@ -140,54 +140,54 @@ $rawUmkm = @'
 137|2206260002|BUKU BOXY VISION 50 @16|ATK|Pack|37750|Jenis: Buku. Tipe: Boxy. Merk: Vision. Ukuran: 50. Isi: 16 pcs|2206260002|
 138|1501260006|BUKU GAMBAR BIASA|ATK|Pack|15000|Jenis: Buku gambar. Tipe: Biasa|1501260006|
 139|B00049|BUKU GBR A3 DODO @10|ATK|Pack|48000|Jenis: Buku gambar. Merk: Dodo. Ukuran: A3. Isi: 10 pcs|B00049|
-140|B06931|HAIR BODY MIST MARINA 100ML @36|Palen|Pcs|9500|Jenis: Hair Body Mist. Merk: Marina. Volume: 100 ml. Isi: 36 pcs|B06931|
-141|B04531|HBL MARINA NATURAL 100ML HIJAU @12|Palen|Slop|23250|Jenis: HBL. Merk: Marina Natural. Volume: 100 ml. Warna: Hijau. Isi: 12 pcs|B04531|
-142|B04530|HBL MARINA NATURAL 100ML KUNING @12|Palen|Slop|23250|Jenis: HBL. Merk: Marina Natural. Volume: 100 ml. Warna: Kuning. Isi: 12 pcs|B04530|
-143|B04584|HBL MARINA NATURAL 100ML ORANGE @12|Palen|Slop|23250|Jenis: HBL. Merk: Marina Natural. Volume: 100 ml. Warna: Orange. Isi: 12 pcs|B04584|
-144|B04529|HBL MARINA NATURAL 100ML PINK @12|Palen|Slop|23250|Jenis: HBL. Merk: Marina Natural. Volume: 100 ml. Warna: Pink. Isi: 12 pcs|B04529|
+140|B06931|HAIR BODY MIST MARINA 100ML @36|Kosmetik|Pcs|9500|Jenis: Hair Body Mist. Merk: Marina. Volume: 100 ml. Isi: 36 pcs|B06931|
+141|B04531|HBL MARINA NATURAL 100ML HIJAU @12|Kosmetik|Slop|23250|Jenis: HBL. Merk: Marina Natural. Volume: 100 ml. Warna: Hijau. Isi: 12 pcs|B04531|
+142|B04530|HBL MARINA NATURAL 100ML KUNING @12|Kosmetik|Slop|23250|Jenis: HBL. Merk: Marina Natural. Volume: 100 ml. Warna: Kuning. Isi: 12 pcs|B04530|
+143|B04584|HBL MARINA NATURAL 100ML ORANGE @12|Kosmetik|Slop|23250|Jenis: HBL. Merk: Marina Natural. Volume: 100 ml. Warna: Orange. Isi: 12 pcs|B04584|
+144|B04529|HBL MARINA NATURAL 100ML PINK @12|Kosmetik|Slop|23250|Jenis: HBL. Merk: Marina Natural. Volume: 100 ml. Warna: Pink. Isi: 12 pcs|B04529|
 145|1206240010|HBL MARINA NATURAL 150ML+ HIJAU @8|Kosmetik|Slop|33500|Jenis: HBL. Merk: Marina Natural. Volume: 150 ml+. Warna: Hijau. Isi: 8 pcs|1206240010|
 146|1206240011|HBL MARINA NATURAL 150ML+ KUNING @8|Kosmetik|Slop|33500|Jenis: HBL. Merk: Marina Natural. Volume: 150 ml+. Warna: Kuning. Isi: 8 pcs|1206240011|
 147|1206240012|HBL MARINA NATURAL 150ML+ ORANGE @8|Kosmetik|Slop|33500|Jenis: HBL. Merk: Marina Natural. Volume: 150 ml+. Warna: Orange. Isi: 8 pcs|1206240012|
 148|1206240013|HBL MARINA NATURAL 150ML+ PINK @8|Kosmetik|Slop|33500|Jenis: HBL. Merk: Marina Natural. Volume: 150 ml+. Warna: Pink. Isi: 8 pcs|1206240013|
 149|1206240014|HBL MARINA NATURAL 150ML+ UNGU @8|Kosmetik|Slop|33500|Jenis: HBL. Merk: Marina Natural. Volume: 150 ml+. Warna: Ungu. Isi: 8 pcs|1206240014|
-150|B04586|HBL MARINA NATURAL 190ML UNGU @8|Palen|Slop|39000|Jenis: HBL. Merk: Marina Natural. Volume: 190 ml. Warna: Ungu. Isi: 8 pcs|B04586|
-151|B04587|HBL MARINA NATURAL 200ML HIJAU @8|Palen|Slop|39000|Jenis: HBL. Merk: Marina Natural. Volume: 200 ml. Warna: Hijau. Isi: 8 pcs|B04587|
-152|B04585|HBL MARINA NATURAL 200ML KUNING @8|Palen|Slop|39000|Jenis: HBL. Merk: Marina Natural. Volume: 200 ml. Warna: Kuning. Isi: 8 pcs|B04585|
+150|B04586|HBL MARINA NATURAL 190ML UNGU @8|Kosmetik|Slop|39000|Jenis: HBL. Merk: Marina Natural. Volume: 190 ml. Warna: Ungu. Isi: 8 pcs|B04586|
+151|B04587|HBL MARINA NATURAL 200ML HIJAU @8|Kosmetik|Slop|39000|Jenis: HBL. Merk: Marina Natural. Volume: 200 ml. Warna: Hijau. Isi: 8 pcs|B04587|
+152|B04585|HBL MARINA NATURAL 200ML KUNING @8|Kosmetik|Slop|39000|Jenis: HBL. Merk: Marina Natural. Volume: 200 ml. Warna: Kuning. Isi: 8 pcs|B04585|
 153|B02298|HBL MARINA NATURAL 200ML ORANGE @8|Kosmetik|Slop|39000|Jenis: HBL. Merk: Marina Natural. Volume: 200 ml. Warna: Orange. Isi: 8 pcs|B02298|
-154|B04867|HBL MARINA NATURAL 200ML PINK @8|Palen|Slop|39000|Jenis: HBL. Merk: Marina Natural. Volume: 200 ml. Warna: Pink. Isi: 8 pcs|B04867|
+154|B04867|HBL MARINA NATURAL 200ML PINK @8|Kosmetik|Slop|39000|Jenis: HBL. Merk: Marina Natural. Volume: 200 ml. Warna: Pink. Isi: 8 pcs|B04867|
 155|704250005|HBL MARINA NATURAL 350ML HIJAU @12|Kosmetik|Pcs|11500|Jenis: HBL. Merk: Marina Natural. Volume: 350 ml. Warna: Hijau. Isi: 12 pcs|704250005|
-156|707250005|HBL MARINA NATURAL 350ML KUNING @12|Palen|Pcs|11500|Jenis: HBL. Merk: Marina Natural. Volume: 350 ml. Warna: Kuning. Isi: 12 pcs|707250005|
+156|707250005|HBL MARINA NATURAL 350ML KUNING @12|Kosmetik|Pcs|11500|Jenis: HBL. Merk: Marina Natural. Volume: 350 ml. Warna: Kuning. Isi: 12 pcs|707250005|
 157|704250004|HBL MARINA NATURAL 350ML ORANGE @12|Kosmetik|Pcs|11500|Jenis: HBL. Merk: Marina Natural. Volume: 350 ml. Warna: Orange. Isi: 12 pcs|704250004|
 158|704250006|HBL MARINA NATURAL 350ML PINK @12|Kosmetik|Pcs|11500|Jenis: HBL. Merk: Marina Natural. Volume: 350 ml. Warna: Pink. Isi: 12 pcs|704250006|
-159|1606250004|HBL MARINA NATURAL 75ML HIJAU @12|Palen|Slop|20000|Jenis: HBL. Merk: Marina Natural. Volume: 75 ml. Warna: Hijau. Isi: 12 pcs|1606250004|
-160|1606250005|HBL MARINA NATURAL 75ML KUNING @12|Palen|Slop|20000|Jenis: HBL. Merk: Marina Natural. Volume: 75 ml. Warna: Kuning. Isi: 12 pcs|1606250005|
-161|1606250006|HBL MARINA NATURAL 75ML ORANGE @12|Palen|Slop|20000|Jenis: HBL. Merk: Marina Natural. Volume: 75 ml. Warna: Orange. Isi: 12 pcs|1606250006|
-162|1606250007|HBL MARINA NATURAL 75ML PINK @12|Palen|Slop|20000|Jenis: HBL. Merk: Marina Natural. Volume: 75 ml. Warna: Pink. Isi: 12 pcs|1606250007|
-163|B02260|HBL MARINA NATURAL 95ML UNGU @12|Palen|Slop|23250|Jenis: HBL. Merk: Marina Natural. Volume: 95 ml. Warna: Ungu. Isi: 12 pcs|B02260|
-164|B03053|SEMIR MIRANDA KECIL MC-1 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-1. Isi: 144 pcs|B03053|
-165|B04575|SEMIR MIRANDA KECIL MC-10 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-10. Isi: 144 pcs|B04575|
-166|B04576|SEMIR MIRANDA KECIL MC-11 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-11. Isi: 144 pcs|B04576|
-167|B04577|SEMIR MIRANDA KECIL MC-12 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-12. Isi: 144 pcs|B04577|
-168|B04579|SEMIR MIRANDA KECIL MC-13 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-13. Isi: 144 pcs|B04579|
-169|B04580|SEMIR MIRANDA KECIL MC-14 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-14. Isi: 144 pcs|B04580|
-170|B04581|SEMIR MIRANDA KECIL MC-15 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-15. Isi: 144 pcs|B04581|
-171|B04582|SEMIR MIRANDA KECIL MC-16 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-16. Isi: 144 pcs|B04582|
-172|B04967|SEMIR MIRANDA KECIL MC-17 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-17. Isi: 144 pcs|B04967|
-173|B04966|SEMIR MIRANDA KECIL MC-18 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-18. Isi: 144 pcs|B04966|
-174|B04969|SEMIR MIRANDA KECIL MC-19 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-19. Isi: 144 pcs|B04969|
-175|B04567|SEMIR MIRANDA KECIL MC-2 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-2. Isi: 144 pcs|B04567|
-176|2003240001|SEMIR MIRANDA KECIL MC-20 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-20. Isi: 144 pcs|2003240001|
-177|311250001|SEMIR MIRANDA KECIL MC-21 @144|Palen|Biji|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-21. Isi: 144 pcs|311250001|
-178|1501260003|SEMIR MIRANDA KECIL MC-22 @144|Palen|Biji|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-22. Isi: 144 pcs|1501260003|
-179|1501260004|SEMIR MIRANDA KECIL MC-23 @144|Palen|Biji|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-23. Isi: 144 pcs|1501260004|
-180|1501260005|SEMIR MIRANDA KECIL MC-24 @144|Palen|Biji|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-24. Isi: 144 pcs|1501260005|
-181|B04568|SEMIR MIRANDA KECIL MC-3 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-3. Isi: 144 pcs|B04568|
-182|B04569|SEMIR MIRANDA KECIL MC-4 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-4. Isi: 144 pcs|B04569|
-183|B04570|SEMIR MIRANDA KECIL MC-5 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-5. Isi: 144 pcs|B04570|
-184|B04571|SEMIR MIRANDA KECIL MC-6 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-6. Isi: 144 pcs|B04571|
-185|B04572|SEMIR MIRANDA KECIL MC-7 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-7. Isi: 144 pcs|B04572|
-186|B04573|SEMIR MIRANDA KECIL MC-8 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-8. Isi: 144 pcs|B04573|
-187|B04574|SEMIR MIRANDA KECIL MC-9 @144|Palen|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-9. Isi: 144 pcs|B04574|
+159|1606250004|HBL MARINA NATURAL 75ML HIJAU @12|Kosmetik|Slop|20000|Jenis: HBL. Merk: Marina Natural. Volume: 75 ml. Warna: Hijau. Isi: 12 pcs|1606250004|
+160|1606250005|HBL MARINA NATURAL 75ML KUNING @12|Kosmetik|Slop|20000|Jenis: HBL. Merk: Marina Natural. Volume: 75 ml. Warna: Kuning. Isi: 12 pcs|1606250005|
+161|1606250006|HBL MARINA NATURAL 75ML ORANGE @12|Kosmetik|Slop|20000|Jenis: HBL. Merk: Marina Natural. Volume: 75 ml. Warna: Orange. Isi: 12 pcs|1606250006|
+162|1606250007|HBL MARINA NATURAL 75ML PINK @12|Kosmetik|Slop|20000|Jenis: HBL. Merk: Marina Natural. Volume: 75 ml. Warna: Pink. Isi: 12 pcs|1606250007|
+163|B02260|HBL MARINA NATURAL 95ML UNGU @12|Kosmetik|Slop|23250|Jenis: HBL. Merk: Marina Natural. Volume: 95 ml. Warna: Ungu. Isi: 12 pcs|B02260|
+164|B03053|SEMIR MIRANDA KECIL MC-1 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-1. Isi: 144 pcs|B03053|
+165|B04575|SEMIR MIRANDA KECIL MC-10 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-10. Isi: 144 pcs|B04575|
+166|B04576|SEMIR MIRANDA KECIL MC-11 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-11. Isi: 144 pcs|B04576|
+167|B04577|SEMIR MIRANDA KECIL MC-12 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-12. Isi: 144 pcs|B04577|
+168|B04579|SEMIR MIRANDA KECIL MC-13 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-13. Isi: 144 pcs|B04579|
+169|B04580|SEMIR MIRANDA KECIL MC-14 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-14. Isi: 144 pcs|B04580|
+170|B04581|SEMIR MIRANDA KECIL MC-15 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-15. Isi: 144 pcs|B04581|
+171|B04582|SEMIR MIRANDA KECIL MC-16 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-16. Isi: 144 pcs|B04582|
+172|B04967|SEMIR MIRANDA KECIL MC-17 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-17. Isi: 144 pcs|B04967|
+173|B04966|SEMIR MIRANDA KECIL MC-18 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-18. Isi: 144 pcs|B04966|
+174|B04969|SEMIR MIRANDA KECIL MC-19 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-19. Isi: 144 pcs|B04969|
+175|B04567|SEMIR MIRANDA KECIL MC-2 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-2. Isi: 144 pcs|B04567|
+176|2003240001|SEMIR MIRANDA KECIL MC-20 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-20. Isi: 144 pcs|2003240001|
+177|311250001|SEMIR MIRANDA KECIL MC-21 @144|Kosmetik|Biji|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-21. Isi: 144 pcs|311250001|
+178|1501260003|SEMIR MIRANDA KECIL MC-22 @144|Kosmetik|Biji|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-22. Isi: 144 pcs|1501260003|
+179|1501260004|SEMIR MIRANDA KECIL MC-23 @144|Kosmetik|Biji|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-23. Isi: 144 pcs|1501260004|
+180|1501260005|SEMIR MIRANDA KECIL MC-24 @144|Kosmetik|Biji|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-24. Isi: 144 pcs|1501260005|
+181|B04568|SEMIR MIRANDA KECIL MC-3 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-3. Isi: 144 pcs|B04568|
+182|B04569|SEMIR MIRANDA KECIL MC-4 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-4. Isi: 144 pcs|B04569|
+183|B04570|SEMIR MIRANDA KECIL MC-5 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-5. Isi: 144 pcs|B04570|
+184|B04571|SEMIR MIRANDA KECIL MC-6 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-6. Isi: 144 pcs|B04571|
+185|B04572|SEMIR MIRANDA KECIL MC-7 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-7. Isi: 144 pcs|B04572|
+186|B04573|SEMIR MIRANDA KECIL MC-8 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-8. Isi: 144 pcs|B04573|
+187|B04574|SEMIR MIRANDA KECIL MC-9 @144|Kosmetik|Pcs|12750|Jenis: Semir. Merk: Miranda. Ukuran: Kecil. Kode: MC-9. Isi: 144 pcs|B04574|
 188|B06964|LIPCREAM NUFACE NO.10 @192|Kosmetik|Pcs|18250|Jenis: Lipcream. Merk: Nuface. No.: 10. Isi: 192 pcs|B06964|
 189|B06965|LIPCREAM NUFACE NO.11 @192|Kosmetik|Pcs|18250|Jenis: Lipcream. Merk: Nuface. No.: 11. Isi: 192 pcs|B06965|
 190|B06966|LIPCREAM NUFACE NO.12 @192|Kosmetik|Pcs|18250|Jenis: Lipcream. Merk: Nuface. No.: 12. Isi: 192 pcs|B06966|
@@ -222,8 +222,8 @@ $rawUmkm = @'
 219|B03326|TISU BASAH MITU 15'S @12|Keperluan Bayi & Anak|Rtg|4200|Merk: Mitu. Jenis: Tisu Basah. Isi: 15's. Isi kemasan: 12 pcs|B03326|
 220|B03028|TISU BASAH MITU 1ST GIRL 4'S @12|Keperluan Bayi & Anak|Pack|24500|Merk: Mitu. Jenis: Tisu Basah. Varian: 1st Girl. Isi: 4's. Isi kemasan: 12 pcs|B03028|
 221|B03027|TISU BASAH MITU TWIN 4'S @12|Keperluan Bayi & Anak|Pack|18250|Merk: Mitu. Jenis: Tisu Basah. Tipe: Twin. Isi: 4's. Isi kemasan: 12 pcs|B03027|
-222|1804250001|PAPAYA BY MAYMAYA BESAR 135GR @96|Palen|Pack|9020|Merk: Maymaya. Jenis: Papaya. Ukuran: Besar. Berat: 135 gram. Isi: 96 pcs|1804250001|
-223|B03513|PAPAYA BY MAYMAYA KECIL 70GR @PCS|Palen|Pcs|5625|Merk: Maymaya. Jenis: Papaya. Ukuran: Kecil. Berat: 70 gram|B03513|
+222|1804250001|PAPAYA BY MAYMAYA BESAR 135GR @96|Kosmetik|Pack|9020|Merk: Maymaya. Jenis: Papaya. Ukuran: Besar. Berat: 135 gram. Isi: 96 pcs|1804250001|
+223|B03513|PAPAYA BY MAYMAYA KECIL 70GR @PCS|Kosmetik|Pcs|5625|Merk: Maymaya. Jenis: Papaya. Ukuran: Kecil. Berat: 70 gram|B03513|
 224|1204250001|PAPAYE FACEWASH SCRUB LECORA 110ML @PCS|Kosmetik|Pack|15750|Merk: Lecora. Jenis: Papaye Facewash Scrub. Volume: 110 ml|1204250001|
 225|B00833|PAPER CLIP NO.3 ESENLON @50|ATK|Pack|13500|Jenis: Paper Clip. Ukuran: No.3. Merk: Esenlon. Isi: 50 pcs|B00833|
 226|B06925|PAPER CLIP NO.3 ESTIKA @50|ATK|Pack|13500|Jenis: Paper Clip. Ukuran: No.3. Merk: Estika. Isi: 50 pcs|B06925|
@@ -237,7 +237,7 @@ $rawUmkm = @'
 234|B02637|PAPERCLIP :KENKO NO.3|ATK|Pcs|12500|Jenis: Paper Clip. Merk: Kenko. Ukuran: No.3|B02637|
 235|B02638|PAPERCLIP KENKO NO.5|ATK|Pcs|8750|Jenis: Paper Clip. Merk: Kenko. Ukuran: No.5|B02638|
 236|B02193|PAPERCLIP WRN VAN-ART|ATK|Pack|44000|Jenis: Paper Clip. Warna: Warna-warni. Merk: Van-Art|B02193|
-237|B03909|PARANET 3MX100M KOKI|ATK|Pcs|725000|Jenis: Paranet. Ukuran: 3 m × 100 m. Merk: Koki|B03909|
+237|B03909|PARANET 3MX100M KOKI|Palen|Pcs|725000|Jenis: Paranet. Ukuran: 3 m × 100 m. Merk: Koki|B03909|
 238|B06218|SOFTEX BEARY COOL 23CM WING 14P @PAK|Palen|Pack|15000|Jenis: Softex. Varian: Beary Cool. Ukuran: 23 cm. Tipe: Wing. Isi: 14P. Satuan: Pak|B06218|
 239|108260017|SOFTEX BEARY COOL NIGHT 23CM WING 14P @PAK|Palen|Pack|15000|Jenis: Softex. Varian: Beary Cool Night. Ukuran: 23 cm. Tipe: Wing. Isi: 14P. Satuan: Pak|108260017|
 240|108260015|SOFTEX BEARY COOL NIGHT 36CM WING @PAK|Palen|Pack|15000|Jenis: Softex. Varian: Beary Cool Night. Ukuran: 36 cm. Tipe: Wing. Satuan: Pak|108260015|
