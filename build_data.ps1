@@ -433,7 +433,7 @@ $fullData = @{
         logoUrl = "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=150&auto=format&fit=crop&q=80"
         phone = "0812-3456-7890"
         email = "kontak@grosirberkahabadi.com"
-        address = "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162"
+        address = "Kawasan Pergudangan Niaga Jaya Blok C No. 12-15, Jakarta Barat"
         operationalHours = "Senin - Sabtu: 07.30 - 17.30 WIB"
         npwp = "01.234.567.8-012.000"
         bannerTitle = "KATALOG RESMI 250+ PRODUK UMKM & 50 ASET INVENTARIS"

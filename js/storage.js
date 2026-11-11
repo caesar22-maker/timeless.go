@@ -17,7 +17,7 @@ const STORAGE_KEY = "GBA_GROSIR_STORE_V5";
 const AUTH_KEY = "GBA_AUTH_ROLE_V1";
 const GOOGLE_AUTH_KEY = "GBA_GOOGLE_EMPLOYEE_ACC_V1";
 const CUSTOMER_ACCOUNT_KEY = "GBA_CUSTOMER_ACCOUNT_V1";
-const EMPLOYEE_PASSWORD = "timeless";
+const EMPLOYEE_PASSWORD = "T1MELESS";
 
 const Storage = {
   // Supabase State
@@ -55,7 +55,7 @@ const Storage = {
     {
       googleEmail: "toko.fatimah.berkah@gmail.com",
       name: "Toko Sembako Berkah (Ibu Fatimah)",
-      address: "Jl. Kolonel Sugiono No. 45 RT 03/RW 04, Gadang, Sukun, Kota Malang, Jawa Timur 65149",
+      address: "Jl. Daan Mogot KM 11 No. 45 RT 03/RW 04, Kalideres, Jakarta Barat",
       phone: "0812-9876-5432",
       avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80"
     },
@@ -138,7 +138,6 @@ const Storage = {
         });
         this.cloudConnected = true;
         this.setupRealtimeListeners();
-        this.setupAuthListeners();
         this.updateSyncBadge();
         console.log("✅ Supabase Client terhubung ke:", cfg.url);
         return this.client;
@@ -994,133 +993,14 @@ const Storage = {
     }
   },
 
-  setupAuthListeners: function() {
-    if (!this.client || !this.client.auth) return;
-    try {
-      this.client.auth.getSession().then(({ data: { session } }) => {
-        if (session && session.user) {
-          this.handleSupabaseAuthSession(session);
-        }
-      }).catch(err => console.warn("Supabase auth session check:", err));
-
-      this.client.auth.onAuthStateChange((event, session) => {
-        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session && session.user) {
-          this.handleSupabaseAuthSession(session);
-        } else if (event === 'SIGNED_OUT') {
-          this.clearGoogleAccount();
-          if (this.getCurrentRole() === 'admin') {
-            this.setRole('customer');
-          }
-          if (typeof App !== 'undefined' && App.updateHeaderUI) {
-            App.updateHeaderUI();
-          }
-        }
-      });
-    } catch (e) {
-      console.warn("Auth listener setup error:", e);
-    }
-  },
-
-  handleSupabaseAuthSession: function(session) {
-    if (!session || !session.user) return;
-    const user = session.user;
-    const email = user.email || "";
-    const name = user.user_metadata?.full_name || user.user_metadata?.name || (email ? email.split('@')[0] : "Pengguna Google");
-    const avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2563eb&color=fff&bold=true`;
-
-    const intent = (typeof localStorage !== 'undefined') ? (localStorage.getItem('GBA_OAUTH_INTENT') || 'buyer') : 'buyer';
-
-    if (intent === 'admin') {
-      // Store real Google account for Admin
-      this.setGoogleAccount({
-        email,
-        name,
-        role: "Staff Admin Toko",
-        avatar,
-        connectedAt: new Date().toISOString()
-      });
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('GBA_OAUTH_INTENT');
-      }
-      if (typeof App !== 'undefined') {
-        App.updateHeaderUI();
-        if (this.getCurrentRole() !== 'admin') {
-          App.openLoginModal();
-          App.showToast(`Akun Google Admin "${name}" terhubung! Masukkan password keamanan admin untuk membuka akses.`, "info");
-        }
-      }
-    } else {
-      // Buyer (customer) mode
-      const existingCust = this.getCustomerAccount() || {};
-      this.setCustomerAccount({
-        googleEmail: email,
-        name: name,
-        phone: existingCust.phone || user.phone || "0812-0000-0000",
-        address: existingCust.address || "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162",
-        avatar: avatar,
-        connectedAt: new Date().toISOString()
-      });
-      this.setRole('customer');
-      if (typeof localStorage !== 'undefined') {
-        localStorage.removeItem('GBA_OAUTH_INTENT');
-      }
-      if (typeof App !== 'undefined') {
-        App.updateHeaderUI();
-        App.showToast(`Selamat datang, ${name}! Berhasil login Pembeli via Akun Google.`, "success");
-      }
-    }
-  },
-
-  signInWithGoogle: async function(roleType = 'buyer') {
-    if (typeof localStorage !== 'undefined') {
-      localStorage.setItem('GBA_OAUTH_INTENT', roleType);
-    }
-    const isBrowser = typeof window !== 'undefined';
-    if (this.client && this.isSupabaseConfigured() && this.client.auth) {
-      try {
-        const redirectUrl = isBrowser ? (window.location.origin + window.location.pathname) : undefined;
-        const { data, error } = await this.client.auth.signInWithOAuth({
-          provider: 'google',
-          options: {
-            redirectTo: redirectUrl,
-            queryParams: {
-              access_type: 'offline',
-              prompt: 'select_account'
-            }
-          }
-        });
-        if (error) {
-          console.warn("Supabase Google OAuth notice:", error.message);
-          // Fallback to interactive Google dialog
-          if (typeof App !== 'undefined') {
-            App.openGoogleAuthModal(roleType === 'admin' ? null : 'CUSTOMER_LOGIN', error.message);
-          }
-          return { success: false, error };
-        }
-        return { success: true, data };
-      } catch (err) {
-        console.warn("Google OAuth exception:", err);
-        if (typeof App !== 'undefined') {
-          App.openGoogleAuthModal(roleType === 'admin' ? null : 'CUSTOMER_LOGIN', err.message);
-        }
-        return { success: false, error: err };
-      }
-    } else {
-      if (typeof App !== 'undefined') {
-        App.openGoogleAuthModal(roleType === 'admin' ? null : 'CUSTOMER_LOGIN');
-      }
-      return { success: true };
-    }
-  },
-
   isGoogleConnected: function() {
     return Boolean(this.getGoogleAccount());
   },
 
   checkPassword: function(inputPass) {
     if (!inputPass) return false;
-    const cleanInput = String(inputPass).trim().toLowerCase();
-    return cleanInput === "timeless" || cleanInput === "t1meless";
+    const cleanInput = String(inputPass).trim();
+    return cleanInput === EMPLOYEE_PASSWORD || cleanInput.toLowerCase() === EMPLOYEE_PASSWORD.toLowerCase();
   },
 
   // ============================================================================

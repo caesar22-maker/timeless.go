@@ -89,19 +89,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-001.jpg",
+            "image": "https://images.unsplash.com/photo-1557597774-9d273605dfa9?w=500&auto=format&fit=crop&q=80",
             "code": "AST-001",
             "specs": "Kamera pengawas IP/analog, resolusi HD/Full HD, infrared/night vision, dilengkapi DVR/NVR",
             "id": "TOOL-001",
             "qty": 22,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "CCTV",
-            "quantity": "22 Unit",
-            "image_url": "images/tools/TOOL-001.jpg"
+            "quantity": "22 Unit"
         },
         {
             "assignedTo": "Staff Operasional (1 Unit)",
@@ -117,19 +116,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-002.jpg",
+            "image": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&auto=format&fit=crop&q=80",
             "code": "AST-002",
             "specs": "Kapasitas angkat Â±2â€“3 ton, tenaga diesel/elektrik, mast hidrolik, garpu adjustable",
             "id": "TOOL-002",
             "qty": 1,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "FORKLIFT",
-            "quantity": "1 Unit",
-            "image_url": "images/tools/TOOL-002.jpg"
+            "quantity": "1 Unit"
         },
         {
             "assignedTo": "Staff Operasional (10 Unit)",
@@ -145,19 +143,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-003.jpg",
+            "image": "https://images.unsplash.com/photo-1513694203232-719a280e022f?w=500&auto=format&fit=crop&q=80",
             "code": "AST-003",
             "specs": "Berbahan besi/aluminium, tinggi Â±2â€“4 meter, anak tangga anti-slip, dilengkapi pengaman",
             "id": "TOOL-003",
             "qty": 10,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "TANGGA GUDANG",
-            "quantity": "10 Unit",
-            "image_url": "images/tools/TOOL-003.jpg"
+            "quantity": "10 Unit"
         },
         {
             "assignedTo": "Staff Operasional (70 Unit)",
@@ -173,23 +170,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-004.jpg",
+            "image": "https://images.unsplash.com/photo-1586528116493-a029325540fa?w=500&auto=format&fit=crop&q=80",
             "code": "AST-004",
             "specs": "Rak penyimpanan berbahan baja, kapasitas Â±200â€“500 kg/level, tinggi dan susunan rak dapat disesuaikan",
             "id": "TOOL-004",
             "qty": 70,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "RAK",
-            "quantity": "70 Unit",
-            "image_url": "images/tools/TOOL-004.jpg"
+            "quantity": "70 Unit"
         },
         {
             "assignedTo": "Staff Operasional (100 Unit)",
-            "category": "Material Handling",
+            "category": "Handling Tool",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -201,23 +197,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-005.jpg",
+            "image": "https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=500&auto=format&fit=crop&q=80",
             "code": "AST-005",
             "specs": "Berbahan plastik/kayu, ukuran Â±110 Ã— 110 cm, kapasitas beban sesuai kebutuhan gudang",
             "id": "TOOL-005",
             "qty": 100,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "PALLET",
-            "quantity": "100 Unit",
-            "image_url": "images/tools/TOOL-005.jpg"
+            "quantity": "100 Unit"
         },
         {
             "assignedTo": "Staff Operasional (28 Unit)",
-            "category": "Office Furniture",
+            "category": "Office & Admin",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -229,23 +224,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-006.jpg",
+            "image": "https://images.unsplash.com/photo-1588702547923-7093a6c3ba33?w=500&auto=format&fit=crop&q=80",
             "code": "AST-006",
             "specs": "Whiteboard, permukaan melamin/porcelain, ukuran Â±120 Ã— 240 cm, dilengkapi frame",
             "id": "TOOL-006",
             "qty": 28,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "PAPAN TULIS",
-            "quantity": "28 Unit",
-            "image_url": "images/tools/TOOL-006.jpg"
+            "quantity": "28 Unit"
         },
         {
             "assignedTo": "Staff Operasional (13 Unit)",
-            "category": "Storage & Racking",
+            "category": "Display & Shop",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -257,19 +251,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-007.jpg",
+            "image": "https://images.unsplash.com/photo-1567401893414-76b7b1e5a7a5?w=500&auto=format&fit=crop&q=80",
             "code": "AST-007",
             "specs": "Etalase kaca dengan rangka aluminium/besi, beberapa tingkat/rak, digunakan untuk display barang",
             "id": "TOOL-007",
             "qty": 13,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "ETALASE",
-            "quantity": "13 Unit",
-            "image_url": "images/tools/TOOL-007.jpg"
+            "quantity": "13 Unit"
         },
         {
             "assignedTo": "Staff Operasional (8 Unit)",
@@ -285,19 +278,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-008.jpg",
+            "image": "https://images.unsplash.com/photo-1587831990711-23ca6441447b?w=500&auto=format&fit=crop&q=80",
             "code": "AST-008",
             "specs": "Processor minimal Core i3/Ryzen 3, RAM â‰¥8 GB, SSD â‰¥256 GB, dilengkapi sistem operasi",
             "id": "TOOL-008",
             "qty": 8,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "PC",
-            "quantity": "8 Unit",
-            "image_url": "images/tools/TOOL-008.jpg"
+            "quantity": "8 Unit"
         },
         {
             "assignedTo": "Staff Operasional (4 Unit)",
@@ -313,19 +305,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-009.jpg",
+            "image": "https://images.unsplash.com/photo-1607344645866-009c320c5ab8?w=500&auto=format&fit=crop&q=80",
             "code": "AST-009",
             "specs": "Barcode scanner USB, teknologi laser/CCD/imager, mendukung barcode 1D/2D",
             "id": "TOOL-009",
             "qty": 4,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "SCANNER BARCODE",
-            "quantity": "4 Unit",
-            "image_url": "images/tools/TOOL-009.jpg"
+            "quantity": "4 Unit"
         },
         {
             "assignedTo": "Staff Operasional (3 Unit)",
@@ -341,19 +332,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-010.jpg",
+            "image": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&auto=format&fit=crop&q=80",
             "code": "AST-010",
             "specs": "Troli model L, rangka besi, roda caster, kapasitas Â±200â€“300 kg",
             "id": "TOOL-010",
             "qty": 3,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "TROLLI L",
-            "quantity": "3 Unit",
-            "image_url": "images/tools/TOOL-010.jpg"
+            "quantity": "3 Unit"
         },
         {
             "assignedTo": "Staff Operasional (20 Unit)",
@@ -369,19 +359,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-011.jpg",
+            "image": "https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=500&auto=format&fit=crop&q=80",
             "code": "AST-011",
             "specs": "Troli dorong manual, rangka besi, 4 roda caster, kapasitas Â±300â€“500 kg",
             "id": "TOOL-011",
             "qty": 20,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "TROLLI DORONG",
-            "quantity": "20 Unit",
-            "image_url": "images/tools/TOOL-011.jpg"
+            "quantity": "20 Unit"
         },
         {
             "assignedTo": "Staff Operasional (50 Unit)",
@@ -397,19 +386,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-012.jpg",
+            "image": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&auto=format&fit=crop&q=80",
             "code": "AST-012",
             "specs": "Troli tarik manual, rangka baja, dilengkapi pegangan/towing handle, kapasitas Â±500â€“1.000 kg",
             "id": "TOOL-012",
             "qty": 50,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "TROLLI TARIK",
-            "quantity": "50 Unit",
-            "image_url": "images/tools/TOOL-012.jpg"
+            "quantity": "50 Unit"
         },
         {
             "assignedTo": "Staff Operasional (4 Unit)",
@@ -425,19 +413,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-013.jpg",
+            "image": "https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=500&auto=format&fit=crop&q=80",
             "code": "AST-013",
             "specs": "Kendaraan box ringan, bak tertutup, kapasitas muatan Â±700â€“1.000 kg",
             "id": "TOOL-013",
             "qty": 4,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "MOBIL BOX KECIL",
-            "quantity": "4 Unit",
-            "image_url": "images/tools/TOOL-013.jpg"
+            "quantity": "4 Unit"
         },
         {
             "assignedTo": "Staff Operasional (2 Unit)",
@@ -453,23 +440,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-014.png",
+            "image": "https://images.unsplash.com/photo-1601584115197-04ecc0da31d7?w=500&auto=format&fit=crop&q=80",
             "code": "AST-014",
             "specs": "Truk bak panjang/long chassis, kapasitas muatan Â±4â€“6 ton",
             "id": "TOOL-014",
             "qty": 2,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "TRUK LONG",
-            "quantity": "2 Unit",
-            "image_url": "images/tools/TOOL-014.png"
+            "quantity": "2 Unit"
         },
         {
             "assignedTo": "Staff Operasional (3 Unit)",
-            "category": "Electrical & Utility",
+            "category": "Facility & Utility",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -481,19 +467,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-015.jpg",
+            "image": "https://images.unsplash.com/photo-1594818379496-da1e345b0ded?w=500&auto=format&fit=crop&q=80",
             "code": "AST-015",
             "specs": "Kipas angin industrial, diameter Â±18â€“24 inch, motor listrik, beberapa pilihan kecepatan",
             "id": "TOOL-015",
             "qty": 3,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "KIPAS ANGIN",
-            "quantity": "3 Unit",
-            "image_url": "images/tools/TOOL-015.jpg"
+            "quantity": "3 Unit"
         },
         {
             "assignedTo": "Staff Operasional (8 Unit)",
@@ -509,19 +494,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-016.png",
+            "image": "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=500&auto=format&fit=crop&q=80",
             "code": "AST-016",
             "specs": "Gagang besi/plastik, kepala sapu berbahan nilon, panjang Â±120 cm, untuk area gudang dan kantor",
             "id": "TOOL-016",
             "qty": 8,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "SAPU",
-            "quantity": "8 Unit",
-            "image_url": "images/tools/TOOL-016.png"
+            "quantity": "8 Unit"
         },
         {
             "assignedTo": "Staff Operasional (3 Unit)",
@@ -537,19 +521,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-017.png",
+            "image": "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=500&auto=format&fit=crop&q=80",
             "code": "AST-017",
             "specs": "Gagang besi/plastik, kepala pel microfiber/katun, panjang Â±120 cm, cocok untuk berbagai jenis lantai",
             "id": "TOOL-017",
             "qty": 3,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "PEL",
-            "quantity": "3 Unit",
-            "image_url": "images/tools/TOOL-017.png"
+            "quantity": "3 Unit"
         },
         {
             "assignedTo": "Staff Operasional (4 Unit)",
@@ -565,23 +548,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-018.png",
+            "image": "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=500&auto=format&fit=crop&q=80",
             "code": "AST-018",
             "specs": "Berbahan plastik kuat, kapasitas Â±10â€“20 liter, dilengkapi pegangan, untuk mengangkat sampah dan kotoran",
             "id": "TOOL-018",
             "qty": 4,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "PENGKI",
-            "quantity": "4 Unit",
-            "image_url": "images/tools/TOOL-018.png"
+            "quantity": "4 Unit"
         },
         {
             "assignedTo": "Staff Operasional (1 Unit)",
-            "category": "Security & Digital",
+            "category": "Digital & Shop",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -593,23 +575,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-019.png",
+            "image": "https://images.unsplash.com/photo-1542751371-adc38448a05e?w=500&auto=format&fit=crop&q=80",
             "code": "AST-019",
             "specs": "LED Display, ukuran Â±32â€“55 inch, resolusi minimal Full HD (1920 Ã— 1080), teknologi LED, tingkat kecerahan Â±300â€“500 cd/mÂ², rasio aspek 16:9, input HDMI/USB",
             "id": "TOOL-019",
             "qty": 1,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "LED DISPLAY",
-            "quantity": "1 Unit",
-            "image_url": "images/tools/TOOL-019.png"
+            "quantity": "1 Unit"
         },
         {
             "assignedTo": "Staff Operasional (2 Unit)",
-            "category": "Cleaning Tools",
+            "category": "Facility & Utility",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -621,23 +602,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-020.png",
+            "image": "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=500&auto=format&fit=crop&q=80",
             "code": "AST-020",
             "specs": "Berbahan plastik, kapasitas Â±20â€“50 liter, dilengkapi tutup/pegangan, mudah dibersihkan",
             "id": "TOOL-020",
             "qty": 2,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "TEMPAT SAMPAH",
-            "quantity": "2 Unit",
-            "image_url": "images/tools/TOOL-020.png"
+            "quantity": "2 Unit"
         },
         {
             "assignedTo": "Staff Operasional (5 Unit)",
-            "category": "Storage & Racking",
+            "category": "Facility & Storage",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -649,19 +629,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-021.jpg",
+            "image": "https://images.unsplash.com/photo-1590496793929-36417d3117de?w=500&auto=format&fit=crop&q=80",
             "code": "AST-021",
             "specs": "Loker besi, Â±6â€“12 pintu, dilengkapi kunci, ventilasi dan label nama",
             "id": "TOOL-021",
             "qty": 5,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "LOKER",
-            "quantity": "5 Unit",
-            "image_url": "images/tools/TOOL-021.jpg"
+            "quantity": "5 Unit"
         },
         {
             "assignedTo": "Staff Operasional (3 Unit)",
@@ -677,19 +656,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-022.jpg",
+            "image": "https://images.unsplash.com/photo-1586528116311-ad8dd3c8310d?w=500&auto=format&fit=crop&q=80",
             "code": "AST-022",
             "specs": "Alat pemadam api ringan, media powder/CO2/foam, kapasitas Â±3â€“6 kg, dilengkapi bracket",
             "id": "TOOL-022",
             "qty": 3,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "APAR",
-            "quantity": "3 Unit",
-            "image_url": "images/tools/TOOL-022.jpg"
+            "quantity": "3 Unit"
         },
         {
             "assignedTo": "Staff Operasional (8 Unit)",
@@ -705,19 +683,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-023.png",
+            "image": "https://images.unsplash.com/photo-1580481077197-28d098e945c1?w=500&auto=format&fit=crop&q=80",
             "code": "AST-023",
             "specs": "Kursi kerja/tunggu, rangka besi/plastik, dudukan ergonomis, kuat dan nyaman digunakan",
             "id": "TOOL-023",
             "qty": 8,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "KURSI",
-            "quantity": "8 Unit",
-            "image_url": "images/tools/TOOL-023.png"
+            "quantity": "8 Unit"
         },
         {
             "assignedTo": "Staff Operasional (8 Unit)",
@@ -733,19 +710,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-024.png",
+            "image": "https://images.unsplash.com/photo-1518455027359-f3f8164ba6bd?w=500&auto=format&fit=crop&q=80",
             "code": "AST-024",
             "specs": "Meja kerja berbahan kayu/metal, ukuran Â±120 Ã— 60 Ã— 75 cm, permukaan kerja kuat dan mudah dibersihkan",
             "id": "TOOL-024",
             "qty": 8,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "MEJA",
-            "quantity": "8 Unit",
-            "image_url": "images/tools/TOOL-024.png"
+            "quantity": "8 Unit"
         },
         {
             "assignedTo": "Staff Operasional (3 Unit)",
@@ -761,23 +737,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-025.jpg",
+            "image": "https://images.unsplash.com/photo-1578575437130-527eed3abbec?w=500&auto=format&fit=crop&q=80",
             "code": "AST-025",
             "specs": "Kapasitas Â±2â€“3 ton, panjang fork Â±1.150 mm, sistem hidrolik manual",
             "id": "TOOL-025",
             "qty": 3,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "HAND PALLET",
-            "quantity": "3 Unit",
-            "image_url": "images/tools/TOOL-025.jpg"
+            "quantity": "3 Unit"
         },
         {
             "assignedTo": "Staff Operasional (2 Unit)",
-            "category": "Storage & Racking",
+            "category": "Facility & Storage",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -789,19 +764,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-026.jpg",
+            "image": "https://images.unsplash.com/photo-1586528116493-a029325540fa?w=500&auto=format&fit=crop&q=80",
             "code": "AST-026",
             "specs": "Gantungan berbahan besi/stainless, dilengkapi hook, digunakan untuk menggantung alat atau barang",
             "id": "TOOL-026",
             "qty": 2,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "GANTUNGAN",
-            "quantity": "2 Unit",
-            "image_url": "images/tools/TOOL-026.jpg"
+            "quantity": "2 Unit"
         },
         {
             "assignedTo": "Staff Operasional (25 Unit)",
@@ -817,19 +791,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-027.jpg",
+            "image": "https://images.unsplash.com/photo-1558494949-ef010cbdcc31?w=500&auto=format&fit=crop&q=80",
             "code": "AST-027",
             "specs": "Saklar listrik AC 220â€“250 V, 1/2 gang, material tahan panas, sesuai standar SNI",
             "id": "TOOL-027",
             "qty": 25,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "SAKLAR",
-            "quantity": "25 Unit",
-            "image_url": "images/tools/TOOL-027.jpg"
+            "quantity": "25 Unit"
         },
         {
             "assignedTo": "Staff Operasional (20 Unit)",
@@ -845,19 +818,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-028.jpg",
+            "image": "https://images.unsplash.com/photo-1534349762230-e0cadf78f5da?w=500&auto=format&fit=crop&q=80",
             "code": "AST-028",
             "specs": "Lampu LED, daya Â±18â€“50 watt, tegangan 220 V, untuk penerangan area gudang",
             "id": "TOOL-028",
             "qty": 20,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "LAMPU",
-            "quantity": "20 Unit",
-            "image_url": "images/tools/TOOL-028.jpg"
+            "quantity": "20 Unit"
         },
         {
             "assignedTo": "Staff Operasional (10 Unit)",
@@ -873,23 +845,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-029.jpg",
+            "image": "https://images.unsplash.com/photo-1544725176-7c40e5a71c5e?w=500&auto=format&fit=crop&q=80",
             "code": "AST-029",
             "specs": "Kabel roll panjang Â±15â€“50 meter, dilengkapi reel, stop kontak dan thermal protection",
             "id": "TOOL-029",
             "qty": 10,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "KABEL ROLL",
-            "quantity": "10 Unit",
-            "image_url": "images/tools/TOOL-029.jpg"
+            "quantity": "10 Unit"
         },
         {
             "assignedTo": "Staff Operasional (1 Unit)",
-            "category": "Electrical & Utility",
+            "category": "Heavy Utility",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -901,23 +872,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-030.jpg",
+            "image": "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=500&auto=format&fit=crop&q=80",
             "code": "AST-030",
             "specs": "Generator diesel/bensin, kapasitas Â±5â€“10 kVA, output 220 V, dilengkapi panel kontrol",
             "id": "TOOL-030",
             "qty": 1,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "GENSET",
-            "quantity": "1 Unit",
-            "image_url": "images/tools/TOOL-030.jpg"
+            "quantity": "1 Unit"
         },
         {
             "assignedTo": "Staff Operasional (1 Unit)",
-            "category": "Safety Equipment",
+            "category": "Safety & Medical",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -929,19 +899,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-031.jpg",
+            "image": "https://images.unsplash.com/photo-1603398938378-e54eab446dde?w=500&auto=format&fit=crop&q=80",
             "code": "AST-031",
             "specs": "Kotak P3K berisi kasa steril, plester, perban, antiseptik, sarung tangan dan perlengkapan pertolongan pertama",
             "id": "TOOL-031",
             "qty": 1,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "P3K",
-            "quantity": "1 Unit",
-            "image_url": "images/tools/TOOL-031.jpg"
+            "quantity": "1 Unit"
         },
         {
             "assignedTo": "Staff Operasional (8 Unit)",
@@ -957,19 +926,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-032.jpg",
+            "image": "https://images.unsplash.com/photo-1527443224154-c4a3942d3acf?w=500&auto=format&fit=crop&q=80",
             "code": "AST-032",
             "specs": "Monitor LED/LCD, ukuran Â±22â€“24 inch, resolusi Full HD, koneksi HDMI/VGA",
             "id": "TOOL-032",
             "qty": 8,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "MONITOR",
-            "quantity": "8 Unit",
-            "image_url": "images/tools/TOOL-032.jpg"
+            "quantity": "8 Unit"
         },
         {
             "assignedTo": "Staff Operasional (8 Unit)",
@@ -985,19 +953,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-033.jpg",
+            "image": "https://images.unsplash.com/photo-1587829741301-dc798b83add3?w=500&auto=format&fit=crop&q=80",
             "code": "AST-033",
             "specs": "Keyboard USB, layout QWERTY, koneksi kabel, kompatibel dengan PC",
             "id": "TOOL-033",
             "qty": 8,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "KEYBOARD",
-            "quantity": "8 Unit",
-            "image_url": "images/tools/TOOL-033.jpg"
+            "quantity": "8 Unit"
         },
         {
             "assignedTo": "Staff Operasional (8 Unit)",
@@ -1013,19 +980,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-034.jpg",
+            "image": "https://images.unsplash.com/photo-1615663245857-ac93bb7c39e7?w=500&auto=format&fit=crop&q=80",
             "code": "AST-034",
             "specs": "Mouse USB optik, minimal 3 tombol, resolusi sensor Â±800â€“1600 DPI",
             "id": "TOOL-034",
             "qty": 8,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "MOUSE",
-            "quantity": "8 Unit",
-            "image_url": "images/tools/TOOL-034.jpg"
+            "quantity": "8 Unit"
         },
         {
             "assignedTo": "Staff Operasional (1 Unit)",
@@ -1041,19 +1007,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-035.png",
+            "image": "https://images.unsplash.com/photo-1558981403-c5f9899a28bc?w=500&auto=format&fit=crop&q=80",
             "code": "AST-035",
             "specs": "Kendaraan/alat operasional roda 3 untuk pengangkutan barang, kapasitas disesuaikan",
             "id": "TOOL-035",
             "qty": 1,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "TOSA",
-            "quantity": "1 Unit",
-            "image_url": "images/tools/TOOL-035.png"
+            "quantity": "1 Unit"
         },
         {
             "assignedTo": "Staff Operasional (3 Unit)",
@@ -1069,19 +1034,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-036.png",
+            "image": "https://images.unsplash.com/photo-1519003722824-194d4455a60c?w=500&auto=format&fit=crop&q=80",
             "code": "AST-036",
             "specs": "Kendaraan operasional/angkutan barang, mesin bensin Â±1,3â€“1,5 L, tipe bak/box sesuai kebutuhan",
             "id": "TOOL-036",
             "qty": 3,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "GRANDMAX",
-            "quantity": "3 Unit",
-            "image_url": "images/tools/TOOL-036.png"
+            "quantity": "3 Unit"
         },
         {
             "assignedTo": "Staff Operasional (7 Unit)",
@@ -1097,19 +1061,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-037.png",
+            "image": "https://images.unsplash.com/photo-1534349762230-e0cadf78f5da?w=500&auto=format&fit=crop&q=80",
             "code": "AST-037",
             "specs": "Lampu LED tube/neon panjang, daya Â±18â€“40 watt, tegangan 220 V, panjang Â±60â€“120 cm, cahaya putih",
             "id": "TOOL-037",
             "qty": 7,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "LAMPU LED NEON PANJANG",
-            "quantity": "7 Unit",
-            "image_url": "images/tools/TOOL-037.png"
+            "quantity": "7 Unit"
         },
         {
             "assignedTo": "Staff Operasional (5 Unit)",
@@ -1125,23 +1088,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-038.png",
+            "image": "https://images.unsplash.com/photo-1586528116493-a029325540fa?w=500&auto=format&fit=crop&q=80",
             "code": "AST-038",
             "specs": "Rak gantung berbahan besi/baja, dilengkapi bracket pengait, kapasitas Â±20â€“50 kg per tingkat",
             "id": "TOOL-038",
             "qty": 5,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "RAK GANTUNG",
-            "quantity": "5 Unit",
-            "image_url": "images/tools/TOOL-038.png"
+            "quantity": "5 Unit"
         },
         {
             "assignedTo": "Staff Operasional (15 Unit)",
-            "category": "Warehouse Tool",
+            "category": "Packing & Tools",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -1153,23 +1115,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-039.png",
+            "image": "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=500&auto=format&fit=crop&q=80",
             "code": "AST-039",
             "specs": "Gunting berbahan stainless steel, ukuran Â±7â€“10 inch, pegangan ergonomis, tajam dan tahan karat",
             "id": "TOOL-039",
             "qty": 15,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "GUNTING",
-            "quantity": "15 Unit",
-            "image_url": "images/tools/TOOL-039.png"
+            "quantity": "15 Unit"
         },
         {
             "assignedTo": "Staff Operasional (10 Unit)",
-            "category": "Warehouse Tool",
+            "category": "Packaging Tools",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -1181,23 +1142,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-040.png",
+            "image": "https://images.unsplash.com/photo-1595246140625-573b715d11dc?w=500&auto=format&fit=crop&q=80",
             "code": "AST-040",
             "specs": "Lakban perekat berbahan polypropylene, lebar Â±48â€“60 mm, panjang Â±50â€“100 meter, daya rekat kuat",
             "id": "TOOL-040",
             "qty": 10,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "LAKBAN",
-            "quantity": "10 Unit",
-            "image_url": "images/tools/TOOL-040.png"
+            "quantity": "10 Unit"
         },
         {
             "assignedTo": "Staff Operasional (2 Unit)",
-            "category": "Warehouse Tool",
+            "category": "Maintenance Tools",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -1209,23 +1169,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-041.png",
+            "image": "https://images.unsplash.com/photo-1581092160607-ee22621dd758?w=500&auto=format&fit=crop&q=80",
             "code": "AST-041",
             "specs": "Set peralatan kerja dalam toolbox, terdiri dari obeng, tang, kunci pas/ring, kunci socket dan perlengkapan dasar",
             "id": "TOOL-041",
             "qty": 2,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "TOOLBOX SET",
-            "quantity": "2 Unit",
-            "image_url": "images/tools/TOOL-041.png"
+            "quantity": "2 Unit"
         },
         {
             "assignedTo": "Staff Operasional (4 Unit)",
-            "category": "Storage & Racking",
+            "category": "Storage & Display",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -1237,19 +1196,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-042.png",
+            "image": "https://images.unsplash.com/photo-1590496793929-36417d3117de?w=500&auto=format&fit=crop&q=80",
             "code": "AST-042",
             "specs": "Panel gantung berbahan besi/plastik berlubang, dilengkapi hook, digunakan untuk penyimpanan alat kerja",
             "id": "TOOL-042",
             "qty": 4,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "PANEL GANTUNG",
-            "quantity": "4 Unit",
-            "image_url": "images/tools/TOOL-042.png"
+            "quantity": "4 Unit"
         },
         {
             "assignedTo": "Staff Operasional (2 Unit)",
@@ -1265,23 +1223,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-043.png",
+            "image": "https://images.unsplash.com/photo-1580481077197-28d098e945c1?w=500&auto=format&fit=crop&q=80",
             "code": "AST-043",
             "specs": "Kursi tunggu dengan rangka besi, dudukan dan sandaran empuk/plastik, kapasitas Â±2â€“3 orang",
             "id": "TOOL-043",
             "qty": 2,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "KURSI TUNGGU",
-            "quantity": "2 Unit",
-            "image_url": "images/tools/TOOL-043.png"
+            "quantity": "2 Unit"
         },
         {
             "assignedTo": "Staff Operasional (4 Unit)",
-            "category": "IT & Digital",
+            "category": "POS & IT",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -1293,23 +1250,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-044.png",
+            "image": "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=500&auto=format&fit=crop&q=80",
             "code": "AST-044",
             "specs": "Printer struk thermal, metode cetak direct thermal, lebar kertas Â±58â€“80 mm, koneksi USB/LAN/Bluetooth",
             "id": "TOOL-044",
             "qty": 4,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "PRINTER STRUK",
-            "quantity": "4 Unit",
-            "image_url": "images/tools/TOOL-044.png"
+            "quantity": "4 Unit"
         },
         {
             "assignedTo": "Staff Operasional (5 Unit)",
-            "category": "Warehouse Tool",
+            "category": "Packing & Tools",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -1321,23 +1277,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-045.png",
+            "image": "https://images.unsplash.com/photo-1583947215259-38e31be8751f?w=500&auto=format&fit=crop&q=80",
             "code": "AST-045",
             "specs": "Cutter dengan gagang ergonomis, mata pisau stainless/carbon steel, sistem pengunci dan mata pisau dapat diganti",
             "id": "TOOL-045",
             "qty": 5,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "CUTTER",
-            "quantity": "5 Unit",
-            "image_url": "images/tools/TOOL-045.png"
+            "quantity": "5 Unit"
         },
         {
             "assignedTo": "Staff Operasional (1 Unit)",
-            "category": "Facility & Utility",
+            "category": "Appliance & Shop",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -1349,19 +1304,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-046.png",
+            "image": "https://images.unsplash.com/photo-1584568694244-14fbdf83bd30?w=500&auto=format&fit=crop&q=80",
             "code": "AST-046",
             "specs": "Kulkas display dengan pintu kaca transparan, kapasitas Â±300â€“500 liter, sistem pendingin elektrik, suhu Â±2â€“8Â°C, rak adjustable, tegangan 220 V",
             "id": "TOOL-046",
             "qty": 1,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "KULKAS DISPLAY",
-            "quantity": "1 Unit",
-            "image_url": "images/tools/TOOL-046.png"
+            "quantity": "1 Unit"
         },
         {
             "assignedTo": "Staff Operasional (2 Unit)",
@@ -1377,19 +1331,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-047.png",
+            "image": "https://images.unsplash.com/photo-1612815154858-60aa4c59eaa6?w=500&auto=format&fit=crop&q=80",
             "code": "AST-047",
             "specs": "Printer inkjet/laser, kecepatan cetak Â±15â€“30 ppm, resolusi hingga 1.200 Ã— 1.200 dpi, koneksi USB/Wi-Fi, mendukung kertas A4",
             "id": "TOOL-047",
             "qty": 2,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "PRINTER",
-            "quantity": "2 Unit",
-            "image_url": "images/tools/TOOL-047.png"
+            "quantity": "2 Unit"
         },
         {
             "assignedTo": "Staff Operasional (4 Unit)",
@@ -1405,23 +1358,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-048.png",
+            "image": "https://images.unsplash.com/photo-1503602642458-232111445657?w=500&auto=format&fit=crop&q=80",
             "code": "AST-048",
             "specs": "Kursi bar dengan rangka besi/kayu, dudukan ergonomis, tinggi dudukan Â±65â€“75 cm, dilengkapi sandaran kaki",
             "id": "TOOL-048",
             "qty": 4,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "KURSI BAR",
-            "quantity": "4 Unit",
-            "image_url": "images/tools/TOOL-048.png"
+            "quantity": "4 Unit"
         },
         {
             "assignedTo": "Staff Operasional (4 Unit)",
-            "category": "IT & Digital",
+            "category": "IT & Network",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -1433,23 +1385,22 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-049.png",
+            "image": "https://images.unsplash.com/photo-1544717305-2782549b5136?w=500&auto=format&fit=crop&q=80",
             "code": "AST-049",
             "specs": "Wi-Fi router, dual band 2.4 GHz/5 GHz, kecepatan hingga Â±1.200 Mbps, port LAN/WAN, mendukung standar IEEE 802.11 ac/ax",
             "id": "TOOL-049",
             "qty": 4,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "WIFI",
-            "quantity": "4 Unit",
-            "image_url": "images/tools/TOOL-049.png"
+            "quantity": "4 Unit"
         },
         {
             "assignedTo": "Staff Operasional (6 Unit)",
-            "category": "IT & Digital",
+            "category": "Office Tools",
             "condition": "Baik",
             "maintenanceLogs": [
                 {
@@ -1461,19 +1412,18 @@ const DEFAULT_STORE_DATA = {
                 }
             ],
             "status": "Tersedia",
-            "image": "images/tools/TOOL-050.png",
+            "image": "https://images.unsplash.com/photo-1587145820266-a5951ee6f620?w=500&auto=format&fit=crop&q=80",
             "code": "AST-050",
             "specs": "Kalkulator elektronik, layar LCD 10â€“12 digit, fungsi aritmatika dasar, persentase, memori, menggunakan baterai/tenaga surya",
             "id": "TOOL-050",
             "qty": 6,
             "purchaseYear": "2024",
             "brand": "Standar Operasional Toko Grosir",
-            "location": "Gudang Kendalpayak Malang",
+            "location": "Gudang Utama & Operasional Toko",
             "lastService": "2026-08-15",
             "nextService": "2026-11-15",
             "name": "KALKULATOR",
-            "quantity": "6 Unit",
-            "image_url": "images/tools/TOOL-050.png"
+            "quantity": "6 Unit"
         }
     ],
     "orders": [
@@ -1490,7 +1440,7 @@ const DEFAULT_STORE_DATA = {
                 {
                     "time": "2026-09-09 09:50",
                     "title": "Armada Truk Berangkat Keluar Gudang Pusat",
-                    "location": "Gudang Pusat Kendalpayak Malang",
+                    "location": "Kawasan Pergudangan Niaga Jaya Blok C",
                     "desc": "Armada Truk Toko GBA 1 (No. Pol B 9821 GBA) diberangkatkan oleh supir Bpk. Joko Santoso."
                 },
                 {
@@ -1656,7 +1606,7 @@ const DEFAULT_STORE_DATA = {
                 {
                     "time": "2026-09-08 14:15",
                     "title": "Armada Berangkat Menuju Lokasi",
-                    "location": "Gudang Pusat Kendalpayak Malang",
+                    "location": "Gudang Niaga Jaya",
                     "desc": "Truk berangkat membawa muatan pesanan."
                 },
                 {
@@ -1704,7 +1654,7 @@ const DEFAULT_STORE_DATA = {
     ],
     "profile": {
         "logoUrl": "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=150&auto=format&fit=crop&q=80",
-        "address": "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162",
+        "address": "Kawasan Pergudangan Niaga Jaya Blok C No. 12-15, Jakarta Barat",
         "logoText": "GBA",
         "bannerImage": "https://images.unsplash.com/photo-1542838132-92c53300491e?w=1200&auto=format&fit=crop&q=80",
         "bannerTitle": "KATALOG RESMI 250+ PRODUK UMKM & 50 ASET INVENTARIS",
