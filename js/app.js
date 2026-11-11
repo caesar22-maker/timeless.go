@@ -179,7 +179,7 @@ const App = {
         } else {
           customerBadge.innerHTML = `
             <button 
-              onclick="Storage.signInWithGoogle('buyer')" 
+              onclick="App.openGoogleAuthModal('CUSTOMER_LOGIN')" 
               class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-blue-500 transition shadow-xs"
               title="Masuk dengan Akun Google untuk berbelanja (1 Akun per Perangkat)"
             >
@@ -411,8 +411,14 @@ const App = {
               </div>
             ` : ''}
             ${errorNotice ? `
-              <div class="mt-2.5 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-[11px] text-left">
-                <i class="fa-solid fa-triangle-exclamation mr-1"></i> ${Util.escapeHtml(errorNotice)}
+              <div class="mt-3 p-3 bg-amber-50 border border-amber-300 rounded-xl text-amber-900 text-xs text-left leading-relaxed">
+                <div class="font-bold flex items-center gap-1.5 text-amber-800 mb-1">
+                  <i class="fa-solid fa-circle-exclamation text-amber-600"></i> Info Provider Google Supabase
+                </div>
+                <p class="text-[11px] text-amber-800">${Util.escapeHtml(errorNotice)}</p>
+                <div class="mt-2 pt-2 border-t border-amber-200 text-[10px] text-slate-600">
+                  <span class="font-bold text-slate-800">Solusi Cepat:</span> Anda dapat langsung masuk dengan memasukkan akun Google Anda di bagian <em>"Gunakan Akun Google Asli Anda"</em> di bawah ini tanpa perlu konfigurasi OAuth di Supabase.
+                </div>
               </div>
             ` : ''}
           </div>
@@ -422,6 +428,7 @@ const App = {
             <!-- Direct OAuth Button -->
             <button 
               type="button" 
+              id="direct-oauth-btn"
               onclick="App.triggerDirectOAuth('${isBuyer ? 'buyer' : 'admin'}')" 
               class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center justify-center gap-2"
             >
@@ -472,7 +479,7 @@ const App = {
                     id="custom-google-email" 
                     required 
                     placeholder="nama.anda@gmail.com" 
-                    class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500" 
+                    class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono" 
                   />
                 </div>
                 <div>
@@ -481,10 +488,28 @@ const App = {
                     id="custom-google-name" 
                     required 
                     placeholder="Nama Lengkap Anda..." 
-                    class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500" 
+                    class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-semibold" 
                   />
                 </div>
-                <button type="submit" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5">
+                ${isBuyer ? `
+                <div>
+                  <input 
+                    type="text" 
+                    id="custom-google-phone" 
+                    placeholder="Nomor WhatsApp (Contoh: 0812-3456-7890)" 
+                    class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 font-mono" 
+                  />
+                </div>
+                <div>
+                  <textarea 
+                    id="custom-google-address" 
+                    rows="2"
+                    placeholder="Alamat Lengkap Pengiriman di Malang / Sekitarnya..." 
+                    class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500 leading-relaxed" 
+                  ></textarea>
+                </div>
+                ` : ''}
+                <button type="submit" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-sm">
                   <i class="fa-brands fa-google text-red-400"></i> Masuk dengan Akun Ini
                 </button>
               </form>
@@ -503,9 +528,20 @@ const App = {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
-  triggerDirectOAuth: function(roleType) {
-    this.closeModal('google-auth-modal');
-    Storage.signInWithGoogle(roleType);
+  triggerDirectOAuth: async function(roleType) {
+    const btn = document.getElementById("direct-oauth-btn");
+    const originalText = btn ? btn.innerHTML : "";
+    if (btn) {
+      btn.innerHTML = `<i class="fa-solid fa-spinner fa-spin mr-1.5"></i> Memeriksa Google OAuth...`;
+      btn.disabled = true;
+    }
+    const res = await Storage.signInWithGoogle(roleType);
+    if (!res || !res.success) {
+      if (btn) {
+        btn.innerHTML = originalText || `<i class="fa-brands fa-google text-white text-sm"></i> <span>Login via Google OAuth (Browser)</span>`;
+        btn.disabled = false;
+      }
+    }
   },
 
   selectGoogleAccount: function(email, name, role, avatar, targetTab) {
@@ -517,7 +553,7 @@ const App = {
         return;
       }
       const existing = Storage.getCustomerAccount() || {};
-      Storage.setCustomerAccount({
+      const saved = Storage.setCustomerAccount({
         googleEmail: email,
         name: name,
         phone: existing.phone || "0812-9876-5432",
@@ -525,6 +561,10 @@ const App = {
         avatar: avatar,
         connectedAt: new Date().toISOString()
       });
+      if (!saved) {
+        this.showToast("Gagal: Perangkat ini sudah memiliki 1 akun pembeli aktif lain. Harap logout akun lama terlebih dahulu!", "error", 6000);
+        return;
+      }
       Storage.setRole("customer");
       this.closeModal('google-auth-modal');
       this.showToast(`Selamat datang, ${name}! Login Pembeli via Google berhasil.`, "success");
@@ -554,14 +594,23 @@ const App = {
         return;
       }
       const existing = Storage.getCustomerAccount() || {};
-      Storage.setCustomerAccount({
+      const phoneInput = document.getElementById("custom-google-phone")?.value.trim();
+      const addressInput = document.getElementById("custom-google-address")?.value.trim();
+
+      const saved = Storage.setCustomerAccount({
         googleEmail: email,
         name: name,
-        phone: existing.phone || "0812-0000-0000",
-        address: existing.address || "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162",
+        phone: phoneInput || existing.phone || "0812-9876-5432",
+        address: addressInput || existing.address || "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162",
         avatar: avatar,
         connectedAt: new Date().toISOString()
       });
+      if (!saved) {
+        const activeBuyer = Storage.getCustomerAccount();
+        const activeEmail = activeBuyer ? activeBuyer.googleEmail : "akun lain";
+        this.showToast(`Gagal: Perangkat ini dibatasi untuk 1 akun pembeli aktif (${activeEmail}). Harap logout akun lama terlebih dahulu!`, "error", 6000);
+        return;
+      }
       Storage.setRole("customer");
       this.closeModal('google-auth-modal');
       this.showToast(`Selamat datang, ${name}! Login Pembeli via Google berhasil.`, "success");

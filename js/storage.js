@@ -1089,22 +1089,67 @@ const Storage = {
     if (this.client && this.isSupabaseConfigured() && this.client.auth) {
       try {
         const redirectUrl = isBrowser ? (window.location.origin + window.location.pathname) : undefined;
+        // Gunakan skipBrowserRedirect: true agar kita bisa memverifikasi ketersediaan provider sebelum navigasi halaman
         const { data, error } = await this.client.auth.signInWithOAuth({
           provider: 'google',
           options: {
             redirectTo: redirectUrl,
+            skipBrowserRedirect: true,
             queryParams: {
               access_type: 'offline',
               prompt: 'select_account'
             }
           }
         });
+
         if (error) {
           console.warn("Supabase Google OAuth notice:", error.message);
           if (typeof App !== 'undefined') {
-            App.openGoogleAuthModal(roleType === 'admin' ? null : 'CUSTOMER_LOGIN', error.message);
+            App.openGoogleAuthModal(
+              roleType === 'admin' ? null : 'CUSTOMER_LOGIN',
+              "Provider Google OAuth belum diaktifkan di Supabase: " + error.message
+            );
           }
           return { success: false, error };
+        }
+
+        if (data && data.url) {
+          try {
+            // Lakukan pengecekan probe ke URL Supabase authorize sebelum memindahkan jendela browser
+            const probe = await fetch(data.url, {
+              method: 'GET',
+              headers: { 'Origin': isBrowser ? window.location.origin : 'http://localhost' }
+            });
+
+            if (!probe.ok) {
+              const errJson = await probe.json().catch(() => ({}));
+              const msg = errJson.msg || "Unsupported provider: provider is not enabled";
+              console.warn("Supabase Google provider probe status:", probe.status, msg);
+              if (typeof App !== 'undefined') {
+                App.openGoogleAuthModal(
+                  roleType === 'admin' ? null : 'CUSTOMER_LOGIN',
+                  `Provider Google OAuth belum diaktifkan di dashboard Supabase (${msg}). Anda tetap bisa langsung login menggunakan formulir Akun Google di bawah ini tanpa perlu konfigurasi OAuth server!`
+                );
+                if (App.showToast) {
+                  App.showToast("Provider Google belum aktif di Supabase. Gunakan formulir Akun Google di bawah.", "warning", 6000);
+                }
+              }
+              return { success: false, message: msg };
+            }
+
+            // Provider aktif dan valid: alihkan browser ke halaman autentikasi Google
+            window.location.href = data.url;
+            return { success: true, data };
+          } catch (probeErr) {
+            console.warn("Probe request exception:", probeErr);
+            if (typeof App !== 'undefined') {
+              App.openGoogleAuthModal(
+                roleType === 'admin' ? null : 'CUSTOMER_LOGIN',
+                "Koneksi OAuth Google tidak dapat diverifikasi ke Supabase. Silakan langsung masuk menggunakan akun Google Anda di bawah."
+              );
+            }
+            return { success: false, error: probeErr };
+          }
         }
         return { success: true, data };
       } catch (err) {
