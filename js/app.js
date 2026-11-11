@@ -155,26 +155,36 @@ const App = {
       if (customerBadge) {
         if (custAcc && custAcc.googleEmail) {
           customerBadge.innerHTML = `
-            <button 
-              onclick="App.openCustomerProfileModal()" 
-              class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-white text-slate-800 border border-slate-300 hover:border-blue-500 hover:bg-blue-50/50 shadow-xs transition"
-              title="Profil Akun Pembeli: ${Util.escapeHtml(custAcc.name)} (${Util.escapeHtml(custAcc.googleEmail)})"
-            >
-              <img src="${custAcc.avatar || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100'}" class="w-5 h-5 rounded-full object-cover border border-blue-400" />
-              <span class="max-w-[120px] sm:max-w-[160px] truncate flex items-center gap-1 font-semibold">
-                <i class="fa-brands fa-google text-red-500 text-[11px]"></i> ${Util.escapeHtml(custAcc.name)}
-              </span>
-              <i class="fa-solid fa-pen text-[10px] text-slate-400 hover:text-blue-600"></i>
-            </button>
+            <div class="flex items-center gap-1.5">
+              <button 
+                onclick="App.openCustomerProfileModal()" 
+                class="flex items-center gap-2 px-3 py-1.5 rounded-full text-xs font-bold bg-white text-slate-800 border border-slate-300 hover:border-blue-500 hover:bg-blue-50/50 shadow-xs transition"
+                title="Profil Pembeli: ${Util.escapeHtml(custAcc.name)} (${Util.escapeHtml(custAcc.googleEmail)})"
+              >
+                <img src="${custAcc.avatar || 'https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=100'}" class="w-5 h-5 rounded-full object-cover border border-blue-400" />
+                <span class="max-w-[120px] sm:max-w-[160px] truncate flex items-center gap-1 font-semibold">
+                  <i class="fa-brands fa-google text-red-500 text-[11px]"></i> ${Util.escapeHtml(custAcc.name)}
+                </span>
+                <span class="text-[10px] text-emerald-700 bg-emerald-50 px-1.5 py-0.5 rounded border border-emerald-200 font-mono">Pembeli</span>
+              </button>
+              <button 
+                onclick="App.logoutBuyer()" 
+                class="p-1.5 text-slate-400 hover:text-rose-600 rounded-lg hover:bg-rose-50 transition" 
+                title="Keluar dari akun pembeli ini"
+              >
+                <i class="fa-solid fa-arrow-right-from-bracket text-xs"></i>
+              </button>
+            </div>
           `;
         } else {
           customerBadge.innerHTML = `
             <button 
-              onclick="App.openCustomerProfileModal()" 
-              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-amber-50 text-amber-900 border border-amber-300 hover:bg-amber-100 transition shadow-xs"
+              onclick="Storage.signInWithGoogle('buyer')" 
+              class="flex items-center gap-1.5 px-3 py-1.5 rounded-full text-xs font-bold bg-white hover:bg-slate-50 text-slate-700 border border-slate-300 hover:border-blue-500 transition shadow-xs"
+              title="Masuk dengan Akun Google untuk berbelanja (1 Akun per Perangkat)"
             >
-              <i class="fa-brands fa-google text-red-500"></i>
-              <span>Daftar / Akun Pembeli</span>
+              <svg class="w-3.5 h-3.5" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
+              <span>Login Google (Pembeli)</span>
             </button>
           `;
         }
@@ -368,9 +378,11 @@ const App = {
     }
   },
 
-  // GOOGLE AUTH MODAL (SELECTION & REGISTRATION)
-  openGoogleAuthModal: function(targetTab = null) {
-    const defaultAccounts = Storage.DEFAULT_GOOGLE_ACCOUNTS;
+  // GOOGLE AUTH MODAL (SELECTION & REGISTRATION FOR BUYERS & ADMINS)
+  openGoogleAuthModal: function(targetTab = null, errorNotice = null) {
+    const isBuyer = (targetTab === 'CUSTOMER_LOGIN');
+    const defaultAccounts = isBuyer ? Storage.DEFAULT_CUSTOMER_ACCOUNTS : Storage.DEFAULT_GOOGLE_ACCOUNTS;
+    const currentBuyer = Storage.getCustomerAccount();
 
     const modalHtml = `
       <div class="fixed inset-0 z-[60] flex items-center justify-center p-4 modal-backdrop" id="google-auth-modal">
@@ -378,43 +390,88 @@ const App = {
           <!-- Google Header -->
           <div class="p-6 border-b border-slate-100 flex flex-col items-center text-center">
             <svg class="w-10 h-10 mb-2" viewBox="0 0 24 24"><path fill="#4285F4" d="M22.56 12.25c0-.78-.07-1.53-.2-2.25H12v4.26h5.92c-.26 1.37-1.04 2.53-2.21 3.31v2.77h3.57c2.08-1.92 3.28-4.74 3.28-8.09z"/><path fill="#34A853" d="M12 23c2.97 0 5.46-.98 7.28-2.66l-3.57-2.77c-.98.66-2.23 1.06-3.71 1.06-2.86 0-5.29-1.93-6.16-4.53H2.18v2.84C3.99 20.53 7.7 23 12 23z"/><path fill="#FBBC05" d="M5.84 14.09c-.22-.66-.35-1.36-.35-2.09s.13-1.43.35-2.09V7.06H2.18C1.43 8.55 1 10.22 1 12s.43 3.45 1.18 4.94l2.85-2.22.81-.63z"/><path fill="#EA4335" d="M12 5.38c1.62 0 3.06.56 4.21 1.64l3.15-3.15C17.45 2.09 14.97 1 12 1 7.7 1 3.99 3.47 2.18 7.06l3.66 2.84c.87-2.6 3.3-4.52 6.16-4.52z"/></svg>
-            <h3 class="text-base font-bold text-slate-800">Login dengan Google</h3>
-            <p class="text-xs text-slate-500 mt-1">Pilih akun Google admin terdaftar atau daftarkan akun baru untuk melanjutkan.</p>
+            <h3 class="text-base font-bold text-slate-800">
+              ${isBuyer ? 'Login Pembeli dengan Google' : 'Autentikasi Akun Google Admin'}
+            </h3>
+            <p class="text-xs text-slate-500 mt-1">
+              ${isBuyer 
+                ? 'Masuk dengan Akun Google Anda untuk memesan barang. Dibatasi 1 akun pembeli aktif per perangkat.' 
+                : 'Masuk dengan Akun Google admin, lalu masukkan password keamanan admin ("timeless").'}
+            </p>
+            ${isBuyer && currentBuyer ? `
+              <div class="mt-2.5 p-2.5 bg-blue-50 border border-blue-200 rounded-xl text-blue-900 text-xs text-left flex items-start gap-2">
+                <i class="fa-solid fa-mobile-screen text-blue-600 mt-0.5"></i>
+                <div class="flex-1 min-w-0">
+                  <p class="font-bold">1 Akun Aktif di Perangkat Ini:</p>
+                  <p class="truncate text-[11px] text-blue-800">${Util.escapeHtml(currentBuyer.name)} (${Util.escapeHtml(currentBuyer.googleEmail)})</p>
+                  <button type="button" onclick="App.logoutBuyer(); App.closeModal('google-auth-modal');" class="mt-1 text-[11px] font-bold text-rose-600 hover:text-rose-800 underline">
+                    Keluar dari Akun Ini Terlebih Dahulu
+                  </button>
+                </div>
+              </div>
+            ` : ''}
+            ${errorNotice ? `
+              <div class="mt-2.5 p-2 bg-amber-50 border border-amber-200 rounded-lg text-amber-800 text-[11px] text-left">
+                <i class="fa-solid fa-triangle-exclamation mr-1"></i> ${Util.escapeHtml(errorNotice)}
+              </div>
+            ` : ''}
           </div>
 
           <!-- Account Selection -->
           <div class="p-6 space-y-4 max-h-[60vh] overflow-y-auto">
-            <span class="text-[11px] font-bold uppercase text-slate-400 tracking-wider block">Pilih Akun Terverifikasi:</span>
+            <!-- Direct OAuth Button -->
+            <button 
+              type="button" 
+              onclick="App.triggerDirectOAuth('${isBuyer ? 'buyer' : 'admin'}')" 
+              class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center justify-center gap-2"
+            >
+              <i class="fa-brands fa-google text-white text-sm"></i>
+              <span>Login via Google OAuth (Browser)</span>
+            </button>
+
+            <div class="relative flex py-1 items-center">
+              <div class="flex-grow border-t border-slate-200"></div>
+              <span class="flex-shrink mx-3 text-slate-400 text-[10px] uppercase font-bold tracking-wider">Atau Pilih / Masukkan Akun</span>
+              <div class="flex-grow border-t border-slate-200"></div>
+            </div>
+
+            <span class="text-[11px] font-bold uppercase text-slate-400 tracking-wider block">Pilih Akun Tersedia:</span>
             
             <div class="space-y-2">
-              ${defaultAccounts.map(acc => `
-                <div 
-                  onclick="App.selectGoogleAccount('${acc.email}', '${acc.name}', '${acc.role}', '${acc.avatar}', '${targetTab || ''}')"
-                  class="p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 cursor-pointer transition flex items-center justify-between group"
-                >
-                  <div class="flex items-center gap-3">
-                    <img src="${acc.avatar}" class="w-10 h-10 rounded-full object-cover border border-slate-300 group-hover:border-blue-500" />
-                    <div>
-                      <p class="text-xs font-bold text-slate-900 group-hover:text-blue-700">${acc.name}</p>
-                      <p class="text-[11px] text-slate-500 font-mono">${acc.email}</p>
-                      <span class="text-[10px] text-slate-400">${acc.role}</span>
+              ${defaultAccounts.map(acc => {
+                const email = isBuyer ? acc.googleEmail : acc.email;
+                const name = acc.name;
+                const role = isBuyer ? 'Akun Pembeli' : acc.role;
+                const avatar = acc.avatar;
+                return `
+                  <div 
+                    onclick="App.selectGoogleAccount('${email}', '${name.replace(/'/g, "\\'")}', '${role}', '${avatar}', '${targetTab || ''}')"
+                    class="p-3 rounded-xl border border-slate-200 hover:border-blue-500 hover:bg-blue-50/50 cursor-pointer transition flex items-center justify-between group"
+                  >
+                    <div class="flex items-center gap-3">
+                      <img src="${avatar}" class="w-10 h-10 rounded-full object-cover border border-slate-300 group-hover:border-blue-500" />
+                      <div>
+                        <p class="text-xs font-bold text-slate-900 group-hover:text-blue-700">${name}</p>
+                        <p class="text-[11px] text-slate-500 font-mono">${email}</p>
+                        <span class="text-[10px] text-slate-400">${role}</span>
+                      </div>
                     </div>
+                    <i class="fa-solid fa-chevron-right text-xs text-slate-300 group-hover:text-blue-600 transition"></i>
                   </div>
-                  <i class="fa-solid fa-chevron-right text-xs text-slate-300 group-hover:text-blue-600 transition"></i>
-                </div>
-              `).join('')}
+                `;
+              }).join('')}
             </div>
 
             <!-- Custom Account Register / Input -->
             <div class="pt-3 border-t border-slate-100">
-              <span class="text-[11px] font-bold uppercase text-slate-400 tracking-wider block mb-2">Atau Gunakan / Daftar Akun Google Lain:</span>
+              <span class="text-[11px] font-bold uppercase text-slate-400 tracking-wider block mb-2">Gunakan Akun Google Asli Anda:</span>
               <form onsubmit="App.registerGoogleAccount(event, '${targetTab || ''}')" class="space-y-2.5">
                 <div>
                   <input 
                     type="email" 
                     id="custom-google-email" 
                     required 
-                    placeholder="admin.grosir@gmail.com" 
+                    placeholder="nama.anda@gmail.com" 
                     class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500" 
                   />
                 </div>
@@ -423,12 +480,12 @@ const App = {
                     type="text" 
                     id="custom-google-name" 
                     required 
-                    placeholder="Nama Lengkap Admin..." 
+                    placeholder="Nama Lengkap Anda..." 
                     class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg focus:ring-1 focus:ring-blue-500" 
                   />
                 </div>
                 <button type="submit" class="w-full py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5">
-                  <i class="fa-brands fa-google text-red-400"></i> Sambungkan Akun Ini
+                  <i class="fa-brands fa-google text-red-400"></i> Masuk dengan Akun Ini
                 </button>
               </form>
             </div>
@@ -446,12 +503,39 @@ const App = {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
-  selectGoogleAccount: function(email, name, role, avatar, targetTab) {
-    Storage.setGoogleAccount({ email, name, role, avatar, connectedAt: new Date().toISOString() });
+  triggerDirectOAuth: function(roleType) {
     this.closeModal('google-auth-modal');
-    this.closeModal('auth-login-modal');
-    this.showToast(`Akun Google "${name}" (${email}) berhasil terhubung!`, "info");
-    this.openLoginModal(targetTab);
+    Storage.signInWithGoogle(roleType);
+  },
+
+  selectGoogleAccount: function(email, name, role, avatar, targetTab) {
+    const isBuyer = (targetTab === 'CUSTOMER_LOGIN');
+    if (isBuyer) {
+      const check = Storage.canLoginBuyerOnDevice(email);
+      if (!check.allowed) {
+        this.showToast(check.message, "warning");
+        return;
+      }
+      const existing = Storage.getCustomerAccount() || {};
+      Storage.setCustomerAccount({
+        googleEmail: email,
+        name: name,
+        phone: existing.phone || "0812-9876-5432",
+        address: existing.address || "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162",
+        avatar: avatar,
+        connectedAt: new Date().toISOString()
+      });
+      Storage.setRole("customer");
+      this.closeModal('google-auth-modal');
+      this.showToast(`Selamat datang, ${name}! Login Pembeli via Google berhasil.`, "success");
+      this.updateHeaderUI();
+    } else {
+      Storage.setGoogleAccount({ email, name, role, avatar, connectedAt: new Date().toISOString() });
+      this.closeModal('google-auth-modal');
+      this.closeModal('auth-login-modal');
+      this.showToast(`Akun Google Admin "${name}" (${email}) berhasil terhubung!`, "info");
+      this.openLoginModal(targetTab);
+    }
   },
 
   registerGoogleAccount: function(event, targetTab) {
@@ -461,11 +545,41 @@ const App = {
     if (!email || !name) return;
 
     const avatar = `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2563eb&color=fff&bold=true`;
-    Storage.setGoogleAccount({ email, name, role: "Staff Admin Toko", avatar, connectedAt: new Date().toISOString() });
-    this.closeModal('google-auth-modal');
-    this.closeModal('auth-login-modal');
-    this.showToast(`Akun Google "${name}" berhasil terdaftar & terhubung!`, "info");
-    this.openLoginModal(targetTab);
+    const isBuyer = (targetTab === 'CUSTOMER_LOGIN');
+
+    if (isBuyer) {
+      const check = Storage.canLoginBuyerOnDevice(email);
+      if (!check.allowed) {
+        this.showToast(check.message, "warning");
+        return;
+      }
+      const existing = Storage.getCustomerAccount() || {};
+      Storage.setCustomerAccount({
+        googleEmail: email,
+        name: name,
+        phone: existing.phone || "0812-0000-0000",
+        address: existing.address || "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162",
+        avatar: avatar,
+        connectedAt: new Date().toISOString()
+      });
+      Storage.setRole("customer");
+      this.closeModal('google-auth-modal');
+      this.showToast(`Selamat datang, ${name}! Login Pembeli via Google berhasil.`, "success");
+      this.updateHeaderUI();
+    } else {
+      Storage.setGoogleAccount({ email, name, role: "Staff Admin Toko", avatar, connectedAt: new Date().toISOString() });
+      this.closeModal('google-auth-modal');
+      this.closeModal('auth-login-modal');
+      this.showToast(`Akun Google "${name}" terdaftar & terhubung!`, "info");
+      this.openLoginModal(targetTab);
+    }
+  },
+
+  logoutBuyer: function() {
+    Storage.clearCustomerAccount();
+    this.updateHeaderUI();
+    this.showToast("Anda telah keluar dari akun pembeli. Perangkat ini siap digunakan akun lain.", "info");
+    this.switchTab("shop");
   },
 
   logout: function() {
@@ -507,6 +621,22 @@ const App = {
           <!-- Body Form -->
           <form onsubmit="App.saveCustomerProfile(event)" class="p-6 overflow-y-auto space-y-4 flex-1">
             
+            <!-- Device Restriction Indicator -->
+            <div class="p-3 bg-blue-50/70 border border-blue-200 rounded-xl flex items-center justify-between text-xs">
+              <div class="flex items-center gap-2.5">
+                <div class="w-7 h-7 rounded-lg bg-blue-600 text-white flex items-center justify-center text-xs">
+                  <i class="fa-solid fa-mobile-screen-button"></i>
+                </div>
+                <div>
+                  <span class="font-bold text-slate-800">Proteksi Perangkat: 1 Akun Pembeli Aktif</span>
+                  <p class="text-[11px] text-slate-500">ID Perangkat: <span class="font-mono text-[10px] text-slate-700 font-bold">${Storage.getDeviceId()}</span></p>
+                </div>
+              </div>
+              <span class="px-2.5 py-1 rounded-full text-[10px] font-bold ${cust.googleEmail ? 'bg-emerald-100 text-emerald-800 border border-emerald-300' : 'bg-amber-100 text-amber-800 border border-amber-300'}">
+                ${cust.googleEmail ? 'Aktif: ' + Util.escapeHtml(cust.googleEmail.split('@')[0]) : 'Siap Ditautkan'}
+              </span>
+            </div>
+
             <!-- Quick Preset Customer Selection -->
             <div class="bg-slate-50 p-3.5 rounded-xl border border-slate-200">
               <span class="text-[11px] font-bold uppercase text-slate-500 tracking-wider block mb-2">Pilih Cepat Akun Contoh Terdaftar:</span>
@@ -585,7 +715,7 @@ const App = {
                 id="cust-address-input" 
                 required 
                 rows="3" 
-                placeholder="Contoh: Jl. Daan Mogot KM 11 No. 45 RT 03/RW 04, Kelurahan Cengkareng Timur, Kalideres, Jakarta Barat (Patokan depan Masjid Jami)" 
+                placeholder="Contoh: Jl. Raya Kendalpayak No. 1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162 (Patokan depan Masjid Jami)" 
                 class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white leading-relaxed"
               >${Util.escapeHtml(cust.address || '')}</textarea>
               <p class="text-[11px] text-slate-500 mt-1">Alamat ini akan otomatis dijadikan titik tujuan rute armada pengiriman live GPS.</p>
@@ -651,7 +781,13 @@ const App = {
       updatedAt: new Date().toISOString()
     };
 
-    Storage.setCustomerAccount(accountObj);
+    const saved = Storage.setCustomerAccount(accountObj);
+    if (!saved) {
+      const activeBuyer = Storage.getCustomerAccount();
+      const activeEmail = activeBuyer ? activeBuyer.googleEmail : "akun lain";
+      this.showToast(`Gagal: Perangkat ini dibatasi untuk 1 akun pembeli. Saat ini aktif akun "${activeEmail}". Harap logout akun lama terlebih dahulu!`, "error", 6000);
+      return;
+    }
     this.closeModal('customer-profile-modal');
     this.showToast(`Akun Pembeli "${name}" (${googleEmail}) berhasil disimpan!`, "success");
     this.updateHeaderUI();

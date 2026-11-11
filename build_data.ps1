@@ -1,4 +1,4 @@
-# PowerShell Script to assemble complete UMKM (250 products) and INVENTARIS (50 tools) dataset into js/data.js
+﻿# PowerShell Script to assemble complete UMKM (250 products) and INVENTARIS (50 tools) dataset into js/data.js
 
 $rawUmkm = @'
 1|1905260001|BLASTOZ COKLAT ARTA @6|Sembako|Pack|21650|Rasa: Cokelat (Chocolate), Berat Bersih per Buah: 24 gram, Isi per Box: 12 pcs, Berat Total per Box: Sekitar 288-300g|1905260001|BEST SELLER
@@ -433,7 +433,7 @@ $fullData = @{
         logoUrl = "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=150&auto=format&fit=crop&q=80"
         phone = "0812-3456-7890"
         email = "kontak@grosirberkahabadi.com"
-        address = "Kawasan Pergudangan Niaga Jaya Blok C No. 12-15, Jakarta Barat"
+        address = "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162"
         operationalHours = "Senin - Sabtu: 07.30 - 17.30 WIB"
         npwp = "01.234.567.8-012.000"
         bannerTitle = "KATALOG RESMI 250+ PRODUK UMKM & 50 ASET INVENTARIS"
@@ -555,8 +555,8 @@ $fullData = @{
             id = "ORD-20260902-882"
             customerName = "Toko Sembako Berkah Jaya (Ibu Fatimah)"
             customerPhone = "0812-9876-5432"
-            customerAddress = "Jl. Raya Daan Mogot KM 14 No. 28, Kalideres, Jakarta Barat"
-            deliveryMethod = "Truk Toko GBA (Gratis Jabodetabek)"
+            customerAddress = "Jl. Kolonel Sugiono No. 45 RT 03/RW 04, Gadang, Sukun, Kota Malang, Jawa Timur 65149"
+            deliveryMethod = "Truk Toko GBA (Area Malang Raya)"
             paymentMethod = "Transfer Bank BCA (Otomatis)"
             notes = "Mohon ditumpuk rapi di bagian depan toko, kirim pagi hari."
             status = "Dalam Pengiriman"
@@ -564,7 +564,7 @@ $fullData = @{
             packingStaff = "Agus Prasetyo (Gudang Blok B)"
             qcNotes = "Seluruh 35 barang dicek utuh, masa kedaluwarsa 2027, tersegel kuat"
             vehicle = "Truk Toko GBA 1 (CDD Box)"
-            plateNumber = "B 9821 GBA"
+            plateNumber = "N 9821 GBA"
             driverName = "Bpk. Joko Santoso"
             driverPhone = "0813-8877-6655"
             estimatedArrival = "Hari ini, Pukul 11:30 WIB (±25 menit lagi)"
@@ -580,14 +580,14 @@ $fullData = @{
             checkpoints = @(
                 @{
                     time = "2026-09-09 10:45"
-                    title = "Armada Melintasi Gerbang Tol Cengkareng Barat"
-                    location = "Cengkareng Barat (KM 12)"
-                    desc = "Armada truk melaju lancar menuju Kalideres. Posisi sekitar 3 km dari toko pelanggan."
+                    title = "Armada Melintasi Flyover Sukun Gadang"
+                    location = "Flyover Sukun - Gadang Malang"
+                    desc = "Armada truk melaju lancar dari Kendalpayak menuju toko pelanggan di Sukun Gadang."
                 },
                 @{
                     time = "2026-09-09 09:50"
                     title = "Armada Truk Berangkat Keluar Gudang Pusat"
-                    location = "Kawasan Pergudangan Niaga Jaya Blok C"
+                    location = "Gudang Pusat Kendalpayak Malang"
                     desc = "Armada Truk Toko GBA 1 (No. Pol B 9821 GBA) diberangkatkan oleh supir Bpk. Joko Santoso."
                 },
                 @{

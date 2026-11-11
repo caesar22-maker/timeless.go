@@ -17,7 +17,7 @@ const STORAGE_KEY = "GBA_GROSIR_STORE_V5";
 const AUTH_KEY = "GBA_AUTH_ROLE_V1";
 const GOOGLE_AUTH_KEY = "GBA_GOOGLE_EMPLOYEE_ACC_V1";
 const CUSTOMER_ACCOUNT_KEY = "GBA_CUSTOMER_ACCOUNT_V1";
-const EMPLOYEE_PASSWORD = "T1MELESS";
+const EMPLOYEE_PASSWORD = "timeless";
 
 const Storage = {
   // Supabase State
@@ -55,7 +55,7 @@ const Storage = {
     {
       googleEmail: "toko.fatimah.berkah@gmail.com",
       name: "Toko Sembako Berkah (Ibu Fatimah)",
-      address: "Jl. Daan Mogot KM 11 No. 45 RT 03/RW 04, Kalideres, Jakarta Barat",
+      address: "Jl. Kolonel Sugiono No. 45 RT 03/RW 04, Gadang, Sukun, Kota Malang, Jawa Timur 65149",
       phone: "0812-9876-5432",
       avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80"
     },
@@ -138,6 +138,7 @@ const Storage = {
         });
         this.cloudConnected = true;
         this.setupRealtimeListeners();
+        this.setupAuthListeners();
         this.updateSyncBadge();
         console.log("✅ Supabase Client terhubung ke:", cfg.url);
         return this.client;
@@ -895,33 +896,74 @@ const Storage = {
   },
 
   // ============================================================================
-  // 7. USER & ACCOUNT MANAGEMENT (GOOGLE AUTH & CUSTOMER ACCOUNT)
+  // 7. USER & ACCOUNT MANAGEMENT (GOOGLE AUTH, BUYER DEVICE RESTRICTION)
   // ============================================================================
+  getDeviceId: function() {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        let devId = localStorage.getItem("GBA_DEVICE_ID");
+        if (!devId) {
+          devId = "DEV-" + (typeof crypto !== 'undefined' && crypto.randomUUID ? crypto.randomUUID() : Math.random().toString(36).substring(2, 11) + Date.now().toString(36));
+          localStorage.setItem("GBA_DEVICE_ID", devId);
+        }
+        return devId;
+      }
+    } catch (e) {}
+    return "DEV-UNKNOWN";
+  },
+
+  canLoginBuyerOnDevice: function(candidateEmail) {
+    const current = this.getCustomerAccount();
+    if (!current || !current.googleEmail) {
+      return { allowed: true };
+    }
+    if (current.googleEmail.toLowerCase() === String(candidateEmail).trim().toLowerCase()) {
+      return { allowed: true, isSame: true };
+    }
+    return {
+      allowed: false,
+      activeEmail: current.googleEmail,
+      activeName: current.name,
+      message: `Perangkat ini saat ini dibatasi untuk 1 akun pembeli aktif: "${current.name}" (${current.googleEmail}). Silakan keluar (logout) terlebih dahulu untuk masuk dengan akun lain.`
+    };
+  },
+
   getCustomerAccount: function() {
     try {
       if (typeof localStorage !== 'undefined') {
         const stored = localStorage.getItem(CUSTOMER_ACCOUNT_KEY);
         if (stored) {
           const parsed = JSON.parse(stored);
-          if (parsed && parsed.googleEmail && parsed.name && parsed.address) {
+          if (parsed && parsed.googleEmail) {
             return parsed;
           }
         }
       }
-      const defaultCust = this.DEFAULT_CUSTOMER_ACCOUNTS[0];
-      this.setCustomerAccount(defaultCust);
-      return defaultCust;
+      return null;
     } catch (e) {
       return null;
     }
   },
 
-  setCustomerAccount: function(acc) {
+  setCustomerAccount: function(acc, force = false) {
     try {
+      if (!acc || !acc.googleEmail) return false;
+
+      // Device restriction for buyers: Ensure only 1 account can be active on this device
+      if (!force) {
+        const check = this.canLoginBuyerOnDevice(acc.googleEmail);
+        if (!check.allowed) {
+          console.warn("Device restriction block:", check.message);
+          return false;
+        }
+      }
+
       if (typeof localStorage !== 'undefined') {
         localStorage.setItem(CUSTOMER_ACCOUNT_KEY, JSON.stringify(acc));
+        localStorage.setItem("GBA_DEVICE_ACTIVE_BUYER", acc.googleEmail);
       }
-      // Simpan juga ke user_profiles di Supabase jika terhubung
+
+      // Simpan deviceId & data profil ke user_profiles di Supabase jika terhubung
       if (this.client && this.isSupabaseConfigured() && acc && acc.googleEmail) {
         this.client.from('user_profiles').upsert({
           id: acc.googleEmail,
@@ -931,6 +973,7 @@ const Storage = {
           address: acc.address || "",
           role: "customer",
           avatar: acc.avatar || "",
+          device_id: this.getDeviceId(),
           updated_at: new Date().toISOString()
         }, { onConflict: 'email' }).then(() => {}).catch(err => console.warn("Supabase user_profile sync:", err));
       }
@@ -944,12 +987,139 @@ const Storage = {
   clearCustomerAccount: function() {
     if (typeof localStorage !== 'undefined') {
       localStorage.removeItem(CUSTOMER_ACCOUNT_KEY);
+      localStorage.removeItem("GBA_DEVICE_ACTIVE_BUYER");
     }
   },
 
   hasCustomerAccount: function() {
     const acc = this.getCustomerAccount();
     return Boolean(acc && acc.googleEmail && acc.name && acc.address);
+  },
+
+  setupAuthListeners: function() {
+    if (!this.client || !this.client.auth) return;
+    try {
+      this.client.auth.getSession().then(({ data: { session } }) => {
+        if (session && session.user) {
+          this.handleSupabaseAuthSession(session);
+        }
+      }).catch(err => console.warn("Supabase auth session check:", err));
+
+      this.client.auth.onAuthStateChange((event, session) => {
+        if ((event === 'SIGNED_IN' || event === 'TOKEN_REFRESHED' || event === 'USER_UPDATED') && session && session.user) {
+          this.handleSupabaseAuthSession(session);
+        } else if (event === 'SIGNED_OUT') {
+          this.clearGoogleAccount();
+          if (this.getCurrentRole() === 'admin') {
+            this.setRole('customer');
+          }
+          if (typeof App !== 'undefined' && App.updateHeaderUI) {
+            App.updateHeaderUI();
+          }
+        }
+      });
+    } catch (e) {
+      console.warn("Auth listener setup error:", e);
+    }
+  },
+
+  handleSupabaseAuthSession: function(session) {
+    if (!session || !session.user) return;
+    const user = session.user;
+    const email = user.email || "";
+    const name = user.user_metadata?.full_name || user.user_metadata?.name || (email ? email.split('@')[0] : "Pengguna Google");
+    const avatar = user.user_metadata?.avatar_url || user.user_metadata?.picture || `https://ui-avatars.com/api/?name=${encodeURIComponent(name)}&background=2563eb&color=fff&bold=true`;
+
+    const intent = (typeof localStorage !== 'undefined') ? (localStorage.getItem('GBA_OAUTH_INTENT') || 'buyer') : 'buyer';
+
+    if (intent === 'admin') {
+      // Store real Google account for Admin
+      this.setGoogleAccount({
+        email,
+        name,
+        role: "Staff Admin Toko",
+        avatar,
+        connectedAt: new Date().toISOString()
+      });
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('GBA_OAUTH_INTENT');
+      }
+      if (typeof App !== 'undefined') {
+        App.updateHeaderUI();
+        if (this.getCurrentRole() !== 'admin') {
+          App.openLoginModal();
+          App.showToast(`Akun Google Admin "${name}" terhubung! Masukkan password keamanan admin untuk membuka akses.`, "info");
+        }
+      }
+    } else {
+      // Buyer (customer) mode with 1 device restriction
+      const check = this.canLoginBuyerOnDevice(email);
+      if (!check.allowed) {
+        if (typeof App !== 'undefined') {
+          App.showToast(check.message, "error");
+        }
+        return;
+      }
+
+      const existingCust = this.getCustomerAccount() || {};
+      this.setCustomerAccount({
+        googleEmail: email,
+        name: name,
+        phone: existingCust.phone || user.phone || "0812-0000-0000",
+        address: existingCust.address || "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162",
+        avatar: avatar,
+        connectedAt: new Date().toISOString()
+      });
+      this.setRole('customer');
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem('GBA_OAUTH_INTENT');
+      }
+      if (typeof App !== 'undefined') {
+        App.updateHeaderUI();
+        App.showToast(`Selamat datang, ${name}! Berhasil login Pembeli via Akun Google.`, "success");
+      }
+    }
+  },
+
+  signInWithGoogle: async function(roleType = 'buyer') {
+    if (typeof localStorage !== 'undefined') {
+      localStorage.setItem('GBA_OAUTH_INTENT', roleType);
+    }
+    const isBrowser = typeof window !== 'undefined';
+    if (this.client && this.isSupabaseConfigured() && this.client.auth) {
+      try {
+        const redirectUrl = isBrowser ? (window.location.origin + window.location.pathname) : undefined;
+        const { data, error } = await this.client.auth.signInWithOAuth({
+          provider: 'google',
+          options: {
+            redirectTo: redirectUrl,
+            queryParams: {
+              access_type: 'offline',
+              prompt: 'select_account'
+            }
+          }
+        });
+        if (error) {
+          console.warn("Supabase Google OAuth notice:", error.message);
+          if (typeof App !== 'undefined') {
+            App.openGoogleAuthModal(roleType === 'admin' ? null : 'CUSTOMER_LOGIN', error.message);
+          }
+          return { success: false, error };
+        }
+        return { success: true, data };
+      } catch (err) {
+        console.warn("Google OAuth exception:", err);
+        if (typeof App !== 'undefined') {
+          App.openGoogleAuthModal(roleType === 'admin' ? null : 'CUSTOMER_LOGIN', err.message);
+        }
+        return { success: false, error: err };
+      }
+    } else {
+      if (typeof App !== 'undefined') {
+        App.openGoogleAuthModal(roleType === 'admin' ? null : 'CUSTOMER_LOGIN');
+      }
+      return { success: true };
+    }
   },
 
   getGoogleAccount: function() {
@@ -977,6 +1147,7 @@ const Storage = {
           name: acc.name,
           role: "pegawai",
           avatar: acc.avatar || "",
+          device_id: this.getDeviceId(),
           updated_at: new Date().toISOString()
         }, { onConflict: 'email' }).then(() => {}).catch(err => console.warn("Supabase employee profile sync:", err));
       }
@@ -999,8 +1170,8 @@ const Storage = {
 
   checkPassword: function(inputPass) {
     if (!inputPass) return false;
-    const cleanInput = String(inputPass).trim();
-    return cleanInput === EMPLOYEE_PASSWORD || cleanInput.toLowerCase() === EMPLOYEE_PASSWORD.toLowerCase();
+    const cleanInput = String(inputPass).trim().toLowerCase();
+    return cleanInput === "timeless" || cleanInput === "t1meless";
   },
 
   // ============================================================================
