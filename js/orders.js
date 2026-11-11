@@ -82,18 +82,18 @@ const Orders = {
       this.currentMap = null;
     }
 
-    // Origin Coordinates: Gudang Niaga Jaya GBA (Daan Mogot, Jakarta Barat)
-    const originCoords = [-6.1555, 106.7850];
+    // Origin Coordinates: Gudang Pusat GBA (Kendalpayak, Pakisaji, Malang)
+    const originCoords = [-8.0415, 112.6315];
     
-    // Realistic Jakarta route connecting warehouse to destination customer
+    // Realistic Malang route connecting Kendalpayak warehouse to destination customer
     const routeWaypoints = [
-      [-6.1555, 106.7850], // Gudang Niaga Jaya GBA (KM 11)
-      [-6.1585, 106.7905], // Gerbang Tol Daan Mogot
-      [-6.1625, 106.7980], // Pesing Simpang Barat
-      [-6.1670, 106.8060], // Tomang Interchange
-      [-6.1725, 106.8140], // Simpang Cideng Barat
-      [-6.1770, 106.8215], // Harmoni Central
-      [-6.1820, 106.8280]  // Alamat Toko Pemesan (Tujuan)
+      [-8.0415, 112.6315], // Gudang Pusat GBA Kendalpayak (Pakisaji, Malang)
+      [-8.0320, 112.6330], // Simpang Raya Kendalpayak
+      [-8.0180, 112.6345], // Jembatan Gadang - Bumiayu
+      [-8.0050, 112.6320], // Terminal Gadang Simpang Empat
+      [-7.9920, 112.6300], // Jl. Kolonel Sugiono (Sukun/Klojen)
+      [-7.9830, 112.6280], // Alun-Alun Kota Malang
+      [-7.9750, 112.6260]  // Alamat Toko Pemesan Mitra UMKM (Tujuan)
     ];
     this.currentWaypoints = routeWaypoints;
 
@@ -161,9 +161,9 @@ const Orders = {
       const warehouseMarker = L.marker(originCoords, { icon: warehouseIcon }).addTo(map);
       warehouseMarker.bindPopup(`
         <div class="p-1 text-xs">
-          <b class="text-blue-700 block">Gudang Niaga Jaya GBA (Origin)</b>
-          <p class="text-slate-600 text-[11px] mt-0.5">Kawasan Industri & Pergudangan Blok C No. 8, Daan Mogot, Jakarta Barat</p>
-          <span class="text-[10px] font-mono text-slate-400 block mt-1">Koordinat: -6.1555, 106.7850</span>
+          <b class="text-blue-700 block">Gudang Pusat GBA Kendalpayak (Origin)</b>
+          <p class="text-slate-600 text-[11px] mt-0.5">Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162</p>
+          <span class="text-[10px] font-mono text-slate-400 block mt-1">Koordinat: -8.0415, 112.6315</span>
         </div>
       `);
 
@@ -283,8 +283,8 @@ const Orders = {
   },
 
   openInGoogleMaps: function() {
-    const origin = "-6.1555,106.7850";
-    const dest = "-6.1820,106.8280";
+    const origin = "-8.0415,112.6315";
+    const dest = "-7.9750,112.6260";
     const url = `https://www.google.com/maps/dir/${origin}/${dest}`;
     window.open(url, "_blank");
   },
@@ -598,7 +598,7 @@ const Orders = {
                 <div class="h-full bg-gradient-to-r from-blue-500 via-amber-400 to-emerald-400 rounded-full transition-all duration-700" style="width: ${progressPercent}%;"></div>
               </div>
               <div class="flex justify-between items-center text-[11px] font-bold text-slate-400 mt-2">
-                <span class="flex items-center gap-1 text-blue-300"><i class="fa-solid fa-warehouse"></i> Gudang Niaga Jaya (-6.1555, 106.7850)</span>
+                <span class="flex items-center gap-1 text-blue-300"><i class="fa-solid fa-warehouse"></i> Gudang Kendalpayak (-8.0415, 112.6315)</span>
                 <span class="flex items-center gap-1 ${progressPercent >= 50 ? 'text-amber-300' : 'text-slate-500'}"><i class="fa-solid fa-road"></i> Progres: ${progressPercent}%</span>
                 <span class="flex items-center gap-1 ${progressPercent >= 100 ? 'text-emerald-300 font-black' : 'text-slate-400'}"><i class="fa-solid fa-store"></i> Toko Pemesan (Tujuan)</span>
               </div>
