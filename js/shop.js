@@ -653,6 +653,22 @@ const Shop = {
               <textarea id="order-cust-address" required rows="2" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 leading-relaxed" placeholder="Jl. Pasar Baru No. 45 RT 02/03, Kelurahan...">${Util.escapeHtml(cust.address || '')}</textarea>
             </div>
 
+            <!-- Interactive Route & Distance Synchronizer Preview -->
+            <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-3.5 rounded-xl border border-slate-700 text-white shadow-xs space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold flex items-center gap-1.5 text-blue-300">
+                  <i class="fa-solid fa-route text-amber-400"></i> Rute Pengiriman dari Toko (Kendalpayak)
+                </span>
+                <button type="button" onclick="Shop.previewCheckoutRouteMap()" class="px-2.5 py-1 text-[11px] font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition flex items-center gap-1 shadow-xs">
+                  <i class="fa-solid fa-map-location-dot"></i> Buka Peta Rute 2 Pin
+                </button>
+              </div>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-300 bg-slate-950/70 px-3 py-2 rounded-lg font-mono">
+                <span class="flex items-center gap-1"><i class="fa-solid fa-warehouse text-blue-400"></i> Asal: Kendalpayak Malang (-8.0415, 112.6315)</span>
+                <span class="text-emerald-400 font-bold">Sinkronisasi Rute Aktif</span>
+              </div>
+            </div>
+
             <!-- PAYMENT METHOD OPTIONS (COD, TRANSFER BANK, QRIS) -->
             <div>
               <label class="block text-xs font-bold uppercase text-slate-700 mb-1.5 flex items-center gap-1.5">
@@ -719,7 +735,16 @@ const Shop = {
     document.body.insertAdjacentHTML('beforeend', checkoutModalHtml);
   },
 
-  submitOrder: function(event) {
+  previewCheckoutRouteMap: function() {
+    const name = document.getElementById("order-cust-name")?.value || "Pelanggan";
+    const address = document.getElementById("order-cust-address")?.value || "";
+    const phone = document.getElementById("order-cust-phone")?.value || "";
+    if (typeof Orders !== "undefined" && Orders.openRouteMapModal) {
+      Orders.openRouteMapModal({ customerName: name, customerAddress: address, customerPhone: phone });
+    }
+  },
+
+  submitOrder: async function(event) {
     event.preventDefault();
     const data = Storage.getData();
     const cust = Storage.getCustomerAccount() || {};
@@ -731,6 +756,12 @@ const Shop = {
     const paymentRadio = document.querySelector('input[name="order_payment_method"]:checked');
     const paymentMethod = paymentRadio ? paymentRadio.value : "QRIS";
     const notes = document.getElementById("order-notes").value.trim();
+
+    // Selesaikan koordinat tujuan pengiriman secara akurat untuk rute peta
+    let destinationCoords = null;
+    if (typeof MapService !== "undefined") {
+      destinationCoords = await MapService.resolveDestinationCoords(customerAddress);
+    }
 
     const nowObj = new Date();
     const year = nowObj.getFullYear();
@@ -765,6 +796,7 @@ const Shop = {
       customerName, 
       customerPhone, 
       customerAddress, 
+      destinationCoords,
       customerGoogleEmail: cust.googleEmail || "",
       deliveryMethod, 
       paymentMethod, 

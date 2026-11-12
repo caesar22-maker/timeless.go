@@ -9043,6 +9043,649 @@ const Util = {
 };
 
 
+/* ========== map.js ========== */
+/**
+ * MapService - Sistem Integrasi Peta & Sinkronisasi Rute Pengiriman
+ * Grosir Berkah Abadi (GBA)
+ *
+ * Mengelola titik asal (Alamat Resmi Toko/Gudang Kendalpayak Malang),
+ * titik tujuan (Alamat Pengiriman Pelanggan), geocoding alamat,
+ * serta kalkulasi dan visualisasi rute interaktif (Leaflet + OSRM).
+ */
+
+const MapService = {
+  // 1. DATA RESMI TOKO (TITIK ASAL / ORIGIN)
+  STORE_ORIGIN: {
+    name: "Grosir Berkah Abadi (Gudang Pusat)",
+    address: "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162",
+    coords: [-8.0415, 112.6315], // Latitude, Longitude resmi Kendalpayak Pakisaji Malang
+    phone: "0812-3456-7890",
+    city: "Kabupaten Malang",
+    province: "Jawa Timur",
+    postalCode: "65162"
+  },
+
+  // 2. KAMUS KOORDINAT LOKAL (OFFLINE & FAST RESOLVER)
+  // Menjamin akurasi instan tanpa ketergantungan internet untuk Malang Raya & sekitarnya
+  KNOWN_LOCATIONS: {
+    // Wilayah Malang Raya (Prioritas Utama Toko)
+    "kendalpayak": [-8.0415, 112.6315],
+    "pakisaji": [-8.0620, 112.5980],
+    "gadang": [-8.0150, 112.6280],
+    "sukun": [-7.9950, 112.6230],
+    "klojen": [-7.9825, 112.6308],
+    "alun-alun malang": [-7.9825, 112.6308],
+    "kotalama": [-7.9948, 112.6325],
+    "kolonel sugiono": [-7.9948, 112.6325],
+    "bumiayu": [-8.0180, 112.6345],
+    "lowokwaru": [-7.9450, 112.6180],
+    "soekarno hatta": [-7.9450, 112.6180],
+    "blimbing": [-7.9420, 112.6450],
+    "kedungkandang": [-8.0050, 112.6550],
+    "kepanjen": [-8.1320, 112.5720],
+    "singosari": [-7.8920, 112.6650],
+    "lawang": [-7.8350, 112.6980],
+    "batu": [-7.8710, 112.5270],
+    "kota batu": [-7.8710, 112.5270],
+    "wagir": [-8.0210, 112.5750],
+    "bululawang": [-8.0750, 112.6520],
+    "turen": [-8.1720, 112.7000],
+    "dampit": [-8.2120, 112.7530],
+    "daan mogot": [-6.1555, 106.7850], // Legacy demo compatibility
+    "pasar anyar": [-6.1783, 106.6319],
+    "tangerang": [-6.1783, 106.6319],
+    "jakarta": [-6.1754, 106.8272],
+    "gambir": [-6.1760, 106.8300],
+    "hayam wuruk": [-6.1620, 106.8200],
+    "surabaya": [-7.2575, 112.7521],
+    "sidoarjo": [-7.4478, 112.7183],
+    "pasuruan": [-7.6450, 112.9070],
+    "probolinggo": [-7.7540, 113.2160]
+  },
+
+  // Cache geocoding dinamis
+  _geocodeCache: {},
+
+  /**
+   * Mendapatkan Titik Asal Resmi Toko (Store Origin)
+   */
+  getStoreOrigin: function() {
+    try {
+      if (typeof Storage !== "undefined" && Storage.getData) {
+        const storeData = Storage.getData();
+        if (storeData && storeData.profile) {
+          const prof = storeData.profile;
+          return {
+            name: prof.name || this.STORE_ORIGIN.name,
+            address: prof.address || this.STORE_ORIGIN.address,
+            coords: this.STORE_ORIGIN.coords,
+            phone: prof.phone || this.STORE_ORIGIN.phone
+          };
+        }
+      }
+    } catch (e) {}
+    return { ...this.STORE_ORIGIN };
+  },
+
+  /**
+   * Geocoding Alamat Pengiriman Pelanggan menjadi Koordinat [lat, lng]
+   * Berurutan: Parsing Explicit Coords -> Local Dictionary -> Cache -> OpenStreetMap Nominatim -> Fallback
+   */
+  resolveDestinationCoords: async function(addressStr, explicitCoords = null) {
+    // 1. Jika koordinat sudah diberikan secara eksplisit
+    if (Array.isArray(explicitCoords) && explicitCoords.length === 2 && !isNaN(explicitCoords[0]) && !isNaN(explicitCoords[1])) {
+      return [Number(explicitCoords[0]), Number(explicitCoords[1])];
+    }
+
+    if (!addressStr || typeof addressStr !== "string") {
+      // Default: Gadang - Sukun Malang (titik rute terdekat ke toko)
+      return [-8.0050, 112.6320];
+    }
+
+    const cleanStr = addressStr.trim();
+
+    // 2. Cek apakah ada format angka koordinat di dalam string alamat (misal "-8.0123, 112.6456")
+    const coordRegex = /(-?\d+\.\d+)\s*,\s*(-?\d+\.\d+)/;
+    const match = cleanStr.match(coordRegex);
+    if (match) {
+      const lat = parseFloat(match[1]);
+      const lng = parseFloat(match[2]);
+      if (lat >= -11 && lat <= 6 && lng >= 95 && lng <= 141) {
+        return [lat, lng];
+      }
+    }
+
+    // 3. Cek memori cache
+    if (this._geocodeCache[cleanStr]) {
+      return this._geocodeCache[cleanStr];
+    }
+
+    const lower = cleanStr.toLowerCase();
+
+    // 4. Cek Kamus Lokal Cepat (Matching Kata Kunci)
+    for (const [key, coords] of Object.entries(this.KNOWN_LOCATIONS)) {
+      if (lower.includes(key)) {
+        this._geocodeCache[cleanStr] = coords;
+        return coords;
+      }
+    }
+
+    // 5. Query Asinkron ke OpenStreetMap Nominatim (jika browser online)
+    if (typeof window !== "undefined" && window.navigator && window.navigator.onLine) {
+      try {
+        // Optimasi query: buang nomor RT/RW dan patokan dalam kurung agar Nominatim lebih akurat
+        const simplified = cleanStr
+          .replace(/\(.*?\)/g, "")
+          .replace(/rt\s*\d+\s*\/?\s*rw\s*\d+/gi, "")
+          .replace(/no\.\s*\d+/gi, "")
+          .trim();
+
+        const query = simplified.length > 5 ? simplified : cleanStr;
+        const url = `https://nominatim.openstreetmap.org/search?format=json&q=${encodeURIComponent(query)}&limit=1`;
+        
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 2500);
+
+        const res = await fetch(url, {
+          signal: controller.signal,
+          headers: { "Accept-Language": "id,en" }
+        });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const list = await res.json();
+          if (list && list.length > 0 && list[0].lat && list[0].lon) {
+            const resolved = [parseFloat(list[0].lat), parseFloat(list[0].lon)];
+            this._geocodeCache[cleanStr] = resolved;
+            return resolved;
+          }
+        }
+      } catch (netErr) {
+        // Abaikan kesalahan jaringan, beralih ke fallback deterministik
+      }
+    }
+
+    // 6. Fallback Cerdas: Posisi area Malang Raya dengan sedikit variasi deterministik
+    // sehingga setiap alamat baru tidak bertumpuk di titik yang sama persis
+    let hash = 0;
+    for (let i = 0; i < lower.length; i++) {
+      hash = (hash << 5) - hash + lower.charCodeAt(i);
+      hash |= 0;
+    }
+    const offsetLat = ((Math.abs(hash) % 100) / 100) * 0.05 - 0.025; // Rentang +/- ~2.5 km
+    const offsetLng = (((Math.abs(hash) >> 3) % 100) / 100) * 0.05 - 0.025;
+
+    const fallbackCoords = [-7.9850 + offsetLat, 112.6300 + offsetLng];
+    this._geocodeCache[cleanStr] = fallbackCoords;
+    return fallbackCoords;
+  },
+
+  /**
+   * Menghitung Jarak Lurus (Haversine Distance) dalam Kilometer
+   */
+  calculateDistanceKm: function(coord1, coord2) {
+    const lat1 = coord1[0];
+    const lon1 = coord1[1];
+    const lat2 = coord2[0];
+    const lon2 = coord2[1];
+
+    const R = 6371; // Radius bumi dalam km
+    const dLat = (lat2 - lat1) * Math.PI / 180;
+    const dLon = (lon2 - lon1) * Math.PI / 180;
+    const a =
+      Math.sin(dLat / 2) * Math.sin(dLat / 2) +
+      Math.cos(lat1 * Math.PI / 180) * Math.cos(lat2 * Math.PI / 180) *
+      Math.sin(dLon / 2) * Math.sin(dLon / 2);
+    const c = 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+    return R * c;
+  },
+
+  /**
+   * Menghitung Rute Berkendara Realistis antara Titik Asal Toko & Titik Tujuan Pelanggan
+   * Menghasilkan Waypoint Jalan (OSRM atau Interpolasi Halus), Jarak (KM), dan Estimasi Waktu (Menit).
+   */
+  calculateRoute: async function(originCoords, destCoords) {
+    const straightDist = this.calculateDistanceKm(originCoords, destCoords);
+
+    // 1. Buat Waypoint Awal (Interpolasi Kurva Halus) agar rute dapat dirender secara instan (0ms latency)
+    const baseWaypoints = this._generateCurvedWaypoints(originCoords, destCoords);
+    let result = {
+      waypoints: baseWaypoints,
+      distanceKm: Number((straightDist * 1.25).toFixed(1)), // Estimasi jarak jalan darat
+      durationMinutes: Math.max(8, Math.round((straightDist * 1.25 / 35) * 60)), // Rata-rata 35 km/jam kota
+      isRealRoadGeometry: false,
+      summary: `Rute Darat Kendalpayak ke Tujuan (${(straightDist * 1.25).toFixed(1)} km)`
+    };
+
+    // 2. Upayakan Memperoleh Geometri Jalan Nyata dari OSRM Routing API Publik
+    if (typeof window !== "undefined" && window.navigator && window.navigator.onLine) {
+      try {
+        const osrmUrl = `https://router.project-osrm.org/route/v1/driving/${originCoords[1]},${originCoords[0]};${destCoords[1]},${destCoords[0]}?overview=full&geometries=geojson`;
+        const controller = new AbortController();
+        const timeoutId = setTimeout(() => controller.abort(), 3000);
+
+        const res = await fetch(osrmUrl, { signal: controller.signal });
+        clearTimeout(timeoutId);
+
+        if (res.ok) {
+          const data = await res.json();
+          if (data && data.code === "Ok" && data.routes && data.routes[0]) {
+            const routeData = data.routes[0];
+            // OSRM mengembalikan koordinat [lng, lat], balikkan menjadi [lat, lng] untuk Leaflet
+            const rawCoords = routeData.geometry.coordinates || [];
+            if (rawCoords.length >= 2) {
+              const leafletPoints = rawCoords.map(pt => [pt[1], pt[0]]);
+              result.waypoints = leafletPoints;
+              result.distanceKm = Number((routeData.distance / 1000).toFixed(1));
+              result.durationMinutes = Math.max(5, Math.round(routeData.duration / 60));
+              result.isRealRoadGeometry = true;
+              result.summary = `Jalur Jalan Raya (${result.distanceKm} km, ±${result.durationMinutes} menit)`;
+            }
+          }
+        }
+      } catch (err) {
+        // Gunakan fallback waypoints jika OSRM timeout / offline
+      }
+    }
+
+    return result;
+  },
+
+  /**
+   * Generator Waypoints Halus untuk Rute Pengiriman Cepat (Fallback)
+   */
+  _generateCurvedWaypoints: function(start, end) {
+    const points = [start];
+    const steps = 7;
+    const latDiff = end[0] - start[0];
+    const lngDiff = end[1] - start[1];
+
+    for (let i = 1; i < steps; i++) {
+      const ratio = i / steps;
+      // Berikan lengkungan kurva halus yang menyerupai pola jalan raya
+      const curve = Math.sin(ratio * Math.PI) * 0.004;
+      const ptLat = start[0] + latDiff * ratio + curve;
+      const ptLng = start[1] + lngDiff * ratio + (i % 2 === 0 ? 0.001 : -0.001);
+      points.push([Number(ptLat.toFixed(5)), Number(ptLng.toFixed(5))]);
+    }
+    points.push(end);
+    return points;
+  },
+
+  /**
+   * Membuat Icon Marker Pin Toko Resmi (Origin Pin)
+   */
+  createStorePinIcon: function() {
+    if (typeof L === "undefined") return null;
+    return L.divIcon({
+      className: "origin-store-pin",
+      html: `
+        <div class="relative cursor-pointer group select-none">
+          <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-blue-700 to-indigo-600 text-white border-2 border-white shadow-2xl flex items-center justify-center text-lg font-bold ring-4 ring-blue-400/40 transition-transform group-hover:scale-110">
+            <i class="fa-solid fa-warehouse"></i>
+          </div>
+          <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-slate-950 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-lg whitespace-nowrap border border-blue-400/80 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-blue-400 animate-pulse"></span>
+            Toko Asal (Kendalpayak)
+          </div>
+        </div>
+      `,
+      iconSize: [44, 44],
+      iconAnchor: [22, 22]
+    });
+  },
+
+  /**
+   * Membuat Icon Marker Pin Alamat Pembeli (Destination Pin)
+   */
+  createCustomerPinIcon: function(customerName = "Pelanggan", isDraggable = false) {
+    if (typeof L === "undefined") return null;
+    const shortName = customerName ? customerName.split("(")[0].trim() : "Pelanggan";
+    return L.divIcon({
+      className: "destination-customer-pin",
+      html: `
+        <div class="relative cursor-pointer group select-none">
+          <div class="w-11 h-11 rounded-2xl bg-gradient-to-tr from-rose-600 to-red-500 text-white border-2 border-white shadow-2xl flex items-center justify-center text-lg font-bold ring-4 ring-rose-400/40 transition-transform group-hover:scale-110 animate-bounce">
+            <i class="fa-solid fa-location-dot"></i>
+          </div>
+          <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-rose-950 text-white text-[10px] font-bold px-2 py-0.5 rounded-md shadow-lg whitespace-nowrap border border-rose-400/80 flex items-center gap-1">
+            <i class="fa-solid fa-store text-rose-300 text-[9px]"></i>
+            <span class="max-w-[120px] truncate">${shortName} (Tujuan)</span>
+            ${isDraggable ? '<span class="text-[9px] text-amber-300 font-normal">[Geser Pin]</span>' : ''}
+          </div>
+        </div>
+      `,
+      iconSize: [44, 44],
+      iconAnchor: [22, 22]
+    });
+  },
+
+  /**
+   * Membuat Icon Marker Truk Armada Bergerak (Fleet Pin)
+   */
+  createTruckPinIcon: function(plateNumber = "B 9821 GBA") {
+    if (typeof L === "undefined") return null;
+    return L.divIcon({
+      className: "fleet-truck-pin",
+      html: `
+        <div class="relative cursor-pointer group select-none">
+          <div class="w-12 h-12 rounded-2xl bg-amber-400 text-slate-950 border-2 border-white shadow-2xl flex items-center justify-center text-lg font-black ring-4 ring-amber-300/60 transition-transform group-hover:scale-110">
+            <i class="fa-solid fa-truck-fast"></i>
+          </div>
+          <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-slate-950 text-amber-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded-md shadow-lg whitespace-nowrap border border-amber-400/80 flex items-center gap-1">
+            <span class="w-1.5 h-1.5 rounded-full bg-emerald-400 animate-ping"></span>
+            ${plateNumber}
+          </div>
+        </div>
+      `,
+      iconSize: [48, 48],
+      iconAnchor: [24, 24]
+    });
+  },
+
+  /**
+   * Inisialisasi Peta Interaktif Lengkap dengan Dua Pin Tersinkronisasi & Rute
+   * 
+   * @param {string} containerId - ID elemen DOM peta
+   * @param {Object} config - Pengaturan peta
+   *    - customerAddress: string
+   *    - customerName: string
+   *    - customerPhone: string
+   *    - destinationCoords: [lat, lng] (opsional)
+   *    - progressPercent: number (0 - 100)
+   *    - isLiveTracking: boolean
+   *    - allowDragDestination: boolean
+   *    - onDestinationMoved: function(newCoords, distanceKm, etaMins)
+   */
+  renderSynchronizedMap: async function(containerId, config = {}) {
+    const mapEl = document.getElementById(containerId);
+    if (!mapEl) return null;
+
+    if (typeof L === "undefined") {
+      console.warn("Leaflet library belum siap.");
+      return null;
+    }
+
+    // Bersihkan instance Leaflet lama pada kontainer
+    if (mapEl._leaflet_id && mapEl._leaflet_instance) {
+      try {
+        mapEl._leaflet_instance.remove();
+      } catch (e) {}
+      mapEl._leaflet_instance = null;
+    }
+
+    const store = this.getStoreOrigin();
+    const originCoords = store.coords; // [-8.0415, 112.6315]
+
+    // Selesaikan koordinat tujuan pelanggan
+    const destCoords = await this.resolveDestinationCoords(config.customerAddress, config.destinationCoords);
+
+    // Hitung rute jalan & jarak
+    const routeInfo = await this.calculateRoute(originCoords, destCoords);
+    const waypoints = routeInfo.waypoints;
+
+    // Inisialisasi Map Leaflet
+    const map = L.map(containerId, {
+      zoomControl: true,
+      attributionControl: true
+    }).setView(originCoords, 13);
+
+    mapEl._leaflet_instance = map;
+
+    // Layer OpenStreetMap yang jernih dan responsif
+    L.tileLayer("https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png", {
+      maxZoom: 19,
+      attribution: "&copy; OpenStreetMap | Grosir Berkah Abadi"
+    }).addTo(map);
+
+    // 1. PLOT PIN ASAL: Toko Resmi Grosir Berkah Abadi
+    const storeMarker = L.marker(originCoords, {
+      icon: this.createStorePinIcon(),
+      zIndexOffset: 1000
+    }).addTo(map);
+
+    storeMarker.bindPopup(`
+      <div class="p-1 text-xs">
+        <div class="flex items-center gap-1.5 text-blue-700 font-bold mb-1">
+          <i class="fa-solid fa-warehouse"></i> ${store.name}
+        </div>
+        <div class="px-2 py-0.5 mb-1.5 rounded text-[10px] font-bold bg-blue-100 text-blue-800 inline-block uppercase">
+          Titik Asal Pengiriman (Origin)
+        </div>
+        <p class="text-slate-700 text-[11px] leading-relaxed"><b>Alamat Resmi:</b> ${store.address}</p>
+        <p class="text-[11px] text-slate-500 mt-1">Kontak Toko: <b>${store.phone}</b></p>
+        <span class="text-[10px] font-mono text-slate-400 block mt-1">GPS: ${originCoords[0].toFixed(5)}, ${originCoords[1].toFixed(5)}</span>
+      </div>
+    `);
+
+    // 2. PLOT PIN TUJUAN: Alamat Pengiriman Pelanggan
+    const customerName = config.customerName || "Alamat Toko Pemesan";
+    const destMarker = L.marker(destCoords, {
+      icon: this.createCustomerPinIcon(customerName, Boolean(config.allowDragDestination)),
+      draggable: Boolean(config.allowDragDestination),
+      zIndexOffset: 900
+    }).addTo(map);
+
+    const updateDestPopup = (coords, dist, eta) => {
+      destMarker.bindPopup(`
+        <div class="p-1 text-xs">
+          <div class="flex items-center gap-1.5 text-rose-700 font-bold mb-1">
+            <i class="fa-solid fa-store"></i> ${customerName}
+          </div>
+          <div class="px-2 py-0.5 mb-1.5 rounded text-[10px] font-bold bg-rose-100 text-rose-800 inline-block uppercase">
+            Titik Tujuan Pengiriman (Destination)
+          </div>
+          <p class="text-slate-700 text-[11px] leading-relaxed"><b>Alamat Pengiriman:</b> ${config.customerAddress || 'Lokasi Terpilih'}</p>
+          ${config.customerPhone ? `<p class="text-[11px] text-slate-500 mt-0.5">WhatsApp: <b>${config.customerPhone}</b></p>` : ''}
+          <div class="mt-2 pt-2 border-t border-slate-200 flex items-center justify-between text-[11px]">
+            <span class="text-slate-600">Jarak dari Toko:</span>
+            <b class="text-blue-700 font-mono">${dist} km</b>
+          </div>
+          <div class="flex items-center justify-between text-[11px]">
+            <span class="text-slate-600">Estimasi Perjalanan:</span>
+            <b class="text-amber-600 font-mono">±${eta} Menit</b>
+          </div>
+          <span class="text-[10px] font-mono text-slate-400 block mt-1">GPS: ${coords[0].toFixed(5)}, ${coords[1].toFixed(5)}</span>
+          ${config.allowDragDestination ? '<p class="text-[10px] text-blue-600 font-semibold mt-1">💡 Anda dapat menggeser pin ini atau klik peta untuk mengubah titik antar.</p>' : ''}
+        </div>
+      `);
+    };
+
+    updateDestPopup(destCoords, routeInfo.distanceKm, routeInfo.durationMinutes);
+
+    // 3. PLOT RUTE PENGIRIMAN (POLYLINE)
+    let polylines = [];
+    const drawRoute = (wps, progressRatio = 0) => {
+      // Hapus polyline sebelumnya jika ada
+      polylines.forEach(p => map.removeLayer(p));
+      polylines = [];
+
+      if (!wps || wps.length < 2) return;
+
+      if (config.isLiveTracking && progressRatio > 0) {
+        // Mode Live Tracking: Pecah rute menjadi yang sudah ditempuh (Hijau) & sisa rute (Biru Putus-putus)
+        const floatIdx = Math.max(0, Math.min(1, progressRatio)) * (wps.length - 1);
+        const segIdx = Math.min(Math.floor(floatIdx), wps.length - 2);
+        const subRatio = floatIdx - segIdx;
+
+        const currentTruckLat = wps[segIdx][0] + (wps[segIdx + 1][0] - wps[segIdx][0]) * subRatio;
+        const currentTruckLng = wps[segIdx][1] + (wps[segIdx + 1][1] - wps[segIdx][1]) * subRatio;
+        const truckCoords = [currentTruckLat, currentTruckLng];
+
+        const traveled = [];
+        for (let i = 0; i <= segIdx; i++) traveled.push(wps[i]);
+        traveled.push(truckCoords);
+
+        const remaining = [truckCoords];
+        for (let i = segIdx + 1; i < wps.length; i++) remaining.push(wps[i]);
+
+        // Bagian yang telah ditempuh (Hijau Zamrud Tegas)
+        const poly1 = L.polyline(traveled, {
+          color: "#10b981",
+          weight: 6,
+          opacity: 0.95,
+          lineCap: "round",
+          lineJoin: "round"
+        }).addTo(map);
+
+        // Bagian sisa perjalanan (Biru Bergaris Putus-putus)
+        const poly2 = L.polyline(remaining, {
+          color: "#3b82f6",
+          weight: 5,
+          dashArray: "8, 8",
+          opacity: 0.8,
+          lineCap: "round",
+          lineJoin: "round"
+        }).addTo(map);
+
+        polylines.push(poly1, poly2);
+      } else {
+        // Mode Normal / Rute Penuh (Biru Indigo Bergradasi Halus)
+        const poly = L.polyline(wps, {
+          color: "#2563eb",
+          weight: 6,
+          opacity: 0.88,
+          lineCap: "round",
+          lineJoin: "round"
+        }).addTo(map);
+
+        // Garis batas luar (shadow border)
+        const shadow = L.polyline(wps, {
+          color: "#1e3a8a",
+          weight: 8,
+          opacity: 0.25,
+          lineCap: "round",
+          lineJoin: "round"
+        }).addTo(map);
+
+        polylines.push(shadow, poly);
+      }
+    };
+
+    const progressRatio = config.isLiveTracking ? (Math.max(0, Math.min(100, Number(config.progressPercent) || 15)) / 100) : 0;
+    drawRoute(waypoints, progressRatio);
+
+    // 4. PLOT TRUK ARMADA (JIKA DALAM MODE LIVE TRACKING)
+    let truckMarker = null;
+    if (config.isLiveTracking) {
+      const floatIdx = progressRatio * (waypoints.length - 1);
+      const segIdx = Math.min(Math.floor(floatIdx), waypoints.length - 2);
+      const subRatio = floatIdx - segIdx;
+
+      const truckLat = waypoints[segIdx][0] + (waypoints[segIdx + 1][0] - waypoints[segIdx][0]) * subRatio;
+      const truckLng = waypoints[segIdx][1] + (waypoints[segIdx + 1][1] - waypoints[segIdx][1]) * subRatio;
+      const truckCoords = [truckLat, truckLng];
+
+      truckMarker = L.marker(truckCoords, {
+        icon: this.createTruckPinIcon(config.plateNumber || "B 9821 GBA"),
+        zIndexOffset: 1200
+      }).addTo(map);
+
+      truckMarker.bindPopup(`
+        <div class="p-1.5 text-xs">
+          <div class="flex items-center gap-1.5 text-amber-600 font-bold mb-1">
+            <i class="fa-solid fa-truck-moving"></i> Posisi Armada: ${config.vehicle || 'Truk Toko GBA'}
+          </div>
+          <p class="text-[11px] text-slate-700">No. Polisi: <b class="font-mono">${config.plateNumber || 'B 9821 GBA'}</b></p>
+          <p class="text-[11px] text-slate-700">Driver: <b>${config.driverName || 'Bpk. Joko Santoso'}</b> (${config.driverPhone || '0813-8877-6655'})</p>
+          <p class="text-[11px] text-emerald-700 font-bold mt-1">Status: ${config.status || 'Dalam Pengiriman'} (${Math.round(progressRatio * 100)}% Selesai)</p>
+          <p class="text-[10px] text-slate-500 font-mono mt-0.5">GPS: ${truckLat.toFixed(5)}, ${truckLng.toFixed(5)}</p>
+        </div>
+      `);
+    }
+
+    // 5. FIT BOUNDS: Sesuaikan batas pandangan agar kedua Pin dan seluruh rute muat proporsional
+    const allPoints = [originCoords, destCoords, ...waypoints];
+    map.fitBounds(L.latLngBounds(allPoints), { padding: [45, 45] });
+
+    // 6. INTERAKTIVITAS: SINKRONISASI PIN TUJUAN SECARA REAL-TIME JIKA DIUBAH / DIGESER
+    if (config.allowDragDestination) {
+      const handleDestinationUpdate = async (newLatLng) => {
+        const newCoords = [newLatLng.lat, newLatLng.lng];
+        // Hitung ulang rute secara real-time
+        const updatedRoute = await MapService.calculateRoute(originCoords, newCoords);
+        drawRoute(updatedRoute.waypoints, 0);
+        updateDestPopup(newCoords, updatedRoute.distanceKm, updatedRoute.durationMinutes);
+        map.fitBounds(L.latLngBounds([originCoords, newCoords, ...updatedRoute.waypoints]), { padding: [45, 45] });
+
+        if (typeof config.onDestinationMoved === "function") {
+          config.onDestinationMoved({
+            coords: newCoords,
+            distanceKm: updatedRoute.distanceKm,
+            durationMinutes: updatedRoute.durationMinutes,
+            summary: updatedRoute.summary
+          });
+        }
+      };
+
+      // Event geser pin (dragend)
+      destMarker.on("dragend", function(e) {
+        handleDestinationUpdate(e.target.getLatLng());
+      });
+
+      // Event klik di area peta untuk memindahkan pin tujuan secara langsung
+      map.on("click", function(e) {
+        destMarker.setLatLng(e.latlng);
+        handleDestinationUpdate(e.latlng);
+      });
+    }
+
+    // Perbaiki rendering tile saat modal dibuka
+    setTimeout(() => {
+      try { map.invalidateSize(); } catch (e) {}
+    }, 250);
+    setTimeout(() => {
+      try { map.invalidateSize(); } catch (e) {}
+    }, 500);
+
+    return {
+      map,
+      storeMarker,
+      destMarker,
+      truckMarker,
+      originCoords,
+      destCoords,
+      routeInfo,
+      waypoints,
+      fitBounds: () => map.fitBounds(L.latLngBounds([originCoords, destCoords, ...waypoints]), { padding: [45, 45] }),
+      centerStore: () => { map.setView(originCoords, 15, { animate: true }); storeMarker.openPopup(); },
+      centerDestination: () => { map.setView(destCoords, 15, { animate: true }); destMarker.openPopup(); },
+      centerTruck: () => {
+        if (truckMarker) {
+          map.setView(truckMarker.getLatLng(), 15, { animate: true });
+          truckMarker.openPopup();
+        }
+      }
+    };
+  },
+
+  /**
+   * Buka Navigasi Arah Lengkap Langsung di Google Maps
+   */
+  openInGoogleMaps: function(destAddressOrCoords) {
+    const origin = encodeURIComponent(this.STORE_ORIGIN.address);
+    let dest = "";
+    if (Array.isArray(destAddressOrCoords) && destAddressOrCoords.length === 2) {
+      dest = `${destAddressOrCoords[0]},${destAddressOrCoords[1]}`;
+    } else if (typeof destAddressOrCoords === "string") {
+      dest = encodeURIComponent(destAddressOrCoords);
+    } else {
+      dest = "-7.9950,112.6230"; // Default Kota Malang
+    }
+    const url = `https://www.google.com/maps/dir/?api=1&origin=${origin}&destination=${dest}&travelmode=driving`;
+    if (typeof window !== "undefined" && typeof window.open === "function") {
+      window.open(url, "_blank");
+    }
+    return url;
+  }
+};
+
+// Pasang ke window scope
+if (typeof window !== "undefined") {
+  window.MapService = MapService;
+}
+
+
 /* ========== shop.js ========== */
 /**
  * Online Shop Module (ONLINE SHOP)
@@ -9699,6 +10342,22 @@ const Shop = {
               <textarea id="order-cust-address" required rows="2" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-emerald-500 leading-relaxed" placeholder="Jl. Pasar Baru No. 45 RT 02/03, Kelurahan...">${Util.escapeHtml(cust.address || '')}</textarea>
             </div>
 
+            <!-- Interactive Route & Distance Synchronizer Preview -->
+            <div class="bg-gradient-to-r from-slate-900 to-slate-800 p-3.5 rounded-xl border border-slate-700 text-white shadow-xs space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-bold flex items-center gap-1.5 text-blue-300">
+                  <i class="fa-solid fa-route text-amber-400"></i> Rute Pengiriman dari Toko (Kendalpayak)
+                </span>
+                <button type="button" onclick="Shop.previewCheckoutRouteMap()" class="px-2.5 py-1 text-[11px] font-bold bg-blue-600 hover:bg-blue-500 text-white rounded-lg transition flex items-center gap-1 shadow-xs">
+                  <i class="fa-solid fa-map-location-dot"></i> Buka Peta Rute 2 Pin
+                </button>
+              </div>
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-1 text-[11px] text-slate-300 bg-slate-950/70 px-3 py-2 rounded-lg font-mono">
+                <span class="flex items-center gap-1"><i class="fa-solid fa-warehouse text-blue-400"></i> Asal: Kendalpayak Malang (-8.0415, 112.6315)</span>
+                <span class="text-emerald-400 font-bold">Sinkronisasi Rute Aktif</span>
+              </div>
+            </div>
+
             <!-- PAYMENT METHOD OPTIONS (COD, TRANSFER BANK, QRIS) -->
             <div>
               <label class="block text-xs font-bold uppercase text-slate-700 mb-1.5 flex items-center gap-1.5">
@@ -9765,7 +10424,16 @@ const Shop = {
     document.body.insertAdjacentHTML('beforeend', checkoutModalHtml);
   },
 
-  submitOrder: function(event) {
+  previewCheckoutRouteMap: function() {
+    const name = document.getElementById("order-cust-name")?.value || "Pelanggan";
+    const address = document.getElementById("order-cust-address")?.value || "";
+    const phone = document.getElementById("order-cust-phone")?.value || "";
+    if (typeof Orders !== "undefined" && Orders.openRouteMapModal) {
+      Orders.openRouteMapModal({ customerName: name, customerAddress: address, customerPhone: phone });
+    }
+  },
+
+  submitOrder: async function(event) {
     event.preventDefault();
     const data = Storage.getData();
     const cust = Storage.getCustomerAccount() || {};
@@ -9777,6 +10445,12 @@ const Shop = {
     const paymentRadio = document.querySelector('input[name="order_payment_method"]:checked');
     const paymentMethod = paymentRadio ? paymentRadio.value : "QRIS";
     const notes = document.getElementById("order-notes").value.trim();
+
+    // Selesaikan koordinat tujuan pengiriman secara akurat untuk rute peta
+    let destinationCoords = null;
+    if (typeof MapService !== "undefined") {
+      destinationCoords = await MapService.resolveDestinationCoords(customerAddress);
+    }
 
     const nowObj = new Date();
     const year = nowObj.getFullYear();
@@ -9811,6 +10485,7 @@ const Shop = {
       customerName, 
       customerPhone, 
       customerAddress, 
+      destinationCoords,
       customerGoogleEmail: cust.googleEmail || "",
       deliveryMethod, 
       paymentMethod, 
@@ -10602,7 +11277,10 @@ const Orders = {
   // ==========================================
   // REAL LEAFLET GOOGLE MAPS-STYLE LIVE TRACKING
   // ==========================================
-  initLeafletMap: function(order) {
+  // ==========================================
+  // REAL LEAFLET GOOGLE MAPS-STYLE LIVE TRACKING (SYNCHRONIZED TWO PINS)
+  // ==========================================
+  initLeafletMap: async function(order) {
     if (!order) return;
     this.currentOrderTracked = order;
 
@@ -10624,24 +11302,6 @@ const Orders = {
       this.currentMap = null;
     }
 
-    // Origin Coordinates: Gudang Pusat GBA (Kendalpayak, Pakisaji, Malang)
-    const originCoords = [-8.0415, 112.6315];
-    
-    // Realistic Malang route connecting Kendalpayak warehouse to destination customer
-    const routeWaypoints = [
-      [-8.0415, 112.6315], // Gudang Pusat GBA Kendalpayak (Pakisaji, Malang)
-      [-8.0320, 112.6330], // Simpang Raya Kendalpayak
-      [-8.0180, 112.6345], // Jembatan Gadang - Bumiayu
-      [-8.0050, 112.6320], // Terminal Gadang Simpang Empat
-      [-7.9920, 112.6300], // Jl. Kolonel Sugiono (Sukun/Klojen)
-      [-7.9830, 112.6280], // Alun-Alun Kota Malang
-      [-7.9750, 112.6260]  // Alamat Toko Pemesan Mitra UMKM (Tujuan)
-    ];
-    this.currentWaypoints = routeWaypoints;
-
-    const destinationCoords = routeWaypoints[routeWaypoints.length - 1];
-
-    // Compute progress & truck location along the waypoints
     let progressPercent = order.progressPercent || 15;
     if (order.status === "Selesai") progressPercent = 100;
     else if (order.status === "Menunggu Konfirmasi") progressPercent = 10;
@@ -10649,162 +11309,43 @@ const Orders = {
     else if (order.status === "Siap Dikirim") progressPercent = 55;
     else if (order.status === "Dalam Pengiriman" && progressPercent < 60) progressPercent = 75;
 
-    const progressRatio = Math.max(0, Math.min(100, progressPercent)) / 100;
-    const floatIdx = progressRatio * (routeWaypoints.length - 1);
-    const segIdx = Math.min(Math.floor(floatIdx), routeWaypoints.length - 2);
-    const subRatio = floatIdx - segIdx;
-
-    const truckLat = routeWaypoints[segIdx][0] + (routeWaypoints[segIdx + 1][0] - routeWaypoints[segIdx][0]) * subRatio;
-    const truckLng = routeWaypoints[segIdx][1] + (routeWaypoints[segIdx + 1][1] - routeWaypoints[segIdx][1]) * subRatio;
-    const currentTruckCoords = [truckLat, truckLng];
-
-    // Traveled vs Remaining points
-    const traveledCoords = [];
-    for (let i = 0; i <= segIdx; i++) {
-      traveledCoords.push(routeWaypoints[i]);
-    }
-    traveledCoords.push(currentTruckCoords);
-
-    const remainingCoords = [currentTruckCoords];
-    for (let i = segIdx + 1; i < routeWaypoints.length; i++) {
-      remainingCoords.push(routeWaypoints[i]);
-    }
-
     try {
-      // Initialize Map
-      const map = L.map('tracking-leaflet-map', {
-        zoomControl: true,
-        attributionControl: true
-      }).setView(currentTruckCoords, 13);
-
-      // Google Maps-like Clean OpenStreetMap Tiles
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap | Grosir Berkah Abadi'
-      }).addTo(map);
-
-      // 1. Warehouse Marker (Origin)
-      const warehouseIcon = L.divIcon({
-        className: '',
-        html: `
-          <div class="relative cursor-pointer group">
-            <div class="w-10 h-10 rounded-full bg-blue-700 text-white border-2 border-white shadow-xl flex items-center justify-center text-sm font-bold ring-2 ring-blue-400">
-              <i class="fa-solid fa-warehouse"></i>
-            </div>
-            <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow whitespace-nowrap border border-blue-400/80">
-              Gudang Pusat GBA
-            </div>
-          </div>
-        `,
-        iconSize: [40, 40],
-        iconAnchor: [20, 20]
+      const syncResult = await MapService.renderSynchronizedMap("tracking-leaflet-map", {
+        customerAddress: order.customerAddress,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        destinationCoords: order.destinationCoords || null,
+        progressPercent: progressPercent,
+        plateNumber: order.plateNumber || "B 9821 GBA",
+        driverName: order.driverName || "Bpk. Joko Santoso",
+        driverPhone: order.driverPhone || "0813-8877-6655",
+        vehicle: order.vehicle || order.deliveryMethod || "Truk Toko GBA",
+        status: order.status,
+        isLiveTracking: true,
+        allowDragDestination: false
       });
 
-      const warehouseMarker = L.marker(originCoords, { icon: warehouseIcon }).addTo(map);
-      warehouseMarker.bindPopup(`
-        <div class="p-1 text-xs">
-          <b class="text-blue-700 block">Gudang Pusat GBA Kendalpayak (Origin)</b>
-          <p class="text-slate-600 text-[11px] mt-0.5">Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162</p>
-          <span class="text-[10px] font-mono text-slate-400 block mt-1">Koordinat: -8.0415, 112.6315</span>
-        </div>
-      `);
+      if (syncResult) {
+        this.currentMap = syncResult.map;
+        this.currentTruckMarker = syncResult.truckMarker;
+        this.currentWaypoints = syncResult.waypoints;
+        this.currentOriginCoords = syncResult.originCoords;
+        this.currentDestCoords = syncResult.destCoords;
+        this.currentRouteInfo = syncResult.routeInfo;
 
-      // 2. Destination Store Marker
-      const storeIcon = L.divIcon({
-        className: '',
-        html: `
-          <div class="relative cursor-pointer group animate-bounce">
-            <div class="w-10 h-10 rounded-full bg-rose-600 text-white border-2 border-white shadow-xl flex items-center justify-center text-sm font-bold ring-2 ring-rose-400">
-              <i class="fa-solid fa-store"></i>
-            </div>
-            <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-rose-950 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow whitespace-nowrap border border-rose-400/80">
-              ${Util.escapeHtml(order.customerName.split('(')[0].trim())}
-            </div>
-          </div>
-        `,
-        iconSize: [40, 40],
-        iconAnchor: [20, 20]
-      });
+        // Update telemetry coords & route summary badge
+        const coordsEl = document.getElementById("map-telemetry-coords");
+        if (coordsEl) {
+          const tPos = syncResult.truckMarker ? syncResult.truckMarker.getLatLng() : { lat: syncResult.originCoords[0], lng: syncResult.originCoords[1] };
+          coordsEl.textContent = `GPS: ${tPos.lat.toFixed(4)}, ${tPos.lng.toFixed(4)} • Jarak: ${syncResult.routeInfo.distanceKm} km (ETA ±${syncResult.routeInfo.durationMinutes} mnt)`;
+        }
 
-      const storeMarker = L.marker(destinationCoords, { icon: storeIcon }).addTo(map);
-      storeMarker.bindPopup(`
-        <div class="p-1 text-xs">
-          <b class="text-rose-700 block">${Util.escapeHtml(order.customerName)} (Tujuan)</b>
-          <p class="text-slate-600 text-[11px] mt-0.5">${Util.escapeHtml(order.customerAddress || 'Alamat Toko Pemesan')}</p>
-          <p class="text-[11px] text-slate-500 mt-1">WhatsApp: <b>${order.customerPhone}</b></p>
-        </div>
-      `);
-
-      // 3. Polylines
-      // Traveled portion (Emerald Green)
-      L.polyline(traveledCoords, {
-        color: '#10b981',
-        weight: 6,
-        opacity: 0.95,
-        lineCap: 'round',
-        lineJoin: 'round'
-      }).addTo(map);
-
-      // Remaining portion (Dashed Blue)
-      L.polyline(remainingCoords, {
-        color: '#3b82f6',
-        weight: 5,
-        dashArray: '8, 8',
-        opacity: 0.75,
-        lineCap: 'round',
-        lineJoin: 'round'
-      }).addTo(map);
-
-      // 4. Moving Fleet Truck Marker
-      const truckIcon = L.divIcon({
-        className: '',
-        html: `
-          <div class="relative cursor-pointer group">
-            <div class="w-11 h-11 rounded-full bg-amber-400 text-slate-950 border-2 border-white shadow-2xl flex items-center justify-center text-lg font-bold ring-4 ring-amber-300/70">
-              <i class="fa-solid fa-truck-fast"></i>
-            </div>
-            <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-slate-950 text-amber-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded shadow whitespace-nowrap border border-amber-400/80">
-              ${order.plateNumber || 'B 9821 GBA'}
-            </div>
-          </div>
-        `,
-        iconSize: [44, 44],
-        iconAnchor: [22, 22]
-      });
-
-      const truckMarker = L.marker(currentTruckCoords, { icon: truckIcon }).addTo(map);
-      truckMarker.bindPopup(`
-        <div class="p-1.5 text-xs">
-          <div class="flex items-center gap-1.5 text-amber-600 font-bold mb-1">
-            <i class="fa-solid fa-truck-moving"></i> Posisi Armada: ${Util.escapeHtml(order.vehicle || 'Truk Toko GBA')}
-          </div>
-          <p class="text-[11px] text-slate-700">No. Polisi: <b class="font-mono">${order.plateNumber || 'B 9821 GBA'}</b></p>
-          <p class="text-[11px] text-slate-700">Driver: <b>${Util.escapeHtml(order.driverName || 'Bpk. Joko Santoso')}</b> (${order.driverPhone || '0813-8877-6655'})</p>
-          <p class="text-[11px] text-emerald-700 font-bold mt-1">Status: ${order.status} (${progressPercent}% Selesai)</p>
-          <p class="text-[10px] text-slate-500 font-mono mt-0.5">GPS: ${truckLat.toFixed(4)}, ${truckLng.toFixed(4)}</p>
-        </div>
-      `);
-
-      // Fit map bounds with padding
-      const allBounds = L.latLngBounds(routeWaypoints);
-      map.fitBounds(allBounds, { padding: [50, 50] });
-
-      this.currentMap = map;
-      this.currentTruckMarker = truckMarker;
-
-      // Update Telemetry Coords Display
-      const coordsEl = document.getElementById("map-telemetry-coords");
-      if (coordsEl) {
-        coordsEl.textContent = `GPS: ${truckLat.toFixed(4)}, ${truckLng.toFixed(4)} (Live Tracking)`;
+        // Update route bar destination label
+        const destLabelEl = document.getElementById("map-route-dest-label");
+        if (destLabelEl) {
+          destLabelEl.innerHTML = `<i class="fa-solid fa-store"></i> ${Util.escapeHtml(order.customerName.split('(')[0].trim())} (${syncResult.routeInfo.distanceKm} km)`;
+        }
       }
-
-      // Invalidate size to ensure proper tile loading
-      setTimeout(() => {
-        if (this.currentMap) this.currentMap.invalidateSize();
-      }, 200);
-      setTimeout(() => {
-        if (this.currentMap) this.currentMap.invalidateSize();
-      }, 450);
     } catch (err) {
       console.error("Leaflet map initialization error:", err);
     }
@@ -10818,6 +11359,18 @@ const Orders = {
     }
   },
 
+  centerOnStore: function() {
+    if (this.currentMap && this.currentOriginCoords) {
+      this.currentMap.setView(this.currentOriginCoords, 15, { animate: true });
+    }
+  },
+
+  centerOnDestination: function() {
+    if (this.currentMap && this.currentDestCoords) {
+      this.currentMap.setView(this.currentDestCoords, 15, { animate: true });
+    }
+  },
+
   fitMapBounds: function() {
     if (this.currentMap && this.currentWaypoints) {
       this.currentMap.fitBounds(L.latLngBounds(this.currentWaypoints), { padding: [50, 50], animate: true });
@@ -10825,10 +11378,158 @@ const Orders = {
   },
 
   openInGoogleMaps: function() {
-    const origin = "-8.0415,112.6315";
-    const dest = "-7.9750,112.6260";
-    const url = `https://www.google.com/maps/dir/${origin}/${dest}`;
-    window.open(url, "_blank");
+    const order = this.currentOrderTracked;
+    const dest = (this.currentDestCoords && Array.isArray(this.currentDestCoords))
+      ? this.currentDestCoords
+      : (order ? (order.customerAddress || order.customerName) : "-7.9950,112.6230");
+    MapService.openInGoogleMaps(dest);
+  },
+
+  // ==========================================
+  // DEDICATED ROUTE & NAVIGATION MAP MODAL
+  // ==========================================
+  openRouteMapModal: async function(orderOrCust = null) {
+    let order = orderOrCust;
+    if (!order) {
+      const data = Storage.getData();
+      order = (data.orders && data.orders[0]) || {
+        customerName: "Toko Sembako Berkah (Ibu Fatimah)",
+        customerAddress: "Jl. Kolonel Sugiono No. 45 RT 03/RW 04, Gadang, Sukun, Kota Malang, Jawa Timur 65149"
+      };
+    }
+
+    const modalId = "route-map-modal";
+    const custName = order.customerName || order.name || "Toko Pelanggan";
+    const custAddr = order.customerAddress || order.address || "Malang";
+    const custPhone = order.customerPhone || order.phone || "";
+
+    const modalHtml = `
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" id="${modalId}">
+        <div class="bg-white rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden modal-content-scale max-h-[95vh] flex flex-col">
+          <!-- Header -->
+          <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-blue-600/30 text-blue-400 flex items-center justify-center text-lg border border-blue-500/30">
+                <i class="fa-solid fa-map-location-dot"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold flex items-center gap-2">
+                  Integrasi Peta: Rute Toko Asal & Pelanggan Tujuan
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500 text-white uppercase tracking-wider">Tersinkronisasi</span>
+                </h3>
+                <p class="text-xs text-slate-400">Sinkronisasi titik asal resmi Kendalpayak Malang & titik alamat pengiriman pelanggan.</p>
+              </div>
+            </div>
+            <button onclick="App.closeModal('${modalId}')" class="text-white/80 hover:text-white text-xl">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="p-6 overflow-y-auto space-y-4 flex-1 bg-slate-50">
+            <!-- Pin Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Origin Pin Card -->
+              <div class="bg-blue-50 border border-blue-200 p-3.5 rounded-xl flex items-start gap-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center flex-shrink-0 text-sm">
+                  <i class="fa-solid fa-warehouse"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">Pin 1: Asal (Origin)</span>
+                    <span class="text-[10px] font-mono text-slate-500">-8.0415, 112.6315</span>
+                  </div>
+                  <h5 class="text-xs font-bold text-slate-900 mt-1">Gudang Pusat Grosir Berkah Abadi</h5>
+                  <p class="text-[11px] text-slate-600 line-clamp-2 mt-0.5">Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kab. Malang</p>
+                </div>
+              </div>
+
+              <!-- Destination Pin Card -->
+              <div class="bg-rose-50 border border-rose-200 p-3.5 rounded-xl flex items-start gap-3">
+                <div class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center flex-shrink-0 text-sm">
+                  <i class="fa-solid fa-store"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">Pin 2: Tujuan (Destination)</span>
+                    <span class="text-[10px] font-mono text-slate-500" id="route-modal-dest-coords">GPS Otomatis</span>
+                  </div>
+                  <h5 class="text-xs font-bold text-slate-900 mt-1 truncate">${Util.escapeHtml(custName)}</h5>
+                  <p class="text-[11px] text-slate-600 line-clamp-2 mt-0.5">${Util.escapeHtml(custAddr)}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Map View Container -->
+            <div class="relative rounded-2xl overflow-hidden border border-slate-300 shadow-md">
+              <div id="modal-route-leaflet-map" style="height: 420px; width: 100%;"></div>
+
+              <!-- Floating Controls inside Map -->
+              <div class="absolute top-3 right-3 z-[400] flex flex-wrap gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-xl shadow border border-slate-200">
+                <button onclick="window._modalMapCtrl?.centerStore()" class="px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-50 rounded-lg transition">
+                  <i class="fa-solid fa-warehouse"></i> Toko Asal
+                </button>
+                <button onclick="window._modalMapCtrl?.centerDestination()" class="px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-50 rounded-lg transition">
+                  <i class="fa-solid fa-store"></i> Alamat Tujuan
+                </button>
+                <button onclick="window._modalMapCtrl?.fitBounds()" class="px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-lg transition">
+                  <i class="fa-solid fa-route"></i> Rute Penuh
+                </button>
+              </div>
+
+              <!-- Bottom Route Info Strip -->
+              <div class="absolute bottom-3 left-3 right-3 z-[400] bg-slate-900/95 backdrop-blur-md px-4 py-2.5 rounded-xl text-white text-xs shadow-xl flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-road text-amber-400"></i>
+                    <span>Jarak: <b class="text-amber-300 font-mono text-sm" id="route-modal-distance">- km</b></span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-clock text-blue-400"></i>
+                    <span>Estimasi: <b class="text-blue-300 font-mono text-sm" id="route-modal-eta">- mnt</b></span>
+                  </div>
+                </div>
+                <button onclick="MapService.openInGoogleMaps('${Util.escapeHtml(custAddr)}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1">
+                  <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Buka di Google Maps
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    App.closeModal(modalId);
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    setTimeout(async () => {
+      const syncResult = await MapService.renderSynchronizedMap("modal-route-leaflet-map", {
+        customerAddress: custAddr,
+        customerName: custName,
+        customerPhone: custPhone,
+        destinationCoords: order.destinationCoords || null,
+        isLiveTracking: false,
+        allowDragDestination: true,
+        onDestinationMoved: (info) => {
+          const distEl = document.getElementById("route-modal-distance");
+          const etaEl = document.getElementById("route-modal-eta");
+          const coordsEl = document.getElementById("route-modal-dest-coords");
+          if (distEl) distEl.textContent = `${info.distanceKm} km`;
+          if (etaEl) etaEl.textContent = `±${info.durationMinutes} mnt`;
+          if (coordsEl) coordsEl.textContent = `${info.coords[0].toFixed(4)}, ${info.coords[1].toFixed(4)}`;
+        }
+      });
+
+      if (syncResult) {
+        window._modalMapCtrl = syncResult;
+        const distEl = document.getElementById("route-modal-distance");
+        const etaEl = document.getElementById("route-modal-eta");
+        const coordsEl = document.getElementById("route-modal-dest-coords");
+        if (distEl) distEl.textContent = `${syncResult.routeInfo.distanceKm} km`;
+        if (etaEl) etaEl.textContent = `±${syncResult.routeInfo.durationMinutes} mnt`;
+        if (coordsEl) coordsEl.textContent = `${syncResult.destCoords[0].toFixed(4)}, ${syncResult.destCoords[1].toFixed(4)}`;
+      }
+    }, 150);
   },
 
   // ==========================================
@@ -11086,13 +11787,27 @@ const Orders = {
             </div>
             
             <!-- Map Interactive Controls -->
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <button 
+                onclick="Orders.centerOnStore()" 
+                class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold border border-slate-600 transition flex items-center gap-1 shadow-xs"
+                title="Pusatkan Peta ke Gudang Toko Asal"
+              >
+                <i class="fa-solid fa-warehouse text-blue-400"></i> Toko Asal
+              </button>
+              <button 
+                onclick="Orders.centerOnDestination()" 
+                class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold border border-slate-600 transition flex items-center gap-1 shadow-xs"
+                title="Pusatkan Peta ke Alamat Pelanggan Tujuan"
+              >
+                <i class="fa-solid fa-store text-rose-400"></i> Tujuan
+              </button>
               <button 
                 onclick="Orders.centerOnFleet()" 
                 class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold border border-slate-600 transition flex items-center gap-1 shadow-xs"
                 title="Pusatkan Peta ke Armada Pengiriman"
               >
-                <i class="fa-solid fa-crosshairs text-amber-400"></i> Pusatkan Armada
+                <i class="fa-solid fa-crosshairs text-amber-400"></i> Armada
               </button>
               <button 
                 onclick="Orders.fitMapBounds()" 
@@ -11100,6 +11815,13 @@ const Orders = {
                 title="Tampilkan Seluruh Rute Perjalanan"
               >
                 <i class="fa-solid fa-route text-blue-400"></i> Rute Penuh
+              </button>
+              <button 
+                onclick="Orders.openRouteMapModal(Orders.currentOrderTracked)" 
+                class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1"
+                title="Buka Peta Navigasi Interaktif Dua Titik Tersinkronisasi"
+              >
+                <i class="fa-solid fa-maximize text-[11px]"></i> Rute 2 Pin
               </button>
               <button 
                 onclick="Orders.openInGoogleMaps()" 
@@ -11123,7 +11845,7 @@ const Orders = {
                 <span class="text-emerald-400 font-sans">${order.status}</span>
               </div>
               <p class="text-[10px] text-slate-300">Driver: <b>${Util.escapeHtml(order.driverName || 'Bpk. Joko Santoso')}</b></p>
-              <p class="text-[10px] text-slate-400 font-mono" id="map-telemetry-coords">GPS: -6.1685, 106.8042 (Live Tracking)</p>
+              <p class="text-[10px] text-slate-400 font-mono" id="map-telemetry-coords">GPS: -8.0415, 112.6315 (Gudang Kendalpayak Malang)</p>
             </div>
 
             <!-- Floating ETA Badge -->
@@ -11142,7 +11864,7 @@ const Orders = {
               <div class="flex justify-between items-center text-[11px] font-bold text-slate-400 mt-2">
                 <span class="flex items-center gap-1 text-blue-300"><i class="fa-solid fa-warehouse"></i> Gudang Kendalpayak (-8.0415, 112.6315)</span>
                 <span class="flex items-center gap-1 ${progressPercent >= 50 ? 'text-amber-300' : 'text-slate-500'}"><i class="fa-solid fa-road"></i> Progres: ${progressPercent}%</span>
-                <span class="flex items-center gap-1 ${progressPercent >= 100 ? 'text-emerald-300 font-black' : 'text-slate-400'}"><i class="fa-solid fa-store"></i> Toko Pemesan (Tujuan)</span>
+                <span class="flex items-center gap-1 ${progressPercent >= 100 ? 'text-emerald-300 font-black' : 'text-slate-400'}" id="map-route-dest-label"><i class="fa-solid fa-store"></i> ${Util.escapeHtml(order.customerName.split('(')[0].trim())} (Tujuan)</span>
               </div>
             </div>
           </div>
@@ -15578,10 +16300,37 @@ const App = {
                 id="cust-address-input" 
                 required 
                 rows="3" 
+                oninput="App.debounceSyncProfileMap()"
                 placeholder="Contoh: Jl. Raya Kendalpayak No. 1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162 (Patokan depan Masjid Jami)" 
                 class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white leading-relaxed"
               >${Util.escapeHtml(cust.address || '')}</textarea>
-              <p class="text-[11px] text-slate-500 mt-1">Alamat ini akan otomatis dijadikan titik tujuan rute armada pengiriman live GPS.</p>
+              <p class="text-[11px] text-slate-500 mt-1">Alamat ini akan otomatis dijadikan titik tujuan (Pin 2) rute armada pengiriman live GPS.</p>
+            </div>
+
+            <!-- 5. Interactive Synchronized Route Map (Store Origin -> Customer Destination) -->
+            <div class="bg-slate-900 rounded-2xl p-4 text-white border border-slate-700 shadow-md space-y-2.5">
+              <div class="flex items-center justify-between text-xs pb-2 border-b border-slate-800">
+                <span class="font-bold flex items-center gap-1.5 text-blue-300">
+                  <i class="fa-solid fa-map-location-dot"></i> Peta Rute Pengiriman Tersinkronisasi
+                </span>
+                <span class="text-[11px] text-amber-300 font-mono font-bold" id="profile-map-distance-badge">
+                  Menghubungkan rute...
+                </span>
+              </div>
+              <div class="relative rounded-xl overflow-hidden border border-slate-700 shadow-inner">
+                <div id="profile-route-leaflet-map" style="height: 220px; width: 100%;"></div>
+                <div class="absolute bottom-2 left-2 z-[400] bg-slate-950/90 text-[10px] px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700 pointer-events-none flex items-center gap-2">
+                  <span class="text-blue-400 font-bold flex items-center gap-1"><i class="fa-solid fa-warehouse"></i> Toko Kendalpayak</span>
+                  <span class="text-slate-500">➔</span>
+                  <span class="text-rose-400 font-bold flex items-center gap-1"><i class="fa-solid fa-store"></i> Tujuan</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
+                <span>💡 Geser pin merah atau ketik alamat untuk sinkronisasi rute otomatis.</span>
+                <button type="button" onclick="Orders.openRouteMapModal({ name: document.getElementById('cust-full-name')?.value || 'Pelanggan', address: document.getElementById('cust-address-input')?.value || '', phone: document.getElementById('cust-phone-input')?.value || '', destinationCoords: window._profileCurrentCoords || null })" class="text-blue-400 hover:text-blue-300 font-bold underline flex items-center gap-1">
+                  <i class="fa-solid fa-maximize text-[10px]"></i> Perbesar Peta
+                </button>
+              </div>
             </div>
 
             <!-- Form Actions -->
@@ -15609,6 +16358,10 @@ const App = {
 
     this.closeModal('customer-profile-modal');
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    setTimeout(() => {
+      this.syncProfileMap();
+    }, 180);
   },
 
   selectDefaultCustomer: function(index) {
@@ -15618,6 +16371,45 @@ const App = {
     document.getElementById("cust-full-name").value = acc.name;
     document.getElementById("cust-phone-input").value = acc.phone;
     document.getElementById("cust-address-input").value = acc.address;
+    this.syncProfileMap();
+  },
+
+  debounceSyncProfileMap: function() {
+    clearTimeout(this._profileMapDebounce);
+    this._profileMapDebounce = setTimeout(() => {
+      this.syncProfileMap();
+    }, 450);
+  },
+
+  syncProfileMap: async function() {
+    const addressInput = document.getElementById("cust-address-input");
+    const nameInput = document.getElementById("cust-full-name");
+    const addr = addressInput ? addressInput.value.trim() : "";
+    const name = nameInput ? nameInput.value.trim() : "Pelanggan";
+
+    if (typeof MapService === "undefined") return;
+
+    const syncResult = await MapService.renderSynchronizedMap("profile-route-leaflet-map", {
+      customerAddress: addr,
+      customerName: name,
+      isLiveTracking: false,
+      allowDragDestination: true,
+      onDestinationMoved: (info) => {
+        window._profileCurrentCoords = info.coords;
+        const badge = document.getElementById("profile-map-distance-badge");
+        if (badge) {
+          badge.textContent = `Jarak: ${info.distanceKm} km (±${info.durationMinutes} mnt)`;
+        }
+      }
+    });
+
+    if (syncResult) {
+      window._profileCurrentCoords = syncResult.destCoords;
+      const badge = document.getElementById("profile-map-distance-badge");
+      if (badge) {
+        badge.textContent = `Jarak: ${syncResult.routeInfo.distanceKm} km (±${syncResult.routeInfo.durationMinutes} mnt)`;
+      }
+    }
   },
 
   saveCustomerProfile: function(event) {
@@ -15641,6 +16433,7 @@ const App = {
       phone: phone || "0812-0000-0000",
       address,
       avatar,
+      destinationCoords: window._profileCurrentCoords || currentAcc.destinationCoords || null,
       updatedAt: new Date().toISOString()
     };
 

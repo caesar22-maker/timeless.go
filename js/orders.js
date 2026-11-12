@@ -60,7 +60,10 @@ const Orders = {
   // ==========================================
   // REAL LEAFLET GOOGLE MAPS-STYLE LIVE TRACKING
   // ==========================================
-  initLeafletMap: function(order) {
+  // ==========================================
+  // REAL LEAFLET GOOGLE MAPS-STYLE LIVE TRACKING (SYNCHRONIZED TWO PINS)
+  // ==========================================
+  initLeafletMap: async function(order) {
     if (!order) return;
     this.currentOrderTracked = order;
 
@@ -82,24 +85,6 @@ const Orders = {
       this.currentMap = null;
     }
 
-    // Origin Coordinates: Gudang Pusat GBA (Kendalpayak, Pakisaji, Malang)
-    const originCoords = [-8.0415, 112.6315];
-    
-    // Realistic Malang route connecting Kendalpayak warehouse to destination customer
-    const routeWaypoints = [
-      [-8.0415, 112.6315], // Gudang Pusat GBA Kendalpayak (Pakisaji, Malang)
-      [-8.0320, 112.6330], // Simpang Raya Kendalpayak
-      [-8.0180, 112.6345], // Jembatan Gadang - Bumiayu
-      [-8.0050, 112.6320], // Terminal Gadang Simpang Empat
-      [-7.9920, 112.6300], // Jl. Kolonel Sugiono (Sukun/Klojen)
-      [-7.9830, 112.6280], // Alun-Alun Kota Malang
-      [-7.9750, 112.6260]  // Alamat Toko Pemesan Mitra UMKM (Tujuan)
-    ];
-    this.currentWaypoints = routeWaypoints;
-
-    const destinationCoords = routeWaypoints[routeWaypoints.length - 1];
-
-    // Compute progress & truck location along the waypoints
     let progressPercent = order.progressPercent || 15;
     if (order.status === "Selesai") progressPercent = 100;
     else if (order.status === "Menunggu Konfirmasi") progressPercent = 10;
@@ -107,162 +92,43 @@ const Orders = {
     else if (order.status === "Siap Dikirim") progressPercent = 55;
     else if (order.status === "Dalam Pengiriman" && progressPercent < 60) progressPercent = 75;
 
-    const progressRatio = Math.max(0, Math.min(100, progressPercent)) / 100;
-    const floatIdx = progressRatio * (routeWaypoints.length - 1);
-    const segIdx = Math.min(Math.floor(floatIdx), routeWaypoints.length - 2);
-    const subRatio = floatIdx - segIdx;
-
-    const truckLat = routeWaypoints[segIdx][0] + (routeWaypoints[segIdx + 1][0] - routeWaypoints[segIdx][0]) * subRatio;
-    const truckLng = routeWaypoints[segIdx][1] + (routeWaypoints[segIdx + 1][1] - routeWaypoints[segIdx][1]) * subRatio;
-    const currentTruckCoords = [truckLat, truckLng];
-
-    // Traveled vs Remaining points
-    const traveledCoords = [];
-    for (let i = 0; i <= segIdx; i++) {
-      traveledCoords.push(routeWaypoints[i]);
-    }
-    traveledCoords.push(currentTruckCoords);
-
-    const remainingCoords = [currentTruckCoords];
-    for (let i = segIdx + 1; i < routeWaypoints.length; i++) {
-      remainingCoords.push(routeWaypoints[i]);
-    }
-
     try {
-      // Initialize Map
-      const map = L.map('tracking-leaflet-map', {
-        zoomControl: true,
-        attributionControl: true
-      }).setView(currentTruckCoords, 13);
-
-      // Google Maps-like Clean OpenStreetMap Tiles
-      L.tileLayer('https://{s}.tile.openstreetmap.org/{z}/{x}/{y}.png', {
-        maxZoom: 19,
-        attribution: '&copy; OpenStreetMap | Grosir Berkah Abadi'
-      }).addTo(map);
-
-      // 1. Warehouse Marker (Origin)
-      const warehouseIcon = L.divIcon({
-        className: '',
-        html: `
-          <div class="relative cursor-pointer group">
-            <div class="w-10 h-10 rounded-full bg-blue-700 text-white border-2 border-white shadow-xl flex items-center justify-center text-sm font-bold ring-2 ring-blue-400">
-              <i class="fa-solid fa-warehouse"></i>
-            </div>
-            <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-slate-900 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow whitespace-nowrap border border-blue-400/80">
-              Gudang Pusat GBA
-            </div>
-          </div>
-        `,
-        iconSize: [40, 40],
-        iconAnchor: [20, 20]
+      const syncResult = await MapService.renderSynchronizedMap("tracking-leaflet-map", {
+        customerAddress: order.customerAddress,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone,
+        destinationCoords: order.destinationCoords || null,
+        progressPercent: progressPercent,
+        plateNumber: order.plateNumber || "B 9821 GBA",
+        driverName: order.driverName || "Bpk. Joko Santoso",
+        driverPhone: order.driverPhone || "0813-8877-6655",
+        vehicle: order.vehicle || order.deliveryMethod || "Truk Toko GBA",
+        status: order.status,
+        isLiveTracking: true,
+        allowDragDestination: false
       });
 
-      const warehouseMarker = L.marker(originCoords, { icon: warehouseIcon }).addTo(map);
-      warehouseMarker.bindPopup(`
-        <div class="p-1 text-xs">
-          <b class="text-blue-700 block">Gudang Pusat GBA Kendalpayak (Origin)</b>
-          <p class="text-slate-600 text-[11px] mt-0.5">Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162</p>
-          <span class="text-[10px] font-mono text-slate-400 block mt-1">Koordinat: -8.0415, 112.6315</span>
-        </div>
-      `);
+      if (syncResult) {
+        this.currentMap = syncResult.map;
+        this.currentTruckMarker = syncResult.truckMarker;
+        this.currentWaypoints = syncResult.waypoints;
+        this.currentOriginCoords = syncResult.originCoords;
+        this.currentDestCoords = syncResult.destCoords;
+        this.currentRouteInfo = syncResult.routeInfo;
 
-      // 2. Destination Store Marker
-      const storeIcon = L.divIcon({
-        className: '',
-        html: `
-          <div class="relative cursor-pointer group animate-bounce">
-            <div class="w-10 h-10 rounded-full bg-rose-600 text-white border-2 border-white shadow-xl flex items-center justify-center text-sm font-bold ring-2 ring-rose-400">
-              <i class="fa-solid fa-store"></i>
-            </div>
-            <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-rose-950 text-white text-[10px] font-bold px-2 py-0.5 rounded shadow whitespace-nowrap border border-rose-400/80">
-              ${Util.escapeHtml(order.customerName.split('(')[0].trim())}
-            </div>
-          </div>
-        `,
-        iconSize: [40, 40],
-        iconAnchor: [20, 20]
-      });
+        // Update telemetry coords & route summary badge
+        const coordsEl = document.getElementById("map-telemetry-coords");
+        if (coordsEl) {
+          const tPos = syncResult.truckMarker ? syncResult.truckMarker.getLatLng() : { lat: syncResult.originCoords[0], lng: syncResult.originCoords[1] };
+          coordsEl.textContent = `GPS: ${tPos.lat.toFixed(4)}, ${tPos.lng.toFixed(4)} • Jarak: ${syncResult.routeInfo.distanceKm} km (ETA ±${syncResult.routeInfo.durationMinutes} mnt)`;
+        }
 
-      const storeMarker = L.marker(destinationCoords, { icon: storeIcon }).addTo(map);
-      storeMarker.bindPopup(`
-        <div class="p-1 text-xs">
-          <b class="text-rose-700 block">${Util.escapeHtml(order.customerName)} (Tujuan)</b>
-          <p class="text-slate-600 text-[11px] mt-0.5">${Util.escapeHtml(order.customerAddress || 'Alamat Toko Pemesan')}</p>
-          <p class="text-[11px] text-slate-500 mt-1">WhatsApp: <b>${order.customerPhone}</b></p>
-        </div>
-      `);
-
-      // 3. Polylines
-      // Traveled portion (Emerald Green)
-      L.polyline(traveledCoords, {
-        color: '#10b981',
-        weight: 6,
-        opacity: 0.95,
-        lineCap: 'round',
-        lineJoin: 'round'
-      }).addTo(map);
-
-      // Remaining portion (Dashed Blue)
-      L.polyline(remainingCoords, {
-        color: '#3b82f6',
-        weight: 5,
-        dashArray: '8, 8',
-        opacity: 0.75,
-        lineCap: 'round',
-        lineJoin: 'round'
-      }).addTo(map);
-
-      // 4. Moving Fleet Truck Marker
-      const truckIcon = L.divIcon({
-        className: '',
-        html: `
-          <div class="relative cursor-pointer group">
-            <div class="w-11 h-11 rounded-full bg-amber-400 text-slate-950 border-2 border-white shadow-2xl flex items-center justify-center text-lg font-bold ring-4 ring-amber-300/70">
-              <i class="fa-solid fa-truck-fast"></i>
-            </div>
-            <div class="absolute -bottom-6 left-1/2 -translate-x-1/2 bg-slate-950 text-amber-300 text-[10px] font-mono font-bold px-2 py-0.5 rounded shadow whitespace-nowrap border border-amber-400/80">
-              ${order.plateNumber || 'B 9821 GBA'}
-            </div>
-          </div>
-        `,
-        iconSize: [44, 44],
-        iconAnchor: [22, 22]
-      });
-
-      const truckMarker = L.marker(currentTruckCoords, { icon: truckIcon }).addTo(map);
-      truckMarker.bindPopup(`
-        <div class="p-1.5 text-xs">
-          <div class="flex items-center gap-1.5 text-amber-600 font-bold mb-1">
-            <i class="fa-solid fa-truck-moving"></i> Posisi Armada: ${Util.escapeHtml(order.vehicle || 'Truk Toko GBA')}
-          </div>
-          <p class="text-[11px] text-slate-700">No. Polisi: <b class="font-mono">${order.plateNumber || 'B 9821 GBA'}</b></p>
-          <p class="text-[11px] text-slate-700">Driver: <b>${Util.escapeHtml(order.driverName || 'Bpk. Joko Santoso')}</b> (${order.driverPhone || '0813-8877-6655'})</p>
-          <p class="text-[11px] text-emerald-700 font-bold mt-1">Status: ${order.status} (${progressPercent}% Selesai)</p>
-          <p class="text-[10px] text-slate-500 font-mono mt-0.5">GPS: ${truckLat.toFixed(4)}, ${truckLng.toFixed(4)}</p>
-        </div>
-      `);
-
-      // Fit map bounds with padding
-      const allBounds = L.latLngBounds(routeWaypoints);
-      map.fitBounds(allBounds, { padding: [50, 50] });
-
-      this.currentMap = map;
-      this.currentTruckMarker = truckMarker;
-
-      // Update Telemetry Coords Display
-      const coordsEl = document.getElementById("map-telemetry-coords");
-      if (coordsEl) {
-        coordsEl.textContent = `GPS: ${truckLat.toFixed(4)}, ${truckLng.toFixed(4)} (Live Tracking)`;
+        // Update route bar destination label
+        const destLabelEl = document.getElementById("map-route-dest-label");
+        if (destLabelEl) {
+          destLabelEl.innerHTML = `<i class="fa-solid fa-store"></i> ${Util.escapeHtml(order.customerName.split('(')[0].trim())} (${syncResult.routeInfo.distanceKm} km)`;
+        }
       }
-
-      // Invalidate size to ensure proper tile loading
-      setTimeout(() => {
-        if (this.currentMap) this.currentMap.invalidateSize();
-      }, 200);
-      setTimeout(() => {
-        if (this.currentMap) this.currentMap.invalidateSize();
-      }, 450);
     } catch (err) {
       console.error("Leaflet map initialization error:", err);
     }
@@ -276,6 +142,18 @@ const Orders = {
     }
   },
 
+  centerOnStore: function() {
+    if (this.currentMap && this.currentOriginCoords) {
+      this.currentMap.setView(this.currentOriginCoords, 15, { animate: true });
+    }
+  },
+
+  centerOnDestination: function() {
+    if (this.currentMap && this.currentDestCoords) {
+      this.currentMap.setView(this.currentDestCoords, 15, { animate: true });
+    }
+  },
+
   fitMapBounds: function() {
     if (this.currentMap && this.currentWaypoints) {
       this.currentMap.fitBounds(L.latLngBounds(this.currentWaypoints), { padding: [50, 50], animate: true });
@@ -283,10 +161,158 @@ const Orders = {
   },
 
   openInGoogleMaps: function() {
-    const origin = "-8.0415,112.6315";
-    const dest = "-7.9750,112.6260";
-    const url = `https://www.google.com/maps/dir/${origin}/${dest}`;
-    window.open(url, "_blank");
+    const order = this.currentOrderTracked;
+    const dest = (this.currentDestCoords && Array.isArray(this.currentDestCoords))
+      ? this.currentDestCoords
+      : (order ? (order.customerAddress || order.customerName) : "-7.9950,112.6230");
+    MapService.openInGoogleMaps(dest);
+  },
+
+  // ==========================================
+  // DEDICATED ROUTE & NAVIGATION MAP MODAL
+  // ==========================================
+  openRouteMapModal: async function(orderOrCust = null) {
+    let order = orderOrCust;
+    if (!order) {
+      const data = Storage.getData();
+      order = (data.orders && data.orders[0]) || {
+        customerName: "Toko Sembako Berkah (Ibu Fatimah)",
+        customerAddress: "Jl. Kolonel Sugiono No. 45 RT 03/RW 04, Gadang, Sukun, Kota Malang, Jawa Timur 65149"
+      };
+    }
+
+    const modalId = "route-map-modal";
+    const custName = order.customerName || order.name || "Toko Pelanggan";
+    const custAddr = order.customerAddress || order.address || "Malang";
+    const custPhone = order.customerPhone || order.phone || "";
+
+    const modalHtml = `
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" id="${modalId}">
+        <div class="bg-white rounded-2xl max-w-4xl w-full shadow-2xl border border-slate-200 overflow-hidden modal-content-scale max-h-[95vh] flex flex-col">
+          <!-- Header -->
+          <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+            <div class="flex items-center gap-3">
+              <div class="w-10 h-10 rounded-xl bg-blue-600/30 text-blue-400 flex items-center justify-center text-lg border border-blue-500/30">
+                <i class="fa-solid fa-map-location-dot"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold flex items-center gap-2">
+                  Integrasi Peta: Rute Toko Asal & Pelanggan Tujuan
+                  <span class="px-2 py-0.5 rounded-full text-[10px] font-bold bg-blue-500 text-white uppercase tracking-wider">Tersinkronisasi</span>
+                </h3>
+                <p class="text-xs text-slate-400">Sinkronisasi titik asal resmi Kendalpayak Malang & titik alamat pengiriman pelanggan.</p>
+              </div>
+            </div>
+            <button onclick="App.closeModal('${modalId}')" class="text-white/80 hover:text-white text-xl">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="p-6 overflow-y-auto space-y-4 flex-1 bg-slate-50">
+            <!-- Pin Summary Cards -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
+              <!-- Origin Pin Card -->
+              <div class="bg-blue-50 border border-blue-200 p-3.5 rounded-xl flex items-start gap-3">
+                <div class="w-8 h-8 rounded-lg bg-blue-600 text-white flex items-center justify-center flex-shrink-0 text-sm">
+                  <i class="fa-solid fa-warehouse"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase text-blue-700 bg-blue-100 px-1.5 py-0.5 rounded">Pin 1: Asal (Origin)</span>
+                    <span class="text-[10px] font-mono text-slate-500">-8.0415, 112.6315</span>
+                  </div>
+                  <h5 class="text-xs font-bold text-slate-900 mt-1">Gudang Pusat Grosir Berkah Abadi</h5>
+                  <p class="text-[11px] text-slate-600 line-clamp-2 mt-0.5">Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kab. Malang</p>
+                </div>
+              </div>
+
+              <!-- Destination Pin Card -->
+              <div class="bg-rose-50 border border-rose-200 p-3.5 rounded-xl flex items-start gap-3">
+                <div class="w-8 h-8 rounded-lg bg-rose-600 text-white flex items-center justify-center flex-shrink-0 text-sm">
+                  <i class="fa-solid fa-store"></i>
+                </div>
+                <div class="min-w-0 flex-1">
+                  <div class="flex items-center justify-between">
+                    <span class="text-[10px] font-bold uppercase text-rose-700 bg-rose-100 px-1.5 py-0.5 rounded">Pin 2: Tujuan (Destination)</span>
+                    <span class="text-[10px] font-mono text-slate-500" id="route-modal-dest-coords">GPS Otomatis</span>
+                  </div>
+                  <h5 class="text-xs font-bold text-slate-900 mt-1 truncate">${Util.escapeHtml(custName)}</h5>
+                  <p class="text-[11px] text-slate-600 line-clamp-2 mt-0.5">${Util.escapeHtml(custAddr)}</p>
+                </div>
+              </div>
+            </div>
+
+            <!-- Map View Container -->
+            <div class="relative rounded-2xl overflow-hidden border border-slate-300 shadow-md">
+              <div id="modal-route-leaflet-map" style="height: 420px; width: 100%;"></div>
+
+              <!-- Floating Controls inside Map -->
+              <div class="absolute top-3 right-3 z-[400] flex flex-wrap gap-1.5 bg-white/95 backdrop-blur-md p-1.5 rounded-xl shadow border border-slate-200">
+                <button onclick="window._modalMapCtrl?.centerStore()" class="px-2.5 py-1 text-xs font-bold text-blue-700 hover:bg-blue-50 rounded-lg transition">
+                  <i class="fa-solid fa-warehouse"></i> Toko Asal
+                </button>
+                <button onclick="window._modalMapCtrl?.centerDestination()" class="px-2.5 py-1 text-xs font-bold text-rose-700 hover:bg-rose-50 rounded-lg transition">
+                  <i class="fa-solid fa-store"></i> Alamat Tujuan
+                </button>
+                <button onclick="window._modalMapCtrl?.fitBounds()" class="px-2.5 py-1 text-xs font-bold text-slate-700 hover:bg-slate-100 rounded-lg transition">
+                  <i class="fa-solid fa-route"></i> Rute Penuh
+                </button>
+              </div>
+
+              <!-- Bottom Route Info Strip -->
+              <div class="absolute bottom-3 left-3 right-3 z-[400] bg-slate-900/95 backdrop-blur-md px-4 py-2.5 rounded-xl text-white text-xs shadow-xl flex items-center justify-between">
+                <div class="flex items-center gap-4">
+                  <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-road text-amber-400"></i>
+                    <span>Jarak: <b class="text-amber-300 font-mono text-sm" id="route-modal-distance">- km</b></span>
+                  </div>
+                  <div class="flex items-center gap-1.5">
+                    <i class="fa-solid fa-clock text-blue-400"></i>
+                    <span>Estimasi: <b class="text-blue-300 font-mono text-sm" id="route-modal-eta">- mnt</b></span>
+                  </div>
+                </div>
+                <button onclick="MapService.openInGoogleMaps('${Util.escapeHtml(custAddr)}')" class="px-3 py-1 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold transition flex items-center gap-1">
+                  <i class="fa-solid fa-arrow-up-right-from-square text-[10px]"></i> Buka di Google Maps
+                </button>
+              </div>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    App.closeModal(modalId);
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    setTimeout(async () => {
+      const syncResult = await MapService.renderSynchronizedMap("modal-route-leaflet-map", {
+        customerAddress: custAddr,
+        customerName: custName,
+        customerPhone: custPhone,
+        destinationCoords: order.destinationCoords || null,
+        isLiveTracking: false,
+        allowDragDestination: true,
+        onDestinationMoved: (info) => {
+          const distEl = document.getElementById("route-modal-distance");
+          const etaEl = document.getElementById("route-modal-eta");
+          const coordsEl = document.getElementById("route-modal-dest-coords");
+          if (distEl) distEl.textContent = `${info.distanceKm} km`;
+          if (etaEl) etaEl.textContent = `±${info.durationMinutes} mnt`;
+          if (coordsEl) coordsEl.textContent = `${info.coords[0].toFixed(4)}, ${info.coords[1].toFixed(4)}`;
+        }
+      });
+
+      if (syncResult) {
+        window._modalMapCtrl = syncResult;
+        const distEl = document.getElementById("route-modal-distance");
+        const etaEl = document.getElementById("route-modal-eta");
+        const coordsEl = document.getElementById("route-modal-dest-coords");
+        if (distEl) distEl.textContent = `${syncResult.routeInfo.distanceKm} km`;
+        if (etaEl) etaEl.textContent = `±${syncResult.routeInfo.durationMinutes} mnt`;
+        if (coordsEl) coordsEl.textContent = `${syncResult.destCoords[0].toFixed(4)}, ${syncResult.destCoords[1].toFixed(4)}`;
+      }
+    }, 150);
   },
 
   // ==========================================
@@ -544,13 +570,27 @@ const Orders = {
             </div>
             
             <!-- Map Interactive Controls -->
-            <div class="flex items-center gap-2">
+            <div class="flex flex-wrap items-center gap-1.5">
+              <button 
+                onclick="Orders.centerOnStore()" 
+                class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold border border-slate-600 transition flex items-center gap-1 shadow-xs"
+                title="Pusatkan Peta ke Gudang Toko Asal"
+              >
+                <i class="fa-solid fa-warehouse text-blue-400"></i> Toko Asal
+              </button>
+              <button 
+                onclick="Orders.centerOnDestination()" 
+                class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold border border-slate-600 transition flex items-center gap-1 shadow-xs"
+                title="Pusatkan Peta ke Alamat Pelanggan Tujuan"
+              >
+                <i class="fa-solid fa-store text-rose-400"></i> Tujuan
+              </button>
               <button 
                 onclick="Orders.centerOnFleet()" 
                 class="px-2.5 py-1.5 bg-slate-800 hover:bg-slate-700 text-white rounded-lg text-xs font-bold border border-slate-600 transition flex items-center gap-1 shadow-xs"
                 title="Pusatkan Peta ke Armada Pengiriman"
               >
-                <i class="fa-solid fa-crosshairs text-amber-400"></i> Pusatkan Armada
+                <i class="fa-solid fa-crosshairs text-amber-400"></i> Armada
               </button>
               <button 
                 onclick="Orders.fitMapBounds()" 
@@ -558,6 +598,13 @@ const Orders = {
                 title="Tampilkan Seluruh Rute Perjalanan"
               >
                 <i class="fa-solid fa-route text-blue-400"></i> Rute Penuh
+              </button>
+              <button 
+                onclick="Orders.openRouteMapModal(Orders.currentOrderTracked)" 
+                class="px-2.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold shadow-xs transition flex items-center gap-1"
+                title="Buka Peta Navigasi Interaktif Dua Titik Tersinkronisasi"
+              >
+                <i class="fa-solid fa-maximize text-[11px]"></i> Rute 2 Pin
               </button>
               <button 
                 onclick="Orders.openInGoogleMaps()" 
@@ -581,7 +628,7 @@ const Orders = {
                 <span class="text-emerald-400 font-sans">${order.status}</span>
               </div>
               <p class="text-[10px] text-slate-300">Driver: <b>${Util.escapeHtml(order.driverName || 'Bpk. Joko Santoso')}</b></p>
-              <p class="text-[10px] text-slate-400 font-mono" id="map-telemetry-coords">GPS: -6.1685, 106.8042 (Live Tracking)</p>
+              <p class="text-[10px] text-slate-400 font-mono" id="map-telemetry-coords">GPS: -8.0415, 112.6315 (Gudang Kendalpayak Malang)</p>
             </div>
 
             <!-- Floating ETA Badge -->
@@ -600,7 +647,7 @@ const Orders = {
               <div class="flex justify-between items-center text-[11px] font-bold text-slate-400 mt-2">
                 <span class="flex items-center gap-1 text-blue-300"><i class="fa-solid fa-warehouse"></i> Gudang Kendalpayak (-8.0415, 112.6315)</span>
                 <span class="flex items-center gap-1 ${progressPercent >= 50 ? 'text-amber-300' : 'text-slate-500'}"><i class="fa-solid fa-road"></i> Progres: ${progressPercent}%</span>
-                <span class="flex items-center gap-1 ${progressPercent >= 100 ? 'text-emerald-300 font-black' : 'text-slate-400'}"><i class="fa-solid fa-store"></i> Toko Pemesan (Tujuan)</span>
+                <span class="flex items-center gap-1 ${progressPercent >= 100 ? 'text-emerald-300 font-black' : 'text-slate-400'}" id="map-route-dest-label"><i class="fa-solid fa-store"></i> ${Util.escapeHtml(order.customerName.split('(')[0].trim())} (Tujuan)</span>
               </div>
             </div>
           </div>

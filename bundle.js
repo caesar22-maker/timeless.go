@@ -15,6 +15,7 @@ html = html.replace(
 const jsFiles = [
   'data.js',
   'storage.js',
+  'map.js',
   'shop.js',
   'orders.js',
   'wms.js',

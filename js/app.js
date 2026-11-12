@@ -764,10 +764,37 @@ const App = {
                 id="cust-address-input" 
                 required 
                 rows="3" 
+                oninput="App.debounceSyncProfileMap()"
                 placeholder="Contoh: Jl. Raya Kendalpayak No. 1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162 (Patokan depan Masjid Jami)" 
                 class="w-full text-xs px-3.5 py-2.5 border border-slate-300 rounded-xl focus:ring-2 focus:ring-blue-500 bg-white leading-relaxed"
               >${Util.escapeHtml(cust.address || '')}</textarea>
-              <p class="text-[11px] text-slate-500 mt-1">Alamat ini akan otomatis dijadikan titik tujuan rute armada pengiriman live GPS.</p>
+              <p class="text-[11px] text-slate-500 mt-1">Alamat ini akan otomatis dijadikan titik tujuan (Pin 2) rute armada pengiriman live GPS.</p>
+            </div>
+
+            <!-- 5. Interactive Synchronized Route Map (Store Origin -> Customer Destination) -->
+            <div class="bg-slate-900 rounded-2xl p-4 text-white border border-slate-700 shadow-md space-y-2.5">
+              <div class="flex items-center justify-between text-xs pb-2 border-b border-slate-800">
+                <span class="font-bold flex items-center gap-1.5 text-blue-300">
+                  <i class="fa-solid fa-map-location-dot"></i> Peta Rute Pengiriman Tersinkronisasi
+                </span>
+                <span class="text-[11px] text-amber-300 font-mono font-bold" id="profile-map-distance-badge">
+                  Menghubungkan rute...
+                </span>
+              </div>
+              <div class="relative rounded-xl overflow-hidden border border-slate-700 shadow-inner">
+                <div id="profile-route-leaflet-map" style="height: 220px; width: 100%;"></div>
+                <div class="absolute bottom-2 left-2 z-[400] bg-slate-950/90 text-[10px] px-2.5 py-1 rounded-lg text-slate-300 border border-slate-700 pointer-events-none flex items-center gap-2">
+                  <span class="text-blue-400 font-bold flex items-center gap-1"><i class="fa-solid fa-warehouse"></i> Toko Kendalpayak</span>
+                  <span class="text-slate-500">➔</span>
+                  <span class="text-rose-400 font-bold flex items-center gap-1"><i class="fa-solid fa-store"></i> Tujuan</span>
+                </div>
+              </div>
+              <div class="flex items-center justify-between text-[11px] text-slate-400 pt-0.5">
+                <span>💡 Geser pin merah atau ketik alamat untuk sinkronisasi rute otomatis.</span>
+                <button type="button" onclick="Orders.openRouteMapModal({ name: document.getElementById('cust-full-name')?.value || 'Pelanggan', address: document.getElementById('cust-address-input')?.value || '', phone: document.getElementById('cust-phone-input')?.value || '', destinationCoords: window._profileCurrentCoords || null })" class="text-blue-400 hover:text-blue-300 font-bold underline flex items-center gap-1">
+                  <i class="fa-solid fa-maximize text-[10px]"></i> Perbesar Peta
+                </button>
+              </div>
             </div>
 
             <!-- Form Actions -->
@@ -795,6 +822,10 @@ const App = {
 
     this.closeModal('customer-profile-modal');
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    setTimeout(() => {
+      this.syncProfileMap();
+    }, 180);
   },
 
   selectDefaultCustomer: function(index) {
@@ -804,6 +835,45 @@ const App = {
     document.getElementById("cust-full-name").value = acc.name;
     document.getElementById("cust-phone-input").value = acc.phone;
     document.getElementById("cust-address-input").value = acc.address;
+    this.syncProfileMap();
+  },
+
+  debounceSyncProfileMap: function() {
+    clearTimeout(this._profileMapDebounce);
+    this._profileMapDebounce = setTimeout(() => {
+      this.syncProfileMap();
+    }, 450);
+  },
+
+  syncProfileMap: async function() {
+    const addressInput = document.getElementById("cust-address-input");
+    const nameInput = document.getElementById("cust-full-name");
+    const addr = addressInput ? addressInput.value.trim() : "";
+    const name = nameInput ? nameInput.value.trim() : "Pelanggan";
+
+    if (typeof MapService === "undefined") return;
+
+    const syncResult = await MapService.renderSynchronizedMap("profile-route-leaflet-map", {
+      customerAddress: addr,
+      customerName: name,
+      isLiveTracking: false,
+      allowDragDestination: true,
+      onDestinationMoved: (info) => {
+        window._profileCurrentCoords = info.coords;
+        const badge = document.getElementById("profile-map-distance-badge");
+        if (badge) {
+          badge.textContent = `Jarak: ${info.distanceKm} km (±${info.durationMinutes} mnt)`;
+        }
+      }
+    });
+
+    if (syncResult) {
+      window._profileCurrentCoords = syncResult.destCoords;
+      const badge = document.getElementById("profile-map-distance-badge");
+      if (badge) {
+        badge.textContent = `Jarak: ${syncResult.routeInfo.distanceKm} km (±${syncResult.routeInfo.durationMinutes} mnt)`;
+      }
+    }
   },
 
   saveCustomerProfile: function(event) {
@@ -827,6 +897,7 @@ const App = {
       phone: phone || "0812-0000-0000",
       address,
       avatar,
+      destinationCoords: window._profileCurrentCoords || currentAcc.destinationCoords || null,
       updatedAt: new Date().toISOString()
     };
 
