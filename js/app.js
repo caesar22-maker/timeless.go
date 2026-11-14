@@ -409,20 +409,22 @@ const App = {
 
     // 2. Enforce Password T1MELESS requirement without revealing it
     if (Storage.checkPassword(entered)) {
+      const acc = Storage.getGoogleAccount() || { name: 'Admin Toko', email: 'admin@toko.com' };
+      Storage.setSession("admin", acc);
       Storage.setRole("admin");
       this.closeModal("auth-login-modal");
-      const acc = Storage.getGoogleAccount();
-      this.showToast(`Autentikasi Admin Berhasil! Selamat bekerja, ${acc.name}.`, "success");
+      this.hideWelcomeLoginScreen();
       this.updateHeaderUI();
+      this.showToast(`Autentikasi Admin Berhasil! Selamat bekerja, ${acc.name}.`, "success");
 
       if (targetTab && targetTab.startsWith("PROCESS_ORDER_")) {
         const orderId = targetTab.replace("PROCESS_ORDER_", "");
         this.switchTab("tracking");
         setTimeout(() => Orders.openProcessOrderModal(orderId), 250);
-      } else if (targetTab && targetTab !== "null" && targetTab !== "") {
+      } else if (targetTab && targetTab !== "null" && targetTab !== "" && targetTab !== "CUSTOMER_LOGIN") {
         this.switchTab(targetTab);
       } else {
-        this.switchTab(this.currentTab);
+        this.switchTab(this.currentTab || "shop");
       }
     } else {
       this.showToast("Password keamanan admin tidak sesuai! Akses ditolak.", "error");

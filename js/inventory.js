@@ -142,9 +142,19 @@ const Inventory = {
             <p class="text-base font-semibold">Tidak ada inventaris alat yang cocok</p>
           </div>
         ` : tools.map(tool => {
-          let statusBadge = "bg-emerald-100 text-emerald-800 border border-emerald-200";
-          if (tool.status === "Sedang Digunakan") statusBadge = "bg-blue-100 text-blue-800 border border-blue-200";
-          if (tool.status === "Dalam Perawatan") statusBadge = "bg-rose-100 text-rose-800 border border-rose-200 pulse-badge";
+          let statusBadge = "bg-blue-100 text-blue-800 border border-blue-200";
+          let statusIcon = '<i class="fa-solid fa-circle-check text-blue-600 mr-1.5"></i>';
+          let statusLabel = "Currently In Use";
+
+          if (tool.status === "Under Maintenance" || tool.status === "Dalam Perawatan") {
+            statusBadge = "bg-rose-100 text-rose-800 border border-rose-200 pulse-badge";
+            statusIcon = '<i class="fa-solid fa-wrench text-rose-600 mr-1.5"></i>';
+            statusLabel = "Under Maintenance";
+          } else {
+            statusBadge = "bg-blue-100 text-blue-800 border border-blue-200";
+            statusIcon = '<i class="fa-solid fa-circle-check text-blue-600 mr-1.5"></i>';
+            statusLabel = "Currently In Use";
+          }
 
           return `
             <div class="bg-white rounded-2xl border border-slate-200 shadow-sm overflow-hidden flex flex-col justify-between hover:shadow-md transition">
@@ -257,7 +267,7 @@ const Inventory = {
         <p class="text-slate-500 text-sm mb-6 leading-relaxed">
           Fitur Inventaris Alat, Mesin Pergudangan, dan Jadwal Maintenance hanya dapat diakses oleh staff operasional dan admin toko.
         </p>
-        <button onclick="App.openLoginModal()" class="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-sm shadow-md transition inline-flex items-center gap-2">
+        <button onclick="App.openLoginModal('inventory')" class="px-6 py-3 bg-amber-600 hover:bg-amber-700 text-white rounded-xl font-bold text-sm shadow-md transition inline-flex items-center gap-2">
           <i class="fa-solid fa-key"></i> Masukkan Password Admin
         </button>
       </div>

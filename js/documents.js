@@ -233,7 +233,7 @@ const Documents = {
         <p class="text-slate-500 text-sm mb-6 leading-relaxed">
           Fitur Generator Dokumen, Faktur Penjualan Grosir, dan Surat Jalan hanya dapat diakses oleh staff administrasi dan admin toko.
         </p>
-        <button onclick="App.openLoginModal()" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-md transition inline-flex items-center gap-2">
+        <button onclick="App.openLoginModal('docs')" class="px-6 py-3 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-md transition inline-flex items-center gap-2">
           <i class="fa-solid fa-key"></i> Masukkan Password Admin
         </button>
       </div>

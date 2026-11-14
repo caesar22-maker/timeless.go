@@ -1384,23 +1384,39 @@ const Storage = {
 
   // Auth role get/set
   getCurrentRole: function() {
+    if (typeof localStorage !== 'undefined') {
+      const authRole = localStorage.getItem(AUTH_KEY);
+      if (authRole) return authRole;
+    }
     const sess = this.getSession();
     if (sess && sess.role) return sess.role;
-    if (typeof localStorage !== 'undefined') {
-      return localStorage.getItem(AUTH_KEY) || "customer";
-    }
     return "customer";
   },
 
   setRole: function(role) {
     if (typeof localStorage !== 'undefined') {
       localStorage.setItem(AUTH_KEY, role);
+      try {
+        let sess = this.getSession();
+        if (sess) {
+          sess.role = role;
+          localStorage.setItem(SESSION_KEY, JSON.stringify(sess));
+        } else {
+          this.setSession(role);
+        }
+      } catch (e) {
+        console.warn("Error syncing session role:", e);
+      }
     }
   },
 
   isEmployee: function() {
+    if (typeof localStorage !== 'undefined') {
+      const authRole = localStorage.getItem(AUTH_KEY);
+      if (authRole === "admin" || authRole === "pegawai") return true;
+    }
     const sess = this.getSession();
-    if (sess && sess.role === "admin") return true;
+    if (sess && (sess.role === "admin" || sess.role === "pegawai")) return true;
     const role = this.getCurrentRole();
     return (role === "pegawai" || role === "admin");
   },

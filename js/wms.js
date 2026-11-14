@@ -505,7 +505,7 @@ const WMS = {
           Fitur Warehouse Management System (WMS) dan Inventaris Rak hanya dapat diakses oleh staff gudang dan admin toko. 
           Silakan masukkan password admin untuk membuka semua fitur manajemen grosir.
         </p>
-        <button onclick="App.openLoginModal()" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition inline-flex items-center gap-2">
+        <button onclick="App.openLoginModal('wms')" class="px-6 py-3 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition inline-flex items-center gap-2">
           <i class="fa-solid fa-key"></i> Masukkan Password Admin
         </button>
       </div>
