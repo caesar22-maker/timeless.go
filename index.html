@@ -78,9 +78,9 @@
               <div class="w-12 h-12 rounded-xl bg-blue-100 text-blue-700 flex items-center justify-center text-xl font-bold mb-3 group-hover:scale-105 transition">
                 <i class="fa-solid fa-basket-shopping"></i>
               </div>
-              <h4 class="font-bold text-slate-900 text-base mb-1">Akses Pelanggan (Customer)</h4>
+              <h4 class="font-bold text-slate-900 text-base mb-1">Akses Pembeli (Online Shop)</h4>
               <p class="text-xs text-slate-500 leading-relaxed mb-4">
-                Lihat Katalog Produk Digital 250 barang UMKM lengkap dengan foto produk, harga satuan resmi, dan ketersediaan stok fisik real-time (View-Only).
+                Belanja langsung hingga 250 produk UMKM lengkap dengan foto produk, harga grosir satuan, keranjang belanja, dan pengiriman armada toko.
               </p>
             </div>
             <div class="space-y-2 pt-3 border-t border-slate-200/60">
@@ -88,7 +88,7 @@
                 onclick="App.handleCustomerQuickLogin()" 
                 class="w-full py-2.5 px-4 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center justify-center gap-2"
               >
-                <i class="fa-solid fa-boxes-stacked"></i> Masuk Sebagai Pelanggan
+                <i class="fa-solid fa-cart-shopping"></i> Masuk ke Online Shop
               </button>
               <button 
                 onclick="App.openGoogleAuthModal('CUSTOMER_LOGIN')" 
@@ -106,9 +106,9 @@
               <div class="w-12 h-12 rounded-xl bg-indigo-100 text-indigo-700 flex items-center justify-center text-xl font-bold mb-3 group-hover:scale-105 transition">
                 <i class="fa-solid fa-shield-halved"></i>
               </div>
-              <h4 class="font-bold text-slate-900 text-base mb-1">Akses Admin & Staff Toko</h4>
+              <h4 class="font-bold text-slate-900 text-base mb-1">Akses Admin (Product Catalog & WMS)</h4>
               <p class="text-xs text-slate-500 leading-relaxed mb-4">
-                Akses penuh fitur WMS (250 SKU), tata letak posisi rak, penerbitan Berita Acara Penerimaan Barang (BAPB), faktur, PO, & 50 aset alat.
+                Akses Product Catalog untuk monitoring stok real-time, serta akses penuh modul WMS 250 SKU, dokumen faktur, PO supplier, dan 50 aset alat.
               </p>
             </div>
             <div class="space-y-2 pt-3 border-t border-slate-200/60">
@@ -187,15 +187,15 @@
 
       <!-- MAIN NAVIGATION TABS (5 FEATURES) -->
       <nav class="flex items-center gap-2 py-2 border-t border-slate-100 overflow-x-auto">
-        <!-- 1. KATALOG PRODUK UMKM TAB (Customer & Admin) -->
+        <!-- 1. ONLINE SHOP / PRODUCT CATALOG TAB (Dynamic per Role) -->
         <button 
           data-tab="shop" 
           onclick="App.switchTab('shop')"
           class="nav-tab-btn flex items-center gap-2 px-4 py-2 rounded-xl text-xs font-bold transition whitespace-nowrap bg-blue-600 text-white shadow-sm"
         >
-          <i class="fa-solid fa-boxes-stacked text-sm"></i>
-          <span>1. KATALOG PRODUK UMKM</span>
-          <span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-200">Katalog View</span>
+          <i class="fa-solid fa-store text-sm"></i>
+          <span>1. ONLINE SHOP</span>
+          <span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-200 font-bold">Belanja Online</span>
         </button>
 
         <!-- 2. LACAK PENGIRIMAN TAB (Customer & Admin) -->

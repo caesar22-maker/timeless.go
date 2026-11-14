@@ -144,6 +144,27 @@ const App = {
       logoImg.src = profile.logoUrl;
     }
 
+    
+    // Dynamic Tab 1 Label & Icon: "1. ONLINE SHOP" for Buyers vs "1. PRODUCT CATALOG" for Admins
+    const tab1Btn = document.querySelector('.nav-tab-btn[data-tab="shop"]');
+    if (tab1Btn) {
+      if (isEmployee) {
+        tab1Btn.innerHTML = `
+          <i class="fa-solid fa-book-open text-sm"></i>
+          <span>1. PRODUCT CATALOG</span>
+          <span class="px-1.5 py-0.2 rounded text-[10px] bg-blue-100 text-blue-700 font-bold">Monitor Stok</span>
+        `;
+        tab1Btn.title = "Product Catalog (Read-Only Monitoring Stok untuk Admin)";
+      } else {
+        tab1Btn.innerHTML = `
+          <i class="fa-solid fa-store text-sm"></i>
+          <span>1. ONLINE SHOP</span>
+          <span class="px-1.5 py-0.2 rounded text-[10px] bg-emerald-500/20 text-emerald-200 font-bold">Belanja Online</span>
+        `;
+        tab1Btn.title = "Online Shop (Beli hingga 250 Produk Grosir UMKM)";
+      }
+    }
+
     // Role & Customer Indicator elements
     const customerBadge = document.getElementById("customer-account-badge");
     const roleBadge = document.getElementById("current-role-badge");

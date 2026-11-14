@@ -89,10 +89,20 @@ const Shop = {
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6" id="product-grid">
         <div>
           <h3 class="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-            <i class="fa-solid fa-book-open text-blue-600"></i> Katalog Produk Digital (Product Catalog)
+            ${isEmployee ? `
+              <i class="fa-solid fa-book-open text-blue-600"></i> Product Catalog
+              <span class="text-xs font-bold text-blue-700 bg-blue-100 px-2.5 py-0.5 rounded-full">Monitoring Stok (Read-Only)</span>
+            ` : `
+              <i class="fa-solid fa-store text-blue-600"></i> Online Shop
+              <span class="text-xs font-bold text-emerald-700 bg-emerald-100 px-2.5 py-0.5 rounded-full">Belanja Grosir UMKM</span>
+            `}
             <span class="text-sm font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">${totalItems} Produk UMKM</span>
           </h3>
-          <p class="text-xs text-slate-500">Koleksi 250 produk UMKM lengkap dengan foto produk, harga satuan pasti, dan ketersediaan stok fisik real-time (View-Only).</p>
+          <p class="text-xs text-slate-500">
+            ${isEmployee 
+              ? 'Tinjauan 250 master produk UMKM untuk pemantauan ketersediaan stok fisik real-time & lokasi rak (Pembelian dinonaktifkan untuk Admin).'
+              : 'Pusat Belanja Grosir Online: Pilih dan beli langsung hingga 250 produk UMKM dengan harga grosir resmi & ketersediaan stok fisik real-time.'}
+          </p>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
@@ -107,8 +117,8 @@ const Shop = {
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           </button>
 
-          <!-- Cart Button (Admin Only) -->
-          ${isEmployee ? `
+          <!-- Buyer Purchasing: Cart Button (Active for Buyers) -->
+          ${!isEmployee ? `
             <button onclick="Shop.openCartModal()" class="relative px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center gap-2">
               <i class="fa-solid fa-cart-shopping"></i>
               <span>Keranjang Belanja</span>
@@ -118,7 +128,8 @@ const Shop = {
                 </span>
               ` : ''}
             </button>
-
+          ` : `
+            <!-- Admin Stock Monitoring Controls (No Cart, Master Management Only) -->
             <button onclick="Orders.openEmployeeOrdersModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center gap-1.5">
               <i class="fa-solid fa-clipboard-list"></i>
               <span>Proses Pesanan</span>
@@ -128,7 +139,7 @@ const Shop = {
             <button onclick="Shop.openProductModal()" class="px-4 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center gap-1.5">
               <i class="fa-solid fa-plus"></i> Tambah Produk UMKM
             </button>
-          ` : ''}
+          `}
         </div>
       </div>
 
@@ -220,28 +231,37 @@ const Shop = {
                   </div>
                 </div>
 
-                <!-- Product Action Controls (View-Only for Customers) -->
+                <!-- Product Action Controls (Purchasing for Buyers, Read-Only Monitoring for Admins) -->
                 <div class="pt-2 border-t border-slate-100 flex items-center gap-1.5">
-                  <button 
-                    onclick="Shop.openDetailModal('${product.id}')" 
-                    class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
-                    title="Lihat Spesifikasi & Detail Produk"
-                  >
-                    <i class="fa-solid fa-circle-info"></i> Lihat Detail Produk
-                  </button>
-                  <button 
-                    onclick="App.copyToClipboard('${product.image || ''}', 'Link foto produk ${Util.escapeHtml(product.name)} disalin!')" 
-                    class="p-2 text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs transition"
-                    title="Salin Link Gambar Produk"
-                  >
-                    <i class="fa-solid fa-link"></i>
-                  </button>
-
-                  ${isEmployee ? `
+                  ${!isEmployee ? `
+                    <!-- Buyer Actions: Add to Cart & Details -->
+                    <button 
+                      onclick="Shop.quickAddToCart('${product.id}', 1)" 
+                      class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
+                      title="Tambah 1 ke Keranjang Belanja"
+                    >
+                      <i class="fa-solid fa-cart-plus"></i> + Keranjang
+                    </button>
+                    <button 
+                      onclick="Shop.openDetailModal('${product.id}')" 
+                      class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition"
+                      title="Lihat Detail & Beli"
+                    >
+                      <i class="fa-solid fa-eye"></i> Detail
+                    </button>
+                  ` : `
+                    <!-- Admin Actions: Read-Only Stock Monitoring & Master Management -->
+                    <button 
+                      onclick="Shop.openDetailModal('${product.id}')" 
+                      class="flex-1 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 transition"
+                      title="Lihat Detail Spesifikasi & Monitoring Stok"
+                    >
+                      <i class="fa-solid fa-chart-line text-blue-600"></i> Monitoring Stok
+                    </button>
                     <button 
                       onclick="Shop.openProductModal('${product.id}')" 
                       class="p-2 text-blue-600 hover:bg-blue-50 rounded-xl text-xs border border-blue-200 transition"
-                      title="Edit Produk (Teks, Gambar, Harga)"
+                      title="Edit Master Produk"
                     >
                       <i class="fa-solid fa-pen-to-square"></i>
                     </button>
@@ -252,7 +272,14 @@ const Shop = {
                     >
                       <i class="fa-solid fa-trash"></i>
                     </button>
-                  ` : ''}
+                  `}
+                  <button 
+                    onclick="App.copyToClipboard('${product.image || ''}', 'Link foto produk ${Util.escapeHtml(product.name)} disalin!')" 
+                    class="p-2 text-slate-500 hover:text-slate-800 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs transition"
+                    title="Salin Link Gambar Produk"
+                  >
+                    <i class="fa-solid fa-link"></i>
+                  </button>
                 </div>
               </div>
             </div>
@@ -329,13 +356,18 @@ const Shop = {
   },
 
   quickAddToCart: function(productId, addQty = 1) {
-    if (!Storage.isEmployee()) {
-      App.showToast("Katalog bersifat View-Only untuk pelanggan. Pemesanan belanja dinonaktifkan.", "info");
+    if (Storage.isEmployee()) {
+      App.showToast("Mode Product Catalog (Admin): Pembelian dinonaktifkan. Akun admin hanya dapat memonitor stok.", "info");
       return;
     }
     const data = Storage.getData();
     const product = data.shopProducts.find(p => p.id === productId);
     if (!product) return;
+
+    if (product.stock <= 0) {
+      App.showToast(`Maaf, stok produk "${product.name}" saat ini habis.`, "error");
+      return;
+    }
 
     const existingIndex = this.cart.findIndex(it => it.productId === productId);
     if (existingIndex !== -1) {
@@ -354,19 +386,22 @@ const Shop = {
     this.render();
   },
 
-  // OPEN PRODUCT DETAIL MODAL (VIEW-ONLY FOR CUSTOMERS)
+  // OPEN PRODUCT DETAIL MODAL (PURCHASE CONTROLS FOR BUYER, READ-ONLY FOR ADMIN)
   openDetailModal: function(productId) {
     const data = Storage.getData();
     const isEmployee = Storage.isEmployee();
     const product = data.shopProducts.find(p => p.id === productId);
     if (!product) return;
 
+    const productPrice = product.price || product.retailPrice || (product.tiers?.[0]?.price || 0);
+
     const modalHtml = `
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" id="shop-detail-modal">
         <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden modal-content-scale max-h-[90vh] flex flex-col">
-          <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+          <div class="px-6 py-4 ${isEmployee ? 'bg-slate-900' : 'bg-gradient-to-r from-blue-700 to-indigo-700'} text-white flex items-center justify-between">
             <h3 class="text-base font-bold flex items-center gap-2">
-              <i class="fa-solid fa-box-open text-amber-400"></i> Detail Spesifikasi Produk (Katalog View-Only)
+              <i class="fa-solid ${isEmployee ? 'fa-book-open text-blue-400' : 'fa-cart-shopping text-emerald-400'}"></i>
+              ${isEmployee ? 'Product Catalog – Detail Spesifikasi & Monitoring Stok' : 'Detail Produk & Pembelian Grosir (Online Shop)'}
             </h3>
             <button onclick="App.closeModal('shop-detail-modal')" class="text-white/80 hover:text-white text-lg">
               <i class="fa-solid fa-xmark"></i>
@@ -391,7 +426,7 @@ const Shop = {
                 <p class="text-xs text-slate-500">Kategori: <span class="font-bold text-slate-700">${product.category}</span></p>
                 <p class="text-xs text-slate-500">Satuan Kemasan: <span class="font-bold text-slate-700">${product.unit}</span></p>
                 <p class="text-xs text-slate-500">Ketersediaan Stok Fisik: <span class="font-bold text-emerald-700">${product.stock} ${product.unit} (Tersedia)</span></p>
-                <p class="text-xs text-slate-500">Tipe Katalog: <span class="font-bold text-blue-700">Digital Catalog (View-Only)</span></p>
+                <p class="text-xs text-slate-500">Status Akses: <span class="font-bold ${isEmployee ? 'text-blue-700' : 'text-emerald-700'}">${isEmployee ? 'Product Catalog (Read-Only)' : 'Online Shop (Siap Dipesan)'}</span></p>
               </div>
             </div>
 
@@ -399,12 +434,12 @@ const Shop = {
             <div class="bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 rounded-xl p-4 flex items-center justify-between">
               <div>
                 <span class="text-xs font-bold uppercase text-blue-900 block mb-0.5 flex items-center gap-1.5">
-                  <i class="fa-solid fa-tag text-blue-600"></i> Harga Jual Resmi UMKM (1 Tingkat Harga)
+                  <i class="fa-solid fa-tag text-blue-600"></i> Harga Grosir Resmi UMKM
                 </span>
-                <span class="text-xs text-slate-500">Harga satuan pasti untuk seluruh kuantitas pembelian</span>
+                <span class="text-xs text-slate-500">Harga satuan pasti untuk transaksi grosir</span>
               </div>
               <div class="text-right">
-                <span class="text-2xl font-black text-blue-700 font-mono">${Util.formatRupiah(product.price || product.retailPrice || (product.tiers?.[0]?.price || 0))}</span>
+                <span class="text-2xl font-black text-blue-700 font-mono">${Util.formatRupiah(productPrice)}</span>
                 <span class="text-xs text-slate-500 font-medium block">per ${product.unit}</span>
               </div>
             </div>
@@ -417,30 +452,60 @@ const Shop = {
               </p>
             </div>
 
-            <!-- View-Only Notice / Controls -->
-            <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-3">
-              <i class="fa-solid fa-circle-info text-blue-600 text-xl flex-shrink-0"></i>
-              <div>
-                <p class="font-bold text-slate-900">Katalog Produk Resmi TIMELESS.GO X ABADI GROSIR (View-Only)</p>
-                <p class="text-slate-600 text-[11px] mt-0.5">Katalog ini disediakan untuk pengecekan spesifikasi barang dan ketersediaan stok fisik real-time. Pelanggan dapat meninjau seluruh data produk dengan transparan.</p>
+            <!-- Role-Specific Action or Notice -->
+            ${!isEmployee ? `
+              <!-- BUYER PURCHASING CONTROLS -->
+              <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                <div>
+                  <span class="text-xs font-bold text-slate-700 block">Tentukan Jumlah Pembelian:</span>
+                  <span class="text-[11px] text-slate-500">Stok fisik tersedia: <strong class="text-emerald-700">${product.stock} ${product.unit}</strong></span>
+                </div>
+                <div class="flex items-center gap-3">
+                  <div class="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-2xs">
+                    <button type="button" onclick="Shop.adjustDetailQty(-1, ${productPrice})" class="w-8 h-8 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">-</button>
+                    <input type="number" id="detail-qty-input" min="1" max="${product.stock}" value="1" oninput="Shop.updateDetailSubtotal(${productPrice})" class="w-12 text-center text-xs font-bold font-mono py-1 border-x border-slate-200 focus:outline-none" />
+                    <button type="button" onclick="Shop.adjustDetailQty(1, ${productPrice})" class="w-8 h-8 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">+</button>
+                  </div>
+                  <div class="text-right">
+                    <span class="text-[10px] text-slate-400 block">Subtotal:</span>
+                    <span class="text-xs font-extrabold text-blue-700 font-mono" id="detail-subtotal-val">${Util.formatRupiah(productPrice)}</span>
+                  </div>
+                </div>
               </div>
-            </div>
 
-            <div class="flex items-center justify-between pt-3 border-t border-slate-200">
-              <div class="text-xs text-slate-500 font-medium">
-                <i class="fa-solid fa-boxes-stacked text-emerald-600 mr-1"></i> Stok Terkonfirmasi: <strong class="text-slate-800 font-bold">${product.stock} ${product.unit}</strong>
-              </div>
-              <div class="flex items-center gap-2">
-                ${isEmployee ? `
-                  <button onclick="App.closeModal('shop-detail-modal'); Shop.openProductModal('${product.id}');" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-xs transition flex items-center gap-1.5">
-                    <i class="fa-solid fa-pen-to-square"></i> Edit Produk
-                  </button>
-                ` : ''}
-                <button onclick="App.closeModal('shop-detail-modal')" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-sm transition">
-                  Tutup Pratinjau
+              <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+                <button onclick="App.closeModal('shop-detail-modal')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+                <button onclick="Shop.addFromDetailModal('${product.id}')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-cart-plus"></i> + Ke Keranjang
+                </button>
+                <button onclick="Shop.buyNowFromDetail('${product.id}')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-bolt"></i> Beli Sekarang
                 </button>
               </div>
-            </div>
+            ` : `
+              <!-- ADMIN MONITORING VIEW (PURCHASING DISABLED) -->
+              <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-3">
+                <i class="fa-solid fa-shield-halved text-blue-600 text-xl flex-shrink-0"></i>
+                <div>
+                  <p class="font-bold text-slate-900">Mode Product Catalog (Admin Toko - Read-Only)</p>
+                  <p class="text-slate-600 text-[11px] mt-0.5">Fitur pembelian dan checkout dinonaktifkan untuk akun administrator. Bagian ini berfungsi murni untuk memantau spesifikasi barang dan ketersediaan stok fisik real-time.</p>
+                </div>
+              </div>
+
+              <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+                <div class="text-xs text-slate-500 font-medium">
+                  <i class="fa-solid fa-boxes-stacked text-blue-600 mr-1"></i> Stok Terkonfirmasi: <strong class="text-slate-800 font-bold">${product.stock} ${product.unit}</strong>
+                </div>
+                <div class="flex items-center gap-2">
+                  <button onclick="App.closeModal('shop-detail-modal'); Shop.openProductModal('${product.id}');" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-xs transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-pen-to-square"></i> Edit Master Produk
+                  </button>
+                  <button onclick="App.closeModal('shop-detail-modal')" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-sm transition">
+                    Tutup Pratinjau
+                  </button>
+                </div>
+              </div>
+            `}
           </div>
         </div>
       </div>
@@ -449,12 +514,24 @@ const Shop = {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
-  adjustDetailQty: function(delta) {
+  adjustDetailQty: function(delta, unitPrice) {
     const input = document.getElementById("detail-qty-input");
     if (!input) return;
     const current = Number(input.value) || 1;
     const min = Number(input.min) || 1;
-    input.value = Math.max(min, current + delta);
+    const max = Number(input.max) || 99999;
+    input.value = Math.min(max, Math.max(min, current + delta));
+    if (unitPrice) {
+      this.updateDetailSubtotal(unitPrice);
+    }
+  },
+
+  updateDetailSubtotal: function(unitPrice) {
+    const input = document.getElementById("detail-qty-input");
+    const subtotalEl = document.getElementById("detail-subtotal-val");
+    if (!input || !subtotalEl) return;
+    const qty = Math.max(1, Number(input.value) || 1);
+    subtotalEl.textContent = Util.formatRupiah(qty * unitPrice);
   },
 
   addFromDetailModal: function(productId) {
@@ -464,10 +541,24 @@ const Shop = {
     App.closeModal('shop-detail-modal');
   },
 
+  buyNowFromDetail: function(productId) {
+    if (Storage.isEmployee()) {
+      App.showToast("Mode Product Catalog (Admin): Pembelian dinonaktifkan.", "info");
+      return;
+    }
+    const input = document.getElementById("detail-qty-input");
+    const qty = Number(input?.value) || 1;
+    this.quickAddToCart(productId, qty);
+    App.closeModal('shop-detail-modal');
+    setTimeout(() => {
+      this.openCartModal();
+    }, 200);
+  },
+
   // OPEN CART MODAL
   openCartModal: function() {
-    if (!Storage.isEmployee()) {
-      App.showToast("Katalog bersifat View-Only untuk pelanggan. Keranjang belanja dinonaktifkan.", "info");
+    if (Storage.isEmployee()) {
+      App.showToast("Mode Product Catalog (Admin): Keranjang belanja dinonaktifkan untuk akun administrator.", "info");
       return;
     }
     const data = Storage.getData();
