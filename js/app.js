@@ -7,11 +7,20 @@
 const App = {
   currentTab: "shop", // Default tab is "shop"
 
-  init: function() {
-    // Initial sync
+    init: function() {
     this.updateHeaderUI();
-    this.switchTab("shop");
     this.bindGlobalEvents();
+
+    // Check remembered session (Requirement 9)
+    if (!Storage.hasActiveSession()) {
+      this.showWelcomeLoginScreen();
+    } else {
+      const sess = Storage.getSession();
+      Storage.setRole(sess.role);
+      this.hideWelcomeLoginScreen();
+      this.updateHeaderUI();
+      this.switchTab("shop");
+    }
 
     // Inisialisasi Supabase Realtime & Sinkronisasi Cloud
     if (typeof Storage !== 'undefined' && Storage.initSupabase) {
@@ -28,6 +37,31 @@ const App = {
         console.warn("Storage initSupabase error:", e);
       }
     }
+  },
+
+
+  // WELCOME LOGIN SCREEN CONTROLLERS (REQUIREMENT 9)
+  showWelcomeLoginScreen: function() {
+    const el = document.getElementById("welcome-login-screen");
+    if (el) {
+      el.classList.remove("hidden");
+    }
+  },
+
+  hideWelcomeLoginScreen: function() {
+    const el = document.getElementById("welcome-login-screen");
+    if (el) {
+      el.classList.add("hidden");
+    }
+  },
+
+  handleCustomerQuickLogin: function() {
+    Storage.setSession("customer", { name: "Pelanggan Grosir UMKM", type: "guest" });
+    Storage.setRole("customer");
+    this.hideWelcomeLoginScreen();
+    this.updateHeaderUI();
+    this.switchTab("shop");
+    this.showToast("Selamat datang di Katalog Produk Digital TIMELESS.GO X ABADI GROSIR!", "success");
   },
 
   bindGlobalEvents: function() {

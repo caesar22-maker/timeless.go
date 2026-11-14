@@ -326,11 +326,13 @@ const Documents = {
               </div>
             </div>
 
-            <!-- Client / Supplier Details -->
+            <!-- Client / Supplier Details (Dynamic Label for Supplier on PO & Goods Receipt) -->
             <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Nama Pihak / Toko Klien *</label>
-                <input type="text" id="doc-client-name" required value="${Util.escapeHtml(doc.clientName)}" placeholder="Contoh: Toko Berkah Jaya / PT Supplier" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg" />
+                <label id="doc-party-label" class="block text-xs font-semibold text-slate-700 mb-1">
+                  ${(doc.type && (doc.type.includes('PO') || doc.type.includes('Purchase Order') || doc.type.includes('Berita Acara') || doc.type.includes('Penerimaan'))) ? 'Supplier / Nama Pemasok *' : 'Nama Pelanggan / Toko Klien *'}
+                </label>
+                <input type="text" id="doc-client-name" required value="${Util.escapeHtml(doc.clientName)}" placeholder="Contoh: PT Arta Boga Cemerlang / Toko Berkah" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg" />
               </div>
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">No. WhatsApp / Kontak</label>
@@ -348,50 +350,85 @@ const Documents = {
             </div>
 
             <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1">Alamat Lengkap Pengiriman / Lokasi</label>
-              <input type="text" id="doc-client-address" value="${Util.escapeHtml(doc.clientAddress || '')}" placeholder="Jl. Pasar Baru No. 10..." class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg" />
+              <label id="doc-address-label" class="block text-xs font-semibold text-slate-700 mb-1">
+                ${(doc.type && (doc.type.includes('PO') || doc.type.includes('Purchase Order') || doc.type.includes('Berita Acara') || doc.type.includes('Penerimaan'))) ? 'Alamat Supplier / Gudang Pemasok' : 'Alamat Lengkap Pengiriman / Pelanggan'}
+              </label>
+              <input type="text" id="doc-client-address" value="${Util.escapeHtml(doc.clientAddress || '')}" placeholder="Jl. Raya Kendalpayak / Alamat Lengkap..." class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg" />
             </div>
 
-            <!-- Items Table (Dynamic Rows) -->
+            <!-- Items Table (Searchable 250 Product Dropdown Selection) -->
             <div class="border border-slate-200 rounded-xl overflow-hidden">
-              <div class="bg-slate-100 px-4 py-2.5 border-b border-slate-200 flex items-center justify-between">
-                <span class="text-xs font-bold text-slate-700 uppercase tracking-wide">Rincian Barang & Kuantitas</span>
-                <button type="button" onclick="Documents.addRow()" class="px-3 py-1 bg-indigo-600 hover:bg-indigo-700 text-white rounded-md text-xs font-bold flex items-center gap-1 shadow-xs">
-                  <i class="fa-solid fa-plus"></i> Tambah Baris Barang
+              <div class="bg-indigo-50/80 px-4 py-3 border-b border-indigo-200 flex flex-col sm:flex-row sm:items-center justify-between gap-2.5">
+                <div>
+                  <span class="text-xs font-bold text-indigo-950 uppercase tracking-wide flex items-center gap-1.5">
+                    <i class="fa-solid fa-boxes-stacked text-indigo-600"></i> Rincian Barang & Kuantitas (250 Produk Terintegrasi)
+                  </span>
+                  <p class="text-[11px] text-slate-500">Pilih cepat dari 250 master produk untuk otomatis mengisi harga satuan dan spesifikasi.</p>
+                </div>
+                <button type="button" onclick="Documents.addRow()" class="px-3.5 py-1.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-lg text-xs font-bold flex items-center gap-1.5 shadow-xs whitespace-nowrap self-start sm:self-auto">
+                  <i class="fa-solid fa-plus"></i> + Tambah Baris Kosong
                 </button>
               </div>
+
+              <!-- Quick Master Product Selector Bar (All 250 Products) -->
+              <div class="p-3 bg-slate-50 border-b border-slate-200 flex flex-col md:flex-row items-stretch md:items-center gap-2">
+                <div class="relative flex-1">
+                  <select id="doc-quick-product-select" class="w-full text-xs px-3 py-2 border border-slate-300 rounded-lg bg-white text-slate-800 font-medium focus:ring-2 focus:ring-indigo-500">
+                    <option value="">-- Pilih dari 250 Master Produk (Nama, Kategori, Satuan, Harga, Stok) --</option>
+                    ${(data.shopProducts || []).map(p => `
+                      <option value="${p.id}" data-id="${p.id}" data-name="${Util.escapeHtml(p.name)}" data-cat="${p.category}" data-unit="${p.unit}" data-price="${p.price || p.retailPrice || 0}" data-stock="${p.stock}">
+                        [${p.category}] ${Util.escapeHtml(p.name)} | Satuan: ${p.unit} | Stok: ${p.stock} | ${Util.formatRupiah(p.price || p.retailPrice || 0)}
+                      </option>
+                    `).join('')}
+                  </select>
+                </div>
+                <button type="button" onclick="Documents.addSelectedProductFromBar()" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-lg text-xs font-bold transition flex items-center justify-center gap-1.5 shadow-xs whitespace-nowrap">
+                  <i class="fa-solid fa-cart-arrow-down"></i> Masukkan ke Dokumen
+                </button>
+              </div>
+
               <div class="overflow-x-auto p-2">
                 <table class="w-full text-left text-xs" id="doc-items-table">
                   <thead class="text-slate-500 font-semibold border-b border-slate-200">
                     <tr>
-                      <th class="py-2 px-2">Nama Barang / Deskripsi</th>
-                      <th class="py-2 px-2 w-20 text-center">Qty</th>
-                      <th class="py-2 px-2 w-24">Satuan</th>
-                      <th class="py-2 px-2 w-32 text-right">Harga Satuan (Rp)</th>
-                      <th class="py-2 px-2 w-32 text-right">Subtotal (Rp)</th>
+                      <th class="py-2 px-2">Nama Barang & Pilih Produk</th>
+                      <th class="py-2 px-2 w-24 text-center">Qty</th>
+                      <th class="py-2 px-2 w-28">Satuan</th>
+                      <th class="py-2 px-2 w-36 text-right">Harga Satuan (Rp)</th>
+                      <th class="py-2 px-2 w-36 text-right">Subtotal (Rp)</th>
                       <th class="py-2 px-1 w-10 text-center"></th>
                     </tr>
                   </thead>
                   <tbody id="doc-items-tbody" class="divide-y divide-slate-100">
                     ${(doc.items || []).map((it, idx) => `
                       <tr class="item-row">
-                        <td class="py-1.5 px-2">
-                          <input type="text" value="${Util.escapeHtml(it.name)}" required class="row-name w-full px-2 py-1 border border-slate-300 rounded text-xs" placeholder="Nama barang" />
+                        <td class="py-2 px-2">
+                          <div class="space-y-1">
+                            <select class="row-product-picker w-full px-2 py-1 border border-slate-300 rounded text-xs bg-white text-slate-800" onchange="Documents.onRowProductSelect(this)">
+                              <option value="">-- Ganti Produk dari 250 Master --</option>
+                              ${(data.shopProducts || []).map(p => `
+                                <option value="${p.id}" ${p.name === it.name ? 'selected' : ''} data-name="${Util.escapeHtml(p.name)}" data-cat="${p.category}" data-unit="${p.unit}" data-price="${p.price || p.retailPrice || 0}" data-stock="${p.stock}">
+                                  [${p.category}] ${Util.escapeHtml(p.name)} | Stok: ${p.stock} ${p.unit} | ${Util.formatRupiah(p.price || p.retailPrice || 0)}
+                                </option>
+                              `).join('')}
+                            </select>
+                            <input type="text" value="${Util.escapeHtml(it.name)}" required class="row-name w-full px-2 py-1 border border-slate-200 rounded text-xs bg-slate-50 font-medium" placeholder="Nama barang" />
+                          </div>
                         </td>
-                        <td class="py-1.5 px-2">
-                          <input type="number" value="${it.qty}" min="1" required oninput="Documents.calcTotals()" class="row-qty w-full px-2 py-1 border border-slate-300 rounded text-xs text-center font-bold" />
+                        <td class="py-2 px-2">
+                          <input type="number" value="${it.qty || 1}" min="1" required oninput="Documents.calcTotals()" class="row-qty w-full px-2 py-1.5 border border-slate-300 rounded text-xs text-center font-bold text-indigo-700" />
                         </td>
-                        <td class="py-1.5 px-2">
-                          <input type="text" value="${Util.escapeHtml(it.unit || 'Dus')}" class="row-unit w-full px-2 py-1 border border-slate-300 rounded text-xs" placeholder="Dus/Sak" />
+                        <td class="py-2 px-2">
+                          <input type="text" value="${Util.escapeHtml(it.unit || 'Dus')}" class="row-unit w-full px-2 py-1.5 border border-slate-300 rounded text-xs" placeholder="Dus/Sak/Pack" />
                         </td>
-                        <td class="py-1.5 px-2">
-                          <input type="number" value="${it.price}" min="0" required oninput="Documents.calcTotals()" class="row-price w-full px-2 py-1 border border-slate-300 rounded text-xs text-right font-semibold" />
+                        <td class="py-2 px-2">
+                          <input type="number" value="${it.price || 0}" min="0" required oninput="Documents.calcTotals()" class="row-price w-full px-2 py-1.5 border border-slate-300 rounded text-xs text-right font-semibold font-mono" />
                         </td>
-                        <td class="py-1.5 px-2 text-right font-bold text-slate-800 row-subtotal">
+                        <td class="py-2 px-2 text-right font-bold text-slate-800 row-subtotal font-mono text-xs">
                           ${Util.formatRupiah((it.qty || 1) * (it.price || 0))}
                         </td>
-                        <td class="py-1.5 px-1 text-center">
-                          <button type="button" onclick="Documents.removeRow(this)" class="text-rose-500 hover:text-rose-700 p-1">
+                        <td class="py-2 px-1 text-center">
+                          <button type="button" onclick="Documents.removeRow(this)" class="text-rose-500 hover:text-rose-700 p-1" title="Hapus Baris">
                             <i class="fa-solid fa-trash"></i>
                           </button>
                         </td>
@@ -486,9 +523,19 @@ const Documents = {
 
   onTypeChange: function(val) {
     const docNumberInput = document.getElementById("doc-number");
+    const partyLabel = document.getElementById("doc-party-label");
+    const addressLabel = document.getElementById("doc-address-label");
     const year = new Date().getFullYear();
     const month = String(new Date().getMonth()+1).padStart(2,'0');
     const rand = Math.floor(1000+Math.random()*9000);
+
+    const isSupplier = val.includes("Purchase Order") || val.includes("PO") || val.includes("Berita Acara") || val.includes("Penerimaan");
+    if (partyLabel) {
+      partyLabel.textContent = isSupplier ? "Supplier / Nama Pemasok *" : "Nama Pelanggan / Toko Klien *";
+    }
+    if (addressLabel) {
+      addressLabel.textContent = isSupplier ? "Alamat Supplier / Gudang Pemasok" : "Alamat Lengkap Pengiriman / Pelanggan";
+    }
 
     if (val.includes("Faktur")) {
       docNumberInput.value = `INV/GBA/${year}/${month}/${rand}`;
@@ -497,32 +544,87 @@ const Documents = {
     } else if (val.includes("Purchase Order")) {
       docNumberInput.value = `PO/GBA/${year}/${month}/${rand}`;
     } else {
-      docNumberInput.value = `BAPB/GBA/${year}/${month}/${rand}`;
+      docNumberInput.value = `BAP-${year}${month}-${rand}`;
     }
   },
 
-  addRow: function() {
+  onRowProductSelect: function(selectEl) {
+    const opt = selectEl.options[selectEl.selectedIndex];
+    if (!opt || !opt.dataset.name) return;
+    const row = selectEl.closest("tr");
+    if (!row) return;
+
+    const nameInput = row.querySelector(".row-name");
+    const unitInput = row.querySelector(".row-unit");
+    const priceInput = row.querySelector(".row-price");
+
+    if (nameInput) nameInput.value = opt.dataset.name;
+    if (unitInput) unitInput.value = opt.dataset.unit || "Dus";
+    if (priceInput) priceInput.value = opt.dataset.price || 0;
+
+    this.calcTotals();
+  },
+
+  addSelectedProductFromBar: function() {
+    const selector = document.getElementById("doc-quick-product-select");
+    if (!selector) return;
+    const opt = selector.options[selector.selectedIndex];
+    if (!opt || !opt.value) {
+      App.showToast("Silakan pilih produk dari dropdown terlebih dahulu.", "warning");
+      return;
+    }
+
+    this.addRow({
+      name: opt.dataset.name,
+      unit: opt.dataset.unit || "Pack",
+      price: Number(opt.dataset.price) || 0,
+      qty: 1
+    });
+
+    selector.value = "";
+    App.showToast(`Produk "${opt.dataset.name}" ditambahkan ke dokumen!`, "success");
+  },
+
+  addRow: function(presetItem = null) {
+    const data = Storage.getData();
+    const products = data.shopProducts || [];
     const tbody = document.getElementById("doc-items-tbody");
     const tr = document.createElement("tr");
     tr.className = "item-row";
+
+    const name = presetItem ? presetItem.name : "";
+    const unit = presetItem ? presetItem.unit : "Dus";
+    const price = presetItem ? presetItem.price : 10000;
+    const qty = presetItem ? (presetItem.qty || 1) : 1;
+
     tr.innerHTML = `
-      <td class="py-1.5 px-2">
-        <input type="text" required class="row-name w-full px-2 py-1 border border-slate-300 rounded text-xs" placeholder="Nama barang" />
+      <td class="py-2 px-2">
+        <div class="space-y-1">
+          <select class="row-product-picker w-full px-2 py-1 border border-slate-300 rounded text-xs bg-white text-slate-800" onchange="Documents.onRowProductSelect(this)">
+            <option value="">-- Pilih dari 250 Master Produk --</option>
+            ${products.map(p => `
+              <option value="${p.id}" ${p.name === name ? 'selected' : ''} data-name="${Util.escapeHtml(p.name)}" data-cat="${p.category}" data-unit="${p.unit}" data-price="${p.price || p.retailPrice || 0}" data-stock="${p.stock}">
+                [${p.category}] ${Util.escapeHtml(p.name)} | Stok: ${p.stock} ${p.unit} | ${Util.formatRupiah(p.price || p.retailPrice || 0)}
+              </option>
+            `).join('')}
+          </select>
+          <input type="text" value="${Util.escapeHtml(name)}" required class="row-name w-full px-2 py-1 border border-slate-200 rounded text-xs bg-slate-50 font-medium" placeholder="Nama barang" />
+        </div>
       </td>
-      <td class="py-1.5 px-2">
-        <input type="number" value="1" min="1" required oninput="Documents.calcTotals()" class="row-qty w-full px-2 py-1 border border-slate-300 rounded text-xs text-center font-bold" />
+      <td class="py-2 px-2">
+        <input type="number" value="${qty}" min="1" required oninput="Documents.calcTotals()" class="row-qty w-full px-2 py-1.5 border border-slate-300 rounded text-xs text-center font-bold text-indigo-700" />
       </td>
-      <td class="py-1.5 px-2">
-        <input type="text" value="Dus" class="row-unit w-full px-2 py-1 border border-slate-300 rounded text-xs" placeholder="Dus/Sak" />
+      <td class="py-2 px-2">
+        <input type="text" value="${Util.escapeHtml(unit)}" class="row-unit w-full px-2 py-1.5 border border-slate-300 rounded text-xs" placeholder="Dus/Sak/Pack" />
       </td>
-      <td class="py-1.5 px-2">
-        <input type="number" value="100000" min="0" required oninput="Documents.calcTotals()" class="row-price w-full px-2 py-1 border border-slate-300 rounded text-xs text-right font-semibold" />
+      <td class="py-2 px-2">
+        <input type="number" value="${price}" min="0" required oninput="Documents.calcTotals()" class="row-price w-full px-2 py-1.5 border border-slate-300 rounded text-xs text-right font-semibold font-mono" />
       </td>
-      <td class="py-1.5 px-2 text-right font-bold text-slate-800 row-subtotal">
-        Rp 100.000
+      <td class="py-2 px-2 text-right font-bold text-slate-800 row-subtotal font-mono text-xs">
+        ${Util.formatRupiah(qty * price)}
       </td>
-      <td class="py-1.5 px-1 text-center">
-        <button type="button" onclick="Documents.removeRow(this)" class="text-rose-500 hover:text-rose-700 p-1">
+      <td class="py-2 px-1 text-center">
+        <button type="button" onclick="Documents.removeRow(this)" class="text-rose-500 hover:text-rose-700 p-1" title="Hapus Baris">
           <i class="fa-solid fa-trash"></i>
         </button>
       </td>

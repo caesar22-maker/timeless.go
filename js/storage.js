@@ -13,8 +13,9 @@ const SUPABASE_URL = "https://urijgftkzmgsiaxvakcc.supabase.co"; // Supabase Pro
 const SUPABASE_ANON_KEY = "eyJhbGciOiJIUzI1NiIsInR5cCI6IkpXVCJ9.eyJpc3MiOiJzdXBhYmFzZSIsInJlZiI6InVyaWpnZnRrem1nc2lheHZha2NjIiwicm9sZSI6ImFub24iLCJpYXQiOjE3OTE2Nzg1MjEsImV4cCI6MjEwNzI1NDUyMX0.Li6yDInP34L3117wVg9Z_psumZGrjJQXpKJZZDeLppE"; // Supabase Anon Public Key Anda
 
 const SUPABASE_CONFIG_KEY = "GBA_SUPABASE_CONFIG_V1";
-const STORAGE_KEY = "GBA_GROSIR_STORE_V5";
+const STORAGE_KEY = "GBA_GROSIR_STORE_V6";
 const AUTH_KEY = "GBA_AUTH_ROLE_V1";
+const SESSION_KEY = "GBA_ACTIVE_SESSION_V2";
 const GOOGLE_AUTH_KEY = "GBA_GOOGLE_EMPLOYEE_ACC_V1";
 const CUSTOMER_ACCOUNT_KEY = "GBA_CUSTOMER_ACCOUNT_V1";
 const EMPLOYEE_PASSWORD = "timeless";
@@ -1233,10 +1234,18 @@ const Storage = {
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && parsed.shopProducts && parsed.shopProducts.length >= 200 && parsed.inventoryTools && parsed.inventoryTools.length >= 40) {
-            if (!parsed.wmsItems || !Array.isArray(parsed.wmsItems)) parsed.wmsItems = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.wmsItems || []));
+            if (!parsed.wmsItems || !Array.isArray(parsed.wmsItems) || parsed.wmsItems.length < 250) {
+              parsed.wmsItems = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.wmsItems || []));
+            }
             if (!parsed.wmsLogs || !Array.isArray(parsed.wmsLogs)) parsed.wmsLogs = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.wmsLogs || []));
             if (!parsed.documents || !Array.isArray(parsed.documents)) parsed.documents = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.documents || []));
             if (!parsed.orders || !Array.isArray(parsed.orders)) parsed.orders = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.orders || []));
+            if (!parsed.inventoryTools || parsed.inventoryTools.length < 50 || !parsed.inventoryTools.some(t => t.status === 'Currently In Use')) {
+              parsed.inventoryTools = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.inventoryTools || []));
+            }
+            if (!parsed.profile || parsed.profile.name !== 'TIMELESS.GO X ABADI GROSIR') {
+              parsed.profile = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.profile || {}));
+            }
 
             parsed.shopProducts.forEach(p => {
               const singlePrice = p.price || p.retailPrice || (p.tiers && p.tiers[0] ? p.tiers[0].price : 0);
@@ -1314,8 +1323,69 @@ const Storage = {
     }
   },
 
+  // ============================================================================
+  // SESSION & AUTH ROLE MANAGEMENT
+  // ============================================================================
+  getSession: function() {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        const sess = localStorage.getItem(SESSION_KEY);
+        if (sess) {
+          const parsed = JSON.parse(sess);
+          if (parsed && parsed.role && (parsed.role === 'admin' || parsed.role === 'customer')) {
+            if (parsed.expiresAt && new Date(parsed.expiresAt).getTime() < Date.now()) {
+              this.clearSession();
+              return null;
+            }
+            return parsed;
+          }
+        }
+      }
+    } catch (e) {
+      console.warn("Error reading session from localStorage:", e);
+    }
+    return null;
+  },
+
+  setSession: function(role, userDetails = {}) {
+    const session = {
+      role: role, // 'admin' | 'customer'
+      user: userDetails,
+      loggedInAt: new Date().toISOString(),
+      expiresAt: new Date(Date.now() + 30 * 24 * 60 * 60 * 1000).toISOString() // 30-day remembered session
+    };
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem(SESSION_KEY, JSON.stringify(session));
+        localStorage.setItem(AUTH_KEY, role);
+      }
+    } catch (e) {
+      console.error("Error saving session to localStorage:", e);
+    }
+    return session;
+  },
+
+  clearSession: function() {
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.removeItem(SESSION_KEY);
+        localStorage.removeItem(AUTH_KEY);
+        localStorage.removeItem(GOOGLE_AUTH_KEY);
+        localStorage.removeItem(CUSTOMER_ACCOUNT_KEY);
+      }
+    } catch (e) {
+      console.error("Error clearing session:", e);
+    }
+  },
+
+  hasActiveSession: function() {
+    return Boolean(this.getSession());
+  },
+
   // Auth role get/set
   getCurrentRole: function() {
+    const sess = this.getSession();
+    if (sess && sess.role) return sess.role;
     if (typeof localStorage !== 'undefined') {
       return localStorage.getItem(AUTH_KEY) || "customer";
     }
@@ -1329,8 +1399,10 @@ const Storage = {
   },
 
   isEmployee: function() {
+    const sess = this.getSession();
+    if (sess && sess.role === "admin") return true;
     const role = this.getCurrentRole();
-    return (role === "pegawai" || role === "admin") && this.isGoogleConnected();
+    return (role === "pegawai" || role === "admin");
   },
 
   isAdmin: function() {

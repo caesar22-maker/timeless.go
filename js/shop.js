@@ -74,7 +74,7 @@ const Shop = {
           </p>
           <div class="flex flex-wrap items-center gap-3">
             <a href="#product-grid" class="px-5 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center gap-2">
-              <i class="fa-solid fa-cart-shopping"></i> Belanja Grosir Sekarang
+              <i class="fa-solid fa-boxes-stacked"></i> Jelajahi Katalog Produk
             </a>
             ${isEmployee ? `
               <button onclick="Shop.openBannerEditModal()" class="px-4 py-2.5 bg-white/20 hover:bg-white/30 backdrop-blur-md text-white rounded-xl font-bold text-xs flex items-center gap-1.5 transition border border-white/30">
@@ -89,10 +89,10 @@ const Shop = {
       <div class="flex flex-col md:flex-row md:items-center justify-between gap-4 mb-6" id="product-grid">
         <div>
           <h3 class="text-2xl font-black text-slate-800 tracking-tight flex items-center gap-2">
-            <i class="fa-solid fa-store text-blue-600"></i> Katalog Produk UMKM & Online Shop
+            <i class="fa-solid fa-book-open text-blue-600"></i> Katalog Produk Digital (Product Catalog)
             <span class="text-sm font-bold text-slate-500 bg-slate-100 px-2.5 py-0.5 rounded-full">${totalItems} Produk UMKM</span>
           </h3>
-          <p class="text-xs text-slate-500">Koleksi 250 produk UMKM lengkap dengan 1 tingkatan harga satuan pasti dan transparan.</p>
+          <p class="text-xs text-slate-500">Koleksi 250 produk UMKM lengkap dengan foto produk, harga satuan pasti, dan ketersediaan stok fisik real-time (View-Only).</p>
         </div>
 
         <div class="flex flex-wrap items-center gap-3">
@@ -103,23 +103,22 @@ const Shop = {
             title="Pantau proses packing gudang & posisi armada pengantaran"
           >
             <i class="fa-solid fa-truck-fast text-blue-600"></i>
-            <span>Lacak Pesanan</span>
+            <span>Lacak Pengiriman</span>
             <span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span>
           </button>
 
-          <!-- Cart Button -->
-          <button onclick="Shop.openCartModal()" class="relative px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center gap-2">
-            <i class="fa-solid fa-cart-shopping"></i>
-            <span>Keranjang Belanja</span>
-            ${totalCartItems > 0 ? `
-              <span class="w-6 h-6 rounded-full bg-amber-500 text-slate-900 text-xs font-black flex items-center justify-center -mr-1">
-                ${totalCartItems}
-              </span>
-            ` : ''}
-          </button>
-
-          <!-- Employee Actions -->
+          <!-- Cart Button (Admin Only) -->
           ${isEmployee ? `
+            <button onclick="Shop.openCartModal()" class="relative px-4 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center gap-2">
+              <i class="fa-solid fa-cart-shopping"></i>
+              <span>Keranjang Belanja</span>
+              ${totalCartItems > 0 ? `
+                <span class="w-6 h-6 rounded-full bg-amber-500 text-slate-900 text-xs font-black flex items-center justify-center -mr-1">
+                  ${totalCartItems}
+                </span>
+              ` : ''}
+            </button>
+
             <button onclick="Orders.openEmployeeOrdersModal()" class="px-4 py-2.5 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center gap-1.5">
               <i class="fa-solid fa-clipboard-list"></i>
               <span>Proses Pesanan</span>
@@ -208,25 +207,27 @@ const Shop = {
                   <p class="text-xs text-slate-400 mb-2">Kemasan: <span class="font-semibold text-slate-600">${product.unit}</span> | Stok: <span class="font-bold ${product.stock < 15 ? 'text-rose-600' : 'text-slate-700'}">${product.stock} ${product.unit}</span></p>
 
                   <!-- Single Price Box (1 Tingkatan Harga) -->
+                  <!-- Single Price & Stock Availability Box -->
                   <div class="bg-blue-50/70 border border-blue-100 rounded-xl p-2.5 mb-3">
                     <div class="flex items-baseline justify-between">
-                      <span class="text-[11px] text-slate-500 font-medium">Harga Jual:</span>
+                      <span class="text-[11px] text-slate-500 font-medium">Harga Grosir Satuan:</span>
                       <span class="text-base font-extrabold text-blue-700 font-mono">${Util.formatRupiah(productPrice)}<span class="text-[10px] font-normal text-slate-500">/${product.unit.split(' ')[0]}</span></span>
                     </div>
                     <div class="text-[10px] text-slate-500 flex items-center justify-between mt-1 pt-1 border-t border-blue-100">
-                      <span class="text-slate-500"><i class="fa-solid fa-tag text-blue-500 mr-1"></i>1 Tingkat Harga Satuan</span>
-                      <span class="font-bold text-emerald-700"><i class="fa-solid fa-circle-check text-[10px]"></i> Produk UMKM</span>
+                      <span class="text-slate-600 font-medium"><i class="fa-solid fa-boxes-stacked text-blue-600 mr-1"></i>Stok: <strong class="${product.stock < 15 ? 'text-rose-600' : 'text-slate-800'}">${product.stock} ${product.unit}</strong></span>
+                      <span class="font-bold text-emerald-700"><i class="fa-solid fa-circle-check text-[10px]"></i> Tersedia</span>
                     </div>
                   </div>
                 </div>
 
-                <!-- Add to Cart & Controls -->
+                <!-- Product Action Controls (View-Only for Customers) -->
                 <div class="pt-2 border-t border-slate-100 flex items-center gap-1.5">
                   <button 
-                    onclick="Shop.quickAddToCart('${product.id}')" 
+                    onclick="Shop.openDetailModal('${product.id}')" 
                     class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
+                    title="Lihat Spesifikasi & Detail Produk"
                   >
-                    <i class="fa-solid fa-cart-plus"></i> + Keranjang
+                    <i class="fa-solid fa-circle-info"></i> Lihat Detail Produk
                   </button>
                   <button 
                     onclick="App.copyToClipboard('${product.image || ''}', 'Link foto produk ${Util.escapeHtml(product.name)} disalin!')" 
@@ -234,13 +235,6 @@ const Shop = {
                     title="Salin Link Gambar Produk"
                   >
                     <i class="fa-solid fa-link"></i>
-                  </button>
-                  <button 
-                    onclick="Shop.openDetailModal('${product.id}')" 
-                    class="p-2 text-slate-600 hover:text-blue-600 bg-slate-100 hover:bg-slate-200 rounded-xl text-xs transition"
-                    title="Lihat Detail & Tingkat Harga"
-                  >
-                    <i class="fa-solid fa-eye"></i>
                   </button>
 
                   ${isEmployee ? `
@@ -335,6 +329,10 @@ const Shop = {
   },
 
   quickAddToCart: function(productId, addQty = 1) {
+    if (!Storage.isEmployee()) {
+      App.showToast("Katalog bersifat View-Only untuk pelanggan. Pemesanan belanja dinonaktifkan.", "info");
+      return;
+    }
     const data = Storage.getData();
     const product = data.shopProducts.find(p => p.id === productId);
     if (!product) return;
@@ -356,9 +354,10 @@ const Shop = {
     this.render();
   },
 
-  // OPEN PRODUCT DETAIL MODAL
+  // OPEN PRODUCT DETAIL MODAL (VIEW-ONLY FOR CUSTOMERS)
   openDetailModal: function(productId) {
     const data = Storage.getData();
+    const isEmployee = Storage.isEmployee();
     const product = data.shopProducts.find(p => p.id === productId);
     if (!product) return;
 
@@ -367,7 +366,7 @@ const Shop = {
         <div class="bg-white rounded-2xl max-w-2xl w-full shadow-2xl border border-slate-200 overflow-hidden modal-content-scale max-h-[90vh] flex flex-col">
           <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
             <h3 class="text-base font-bold flex items-center gap-2">
-              <i class="fa-solid fa-box-open text-amber-400"></i> Detail Produk Grosir
+              <i class="fa-solid fa-box-open text-amber-400"></i> Detail Spesifikasi Produk (Katalog View-Only)
             </h3>
             <button onclick="App.closeModal('shop-detail-modal')" class="text-white/80 hover:text-white text-lg">
               <i class="fa-solid fa-xmark"></i>
@@ -390,9 +389,9 @@ const Shop = {
                 <span class="text-xs font-mono font-bold text-slate-500 bg-slate-100 px-2 py-0.5 rounded">${product.sku}</span>
                 <h3 class="text-lg font-black text-slate-900 leading-snug">${Util.escapeHtml(product.name)}</h3>
                 <p class="text-xs text-slate-500">Kategori: <span class="font-bold text-slate-700">${product.category}</span></p>
-                <p class="text-xs text-slate-500">Kemasan: <span class="font-bold text-slate-700">${product.unit}</span></p>
-                <p class="text-xs text-slate-500">Stok Tersedia: <span class="font-bold text-emerald-700">${product.stock} ${product.unit}</span></p>
-                <p class="text-xs text-slate-500">Minimal Order: <span class="font-bold text-slate-700">${product.minOrder || 1} ${product.unit}</span></p>
+                <p class="text-xs text-slate-500">Satuan Kemasan: <span class="font-bold text-slate-700">${product.unit}</span></p>
+                <p class="text-xs text-slate-500">Ketersediaan Stok Fisik: <span class="font-bold text-emerald-700">${product.stock} ${product.unit} (Tersedia)</span></p>
+                <p class="text-xs text-slate-500">Tipe Katalog: <span class="font-bold text-blue-700">Digital Catalog (View-Only)</span></p>
               </div>
             </div>
 
@@ -402,7 +401,7 @@ const Shop = {
                 <span class="text-xs font-bold uppercase text-blue-900 block mb-0.5 flex items-center gap-1.5">
                   <i class="fa-solid fa-tag text-blue-600"></i> Harga Jual Resmi UMKM (1 Tingkat Harga)
                 </span>
-                <span class="text-xs text-slate-500">Harga satuan pasti untuk seluruh kuantitas pemesanan</span>
+                <span class="text-xs text-slate-500">Harga satuan pasti untuk seluruh kuantitas pembelian</span>
               </div>
               <div class="text-right">
                 <span class="text-2xl font-black text-blue-700 font-mono">${Util.formatRupiah(product.price || product.retailPrice || (product.tiers?.[0]?.price || 0))}</span>
@@ -412,25 +411,35 @@ const Shop = {
 
             <!-- Description -->
             <div>
-              <h4 class="text-xs font-bold uppercase text-slate-500 mb-1">Deskripsi Produk:</h4>
+              <h4 class="text-xs font-bold uppercase text-slate-500 mb-1">Deskripsi & Spesifikasi Produk:</h4>
               <p class="text-xs text-slate-700 leading-relaxed bg-slate-50 p-3 rounded-lg border border-slate-200">
                 ${Util.escapeHtml(product.description || 'Tidak ada deskripsi.')}
               </p>
             </div>
 
-            <!-- Order Qty Input & Add Button -->
-            <div class="flex items-center gap-3 pt-3 border-t border-slate-200">
-              <div class="flex items-center border border-slate-300 rounded-xl overflow-hidden">
-                <button onclick="Shop.adjustDetailQty(-1)" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">-</button>
-                <input type="number" id="detail-qty-input" value="${product.minOrder || 1}" min="${product.minOrder || 1}" class="w-16 text-center text-sm font-bold border-0 focus:ring-0" />
-                <button onclick="Shop.adjustDetailQty(1)" class="px-3 py-2 bg-slate-100 hover:bg-slate-200 text-slate-700 font-bold">+</button>
+            <!-- View-Only Notice / Controls -->
+            <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-3">
+              <i class="fa-solid fa-circle-info text-blue-600 text-xl flex-shrink-0"></i>
+              <div>
+                <p class="font-bold text-slate-900">Katalog Produk Resmi TIMELESS.GO X ABADI GROSIR (View-Only)</p>
+                <p class="text-slate-600 text-[11px] mt-0.5">Katalog ini disediakan untuk pengecekan spesifikasi barang dan ketersediaan stok fisik real-time. Pelanggan dapat meninjau seluruh data produk dengan transparan.</p>
               </div>
-              <button 
-                onclick="Shop.addFromDetailModal('${product.id}')" 
-                class="flex-1 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center justify-center gap-2"
-              >
-                <i class="fa-solid fa-cart-plus"></i> Tambahkan ke Keranjang
-              </button>
+            </div>
+
+            <div class="flex items-center justify-between pt-3 border-t border-slate-200">
+              <div class="text-xs text-slate-500 font-medium">
+                <i class="fa-solid fa-boxes-stacked text-emerald-600 mr-1"></i> Stok Terkonfirmasi: <strong class="text-slate-800 font-bold">${product.stock} ${product.unit}</strong>
+              </div>
+              <div class="flex items-center gap-2">
+                ${isEmployee ? `
+                  <button onclick="App.closeModal('shop-detail-modal'); Shop.openProductModal('${product.id}');" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-xs transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-pen-to-square"></i> Edit Produk
+                  </button>
+                ` : ''}
+                <button onclick="App.closeModal('shop-detail-modal')" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs shadow-sm transition">
+                  Tutup Pratinjau
+                </button>
+              </div>
             </div>
           </div>
         </div>
@@ -457,6 +466,10 @@ const Shop = {
 
   // OPEN CART MODAL
   openCartModal: function() {
+    if (!Storage.isEmployee()) {
+      App.showToast("Katalog bersifat View-Only untuk pelanggan. Keranjang belanja dinonaktifkan.", "info");
+      return;
+    }
     const data = Storage.getData();
     const modalHtml = `
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" id="shop-cart-modal">

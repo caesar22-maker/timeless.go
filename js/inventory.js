@@ -24,7 +24,13 @@ const Inventory = {
 
     let tools = data.inventoryTools || [];
     if (this.currentFilter !== "ALL") {
-      tools = tools.filter(t => t.status === this.currentFilter || t.category === this.currentFilter);
+      if (this.currentFilter === "Currently In Use") {
+        tools = tools.filter(t => t.status === "Currently In Use" || t.status === "Sedang Digunakan");
+      } else if (this.currentFilter === "Under Maintenance") {
+        tools = tools.filter(t => t.status === "Under Maintenance" || t.status === "Dalam Perawatan");
+      } else {
+        tools = tools.filter(t => t.status === this.currentFilter || t.category === this.currentFilter);
+      }
     }
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
@@ -36,11 +42,10 @@ const Inventory = {
       );
     }
 
-    // Stats
+    // Stats (Requirement 6: 45 Currently In Use, 5 Under Maintenance out of 50 assets)
     const totalTools = (data.inventoryTools || []).length;
-    const availableCount = (data.inventoryTools || []).filter(t => t.status === "Tersedia").length;
-    const inUseCount = (data.inventoryTools || []).filter(t => t.status === "Sedang Digunakan").length;
-    const maintenanceCount = (data.inventoryTools || []).filter(t => t.status === "Dalam Perawatan" || t.condition.includes("Perlu Servis")).length;
+    const inUseCount = (data.inventoryTools || []).filter(t => t.status === "Currently In Use" || t.status === "Sedang Digunakan").length;
+    const maintenanceCount = (data.inventoryTools || []).filter(t => t.status === "Under Maintenance" || t.status === "Dalam Perawatan").length;
 
     container.innerHTML = `
       <!-- Header -->
@@ -61,25 +66,15 @@ const Inventory = {
         </div>
       </div>
 
-      <!-- Quick Metrics -->
-      <div class="grid grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
+      <!-- Quick Metrics (Requirement 6) -->
+      <div class="grid grid-cols-1 sm:grid-cols-3 gap-4 mb-6">
         <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
           <div class="w-12 h-12 rounded-xl bg-slate-100 text-slate-700 flex items-center justify-center text-xl font-bold">
             <i class="fa-solid fa-truck-ramp-box"></i>
           </div>
           <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Aset Alat</p>
-            <h3 class="text-2xl font-bold text-slate-800">${totalTools} <span class="text-xs font-normal text-slate-500">Unit</span></h3>
-          </div>
-        </div>
-
-        <div class="bg-white p-4 rounded-xl border border-slate-200 shadow-sm flex items-center gap-3">
-          <div class="w-12 h-12 rounded-xl bg-emerald-50 text-emerald-600 flex items-center justify-center text-xl font-bold">
-            <i class="fa-solid fa-circle-check"></i>
-          </div>
-          <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Siap Pakai (Standby)</p>
-            <h3 class="text-2xl font-bold text-emerald-700">${availableCount} <span class="text-xs font-normal text-slate-500">Unit</span></h3>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Total Aset Peralatan</p>
+            <h3 class="text-2xl font-black text-slate-800">${totalTools} <span class="text-xs font-normal text-slate-500">Unit Aset</span></h3>
           </div>
         </div>
 
@@ -88,8 +83,8 @@ const Inventory = {
             <i class="fa-solid fa-person-digging"></i>
           </div>
           <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Sedang Digunakan</p>
-            <h3 class="text-2xl font-bold text-blue-700">${inUseCount} <span class="text-xs font-normal text-slate-500">Unit</span></h3>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Currently In Use (Aktif)</p>
+            <h3 class="text-2xl font-black text-blue-700">${inUseCount} <span class="text-xs font-normal text-slate-500">Unit Operasional</span></h3>
           </div>
         </div>
 
@@ -98,8 +93,8 @@ const Inventory = {
             <i class="fa-solid fa-wrench"></i>
           </div>
           <div>
-            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Dalam Perawatan / Servis</p>
-            <h3 class="text-2xl font-bold ${maintenanceCount > 0 ? 'text-rose-600' : 'text-slate-800'}">${maintenanceCount} <span class="text-xs font-normal text-slate-500">Unit</span></h3>
+            <p class="text-xs font-semibold text-slate-400 uppercase tracking-wider">Under Maintenance (Servis)</p>
+            <h3 class="text-2xl font-black ${maintenanceCount > 0 ? 'text-rose-600' : 'text-slate-800'}">${maintenanceCount} <span class="text-xs font-normal text-slate-500">Unit Perawatan</span></h3>
           </div>
         </div>
       </div>
@@ -109,27 +104,21 @@ const Inventory = {
         <div class="flex flex-wrap items-center gap-2">
           <button 
             onclick="Inventory.handleFilter('ALL')" 
-            class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.currentFilter === 'ALL' ? 'bg-amber-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
+            class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.currentFilter === 'ALL' ? 'bg-amber-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
           >
             Semua Aset (${totalTools})
           </button>
           <button 
-            onclick="Inventory.handleFilter('Tersedia')" 
-            class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.currentFilter === 'Tersedia' ? 'bg-emerald-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
+            onclick="Inventory.handleFilter('Currently In Use')" 
+            class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.currentFilter === 'Currently In Use' ? 'bg-blue-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
           >
-            Tersedia (${availableCount})
+            Currently In Use (${inUseCount})
           </button>
           <button 
-            onclick="Inventory.handleFilter('Sedang Digunakan')" 
-            class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.currentFilter === 'Sedang Digunakan' ? 'bg-blue-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
+            onclick="Inventory.handleFilter('Under Maintenance')" 
+            class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.currentFilter === 'Under Maintenance' ? 'bg-rose-600 text-white shadow-xs' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
           >
-            Sedang Digunakan (${inUseCount})
-          </button>
-          <button 
-            onclick="Inventory.handleFilter('Dalam Perawatan')" 
-            class="px-3 py-1.5 rounded-lg text-xs font-bold transition ${this.currentFilter === 'Dalam Perawatan' ? 'bg-rose-600 text-white' : 'bg-slate-100 text-slate-600 hover:bg-slate-200'}"
-          >
-            Dalam Servis
+            Under Maintenance (${maintenanceCount})
           </button>
         </div>
 
@@ -167,8 +156,8 @@ const Inventory = {
                   class="w-full h-full object-cover"
                   onerror="this.src='https://via.placeholder.com/400?text=Alat+Inventaris'"
                 />
-                <span class="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-md text-xs font-bold ${statusBadge} shadow-xs">
-                  ${tool.status}
+                <span class="absolute top-2.5 left-2.5 px-2.5 py-1 rounded-md text-xs font-bold ${statusBadge} shadow-xs flex items-center">
+                  ${statusIcon} ${statusLabel}
                 </span>
                 <span class="absolute top-2.5 right-2.5 px-2.5 py-0.5 rounded bg-black/70 backdrop-blur-md text-white font-mono text-xs font-bold">
                   ${tool.code}
@@ -397,10 +386,9 @@ const Inventory = {
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Status Operasional</label>
                 <select id="tool-status" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white font-bold text-slate-800">
-                  <option value="Tersedia" ${tool.status === 'Tersedia' ? 'selected' : ''}>Tersedia (Ready)</option>
-                  <option value="Sedang Digunakan" ${tool.status === 'Sedang Digunakan' ? 'selected' : ''}>Sedang Digunakan</option>
-                  <option value="Dalam Perawatan" ${tool.status === 'Dalam Perawatan' ? 'selected' : ''}>Dalam Perawatan (Servis)</option>
-                  <option value="Rusak" ${tool.status === 'Rusak' ? 'selected' : ''}>Rusak</option>
+                  <option value="Currently In Use" ${tool.status === 'Currently In Use' || tool.status === 'Sedang Digunakan' ? 'selected' : ''}>Currently In Use (Aktif)</option>
+                  <option value="Under Maintenance" ${tool.status === 'Under Maintenance' || tool.status === 'Dalam Perawatan' ? 'selected' : ''}>Under Maintenance (Dalam Perawatan)</option>
+                  <option value="Tersedia" ${tool.status === 'Tersedia' ? 'selected' : ''}>Tersedia (Standby)</option>
                 </select>
               </div>
               <div>
@@ -545,9 +533,8 @@ const Inventory = {
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">Status Pemakaian</label>
               <select id="assign-status" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white font-bold">
-                <option value="Sedang Digunakan" ${tool.status === 'Sedang Digunakan' ? 'selected' : ''}>Sedang Digunakan (In Use)</option>
-                <option value="Tersedia" ${tool.status === 'Tersedia' ? 'selected' : ''}>Tersedia (Ready / Standby)</option>
-                <option value="Dalam Perawatan" ${tool.status === 'Dalam Perawatan' ? 'selected' : ''}>Dalam Perawatan (Servis)</option>
+                <option value="Currently In Use" ${tool.status === 'Currently In Use' || tool.status === 'Sedang Digunakan' ? 'selected' : ''}>Currently In Use (Aktif Digunakan)</option>
+                <option value="Under Maintenance" ${tool.status === 'Under Maintenance' || tool.status === 'Dalam Perawatan' ? 'selected' : ''}>Under Maintenance (Dalam Servis)</option>
               </select>
             </div>
 
