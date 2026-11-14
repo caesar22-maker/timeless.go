@@ -505,6 +505,11 @@ const Storage = {
       category: w.category || "Sembako",
       rack: w.rack || "Rak A-01-01",
       zone: w.zone || "Zona A",
+      aisle: w.aisle || "",
+      bin: w.bin || "",
+      tier: w.tier || "",
+      coordinates: w.coordinates || "",
+      capacity: Number(w.capacity || 250),
       stock: Number(w.stock || 0),
       min_stock: Number(w.minStock || 10),
       unit: w.unit || "Pack",
@@ -526,6 +531,11 @@ const Storage = {
       category: row.category || "Sembako",
       rack: row.rack || "Rak A-01-01",
       zone: row.zone || "Zona A",
+      aisle: row.aisle || ("Lorong " + (row.rack || "Rak A-01").split(' ')[1]?.split('-').slice(0, 2).join('-')),
+      bin: row.bin || ("Bin " + (row.rack || "A-01-01").split('-')[2]),
+      tier: row.tier || "Level 1",
+      coordinates: row.coordinates || ("Zona " + (row.rack || "A-01-01")),
+      capacity: Number(row.capacity || 250),
       stock: Number(row.stock || 0),
       minStock: Number(row.min_stock || 10),
       unit: row.unit || "Pack",
@@ -1234,8 +1244,17 @@ const Storage = {
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && parsed.shopProducts && parsed.shopProducts.length >= 200 && parsed.inventoryTools && parsed.inventoryTools.length >= 40) {
-            if (!parsed.wmsItems || !Array.isArray(parsed.wmsItems) || parsed.wmsItems.length < 250) {
+            if (!parsed.wmsItems || !Array.isArray(parsed.wmsItems) || parsed.wmsItems.length < 250 || !parsed.wmsItems[0].coordinates) {
               parsed.wmsItems = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.wmsItems || []));
+            }
+            // Ensure 100% synchronization of stock quantities between shopProducts and wmsItems
+            if (Array.isArray(parsed.wmsItems) && Array.isArray(parsed.shopProducts)) {
+              parsed.wmsItems.forEach(w => {
+                const sp = parsed.shopProducts.find(p => p.sku === w.sku || p.name.toLowerCase() === w.name.toLowerCase());
+                if (sp) {
+                  sp.stock = w.stock;
+                }
+              });
             }
             if (!parsed.wmsLogs || !Array.isArray(parsed.wmsLogs)) parsed.wmsLogs = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.wmsLogs || []));
             if (!parsed.documents || !Array.isArray(parsed.documents)) parsed.documents = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.documents || []));

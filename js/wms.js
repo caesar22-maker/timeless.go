@@ -370,22 +370,32 @@ const WMS = {
                       <p class="text-xs text-slate-500 mt-0.5">${item.category}</p>
                     </td>
                     <td class="py-3 px-3">
-                      <div class="flex items-center gap-1.5">
+                      <div class="flex items-center gap-1.5 mb-1">
                         <span class="w-2.5 h-2.5 rounded-full bg-blue-600"></span>
                         <span class="font-bold font-mono text-blue-900">${item.rack}</span>
+                        <span class="text-[10px] font-mono font-bold px-1.5 py-0.2 rounded bg-blue-50 text-blue-700 border border-blue-200">${item.bin || 'Bin 01'}</span>
                       </div>
-                      <p class="text-xs text-slate-500 font-medium">${item.zone}</p>
+                      <p class="text-xs text-slate-700 font-semibold mb-0.5">${(item.zone || '').split('(')[0].trim()}</p>
+                      <div class="text-[11px] text-slate-500 font-mono flex items-center gap-1">
+                        <i class="fa-solid fa-location-dot text-rose-500 text-[10px]"></i>
+                        <span>${item.coordinates || (item.aisle + ' • ' + (item.tier || ''))}</span>
+                      </div>
                     </td>
                     <td class="py-3 px-3 text-center">
                       <span class="text-base font-bold ${isCritical ? 'text-rose-600' : isLow ? 'text-amber-600' : 'text-slate-800'}">
                         ${Util.formatNumber(item.stock)}
                       </span>
+                      <span class="text-xs text-slate-400 block">${item.unit}</span>
+                      <div class="w-20 mx-auto bg-slate-100 h-1.5 rounded-full overflow-hidden mt-1" title="Kapasitas: ${item.stock}/${item.capacity || 250}">
+                        <div class="h-full ${isCritical ? 'bg-rose-500' : isLow ? 'bg-amber-500' : 'bg-emerald-500'}" style="width: ${Math.min(100, Math.round((item.stock / (item.capacity || 250)) * 100))}%"></div>
+                      </div>
                     </td>
                     <td class="py-3 px-3 text-center text-slate-500 font-medium">
                       ${Util.formatNumber(item.minStock)}
+                      <span class="text-[10px] text-slate-400 block">Maks: ${item.capacity || item.maxStock || 250}</span>
                     </td>
                     <td class="py-3 px-3">
-                      <p class="text-xs font-mono text-slate-600">${item.batchNo || '-'}</p>
+                      <p class="text-xs font-mono text-slate-600 font-semibold">${item.batchNo || '-'}</p>
                       <p class="text-xs text-slate-500">Exp: ${Util.formatDate(item.expDate)}</p>
                     </td>
                     <td class="py-3 px-3 text-center">
@@ -429,20 +439,81 @@ const WMS = {
   },
 
   renderPositionView: function(items) {
+    const data = Storage.getData();
+    const allItems = data.wmsItems || [];
+
+    const zones = [
+      { id: "Zona A", name: "Zona A: Pangan Pokok & Sembako", desc: "Area Depan / Loading Bay 1 (Suhu Ruang Kering)", aisles: "Lorong A-01 s/d A-06", color: "amber", icon: "fa-wheat-awn" },
+      { id: "Zona B", name: "Zona B: Palen & Kebutuhan Harian", desc: "Sayap Kiri Gudang (Rak Medium Duty)", aisles: "Lorong B-01 s/d B-10", color: "emerald", icon: "fa-boxes-packing" },
+      { id: "Zona C", name: "Zona C: ATK & Kertas", desc: "Sayap Kanan (Area Bersih Bebas Lembap)", aisles: "Lorong C-01 s/d C-17", color: "indigo", icon: "fa-book" },
+      { id: "Zona D", name: "Zona D: Kosmetik & Perawatan", desc: "Area Belakang Ber-AC (Suhu Terkontrol 22°C)", aisles: "Lorong D-01 s/d D-24", color: "pink", icon: "fa-spray-can-sparkles" },
+      { id: "Zona E", name: "Zona E: Keperluan Bayi & Anak", desc: "Area Khusus Steril & Higienis", aisles: "Lorong E-01 s/d E-08", color: "purple", icon: "fa-baby" }
+    ];
+
     return `
+      <!-- Warehouse Blueprint & Zone Overview -->
+      <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-5 mb-6">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-4">
+          <div>
+            <h4 class="text-base font-bold text-slate-800 flex items-center gap-2">
+              <i class="fa-solid fa-map text-blue-600"></i> Denah Tata Letak Gudang Pusat (Warehouse Layout Blueprint)
+            </h4>
+            <p class="text-xs text-slate-500">Gudang Kendalpayak Malang terbagi dalam 5 zona fisik dengan penataan rak bertingkat (Level 1 Dasar s/d Level 4 Top Buffer).</p>
+          </div>
+          <div class="flex items-center gap-3 text-xs bg-slate-50 px-3 py-1.5 rounded-lg border border-slate-200">
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-emerald-500"></span> Stok Aman</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-amber-500"></span> Stok Menipis</span>
+            <span class="flex items-center gap-1.5"><span class="w-2.5 h-2.5 rounded-full bg-rose-500 animate-pulse"></span> Stok Kritis</span>
+          </div>
+        </div>
+
+        <!-- 5 Zones Blueprint Cards -->
+        <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-5 gap-3">
+          ${zones.map(z => {
+            const zItems = allItems.filter(i => (i.zone || "").includes(z.id));
+            const zStock = zItems.reduce((acc, i) => acc + (Number(i.stock) || 0), 0);
+            const zLow = zItems.filter(i => Number(i.stock) <= Number(i.minStock)).length;
+            const isSelected = this.currentZone === z.id;
+
+            return `
+              <div 
+                onclick="WMS.setZone('${z.id}')" 
+                class="p-3.5 rounded-xl border cursor-pointer transition flex flex-col justify-between ${isSelected ? 'border-blue-600 bg-blue-50/50 shadow-sm ring-1 ring-blue-500' : 'border-slate-200 hover:border-slate-300 bg-slate-50/60 hover:bg-white'}"
+              >
+                <div>
+                  <div class="flex items-center justify-between mb-2">
+                    <span class="w-7 h-7 rounded-lg bg-${z.color}-100 text-${z.color}-700 flex items-center justify-center text-xs font-bold">
+                      <i class="fa-solid ${z.icon}"></i>
+                    </span>
+                    <span class="text-[10px] font-bold font-mono px-1.5 py-0.5 rounded bg-white border border-slate-200 text-slate-700">
+                      ${zItems.length} Bins
+                    </span>
+                  </div>
+                  <h5 class="font-bold text-xs text-slate-800 leading-snug mb-1">${z.name.split(':')[0]}</h5>
+                  <p class="text-[10px] text-slate-500 font-medium mb-2">${z.aisles}</p>
+                </div>
+                <div class="pt-2 border-t border-slate-200/60 flex items-center justify-between text-[11px]">
+                  <span class="text-slate-500">Stok: <b class="text-slate-800">${Util.formatNumber(zStock)}</b></span>
+                  ${zLow > 0 ? `<span class="text-rose-600 font-bold flex items-center gap-1"><i class="fa-solid fa-triangle-exclamation text-[10px]"></i> ${zLow} restok</span>` : `<span class="text-emerald-600 font-bold">Aman</span>`}
+                </div>
+              </div>
+            `;
+          }).join('')}
+        </div>
+      </div>
+
+      <!-- Rack & Bin Matrix Grid -->
       <div class="bg-white rounded-xl border border-slate-200 shadow-sm p-6 mb-6">
         <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 mb-6">
           <div>
             <h4 class="text-base font-bold text-slate-800 flex items-center gap-2">
-              <i class="fa-solid fa-grip text-blue-600"></i> Matriks Posisi Gudang & Penataan Rak (${items.length} Rak Terpetakan)
+              <i class="fa-solid fa-grip text-blue-600"></i> Matriks Posisi Rak & Bin Gudang (${items.length} Rak Terpetakan)
             </h4>
-            <p class="text-xs text-slate-500">Visualisasi tata letak rak per lorong (Aisle), tingkat rak (Shelf), serta posisi fisik barang.</p>
+            <p class="text-xs text-slate-500">Setiap slot memiliki kode rak, lorong spesifik, tingkat ketinggian (tier), dan pelacakan stok real-time.</p>
           </div>
-          <div class="flex items-center gap-3 text-xs">
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-emerald-500"></span> Stok Aman</span>
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-amber-500"></span> Stok Menipis</span>
-            <span class="flex items-center gap-1.5"><span class="w-3 h-3 rounded bg-rose-500"></span> Stok Kritis</span>
-          </div>
+          <span class="text-xs px-2.5 py-1 rounded-full bg-blue-100 text-blue-700 font-bold self-start sm:self-auto">
+            ${items.length} Slot Rak Ditampilkan
+          </span>
         </div>
 
         <div class="grid grid-cols-1 sm:grid-cols-2 md:grid-cols-3 lg:grid-cols-4 xl:grid-cols-5 gap-3.5">
@@ -450,41 +521,99 @@ const WMS = {
             const isLow = Number(item.stock) <= Number(item.minStock);
             const isCritical = Number(item.stock) <= (Number(item.minStock) / 2);
             let statusColor = "bg-emerald-500";
+            let statusBadge = "bg-emerald-50 text-emerald-800 border-emerald-200";
             let borderClass = "border-slate-200 hover:border-blue-400";
 
             if (isCritical) {
               statusColor = "bg-rose-500 animate-pulse";
-              borderClass = "border-rose-200 bg-rose-50/20";
+              statusBadge = "bg-rose-50 text-rose-800 border-rose-200";
+              borderClass = "border-rose-300 bg-rose-50/20";
             } else if (isLow) {
               statusColor = "bg-amber-500";
-              borderClass = "border-amber-200 bg-amber-50/20";
+              statusBadge = "bg-amber-50 text-amber-800 border-amber-200";
+              borderClass = "border-amber-300 bg-amber-50/20";
             }
 
+            const capacity = item.capacity || item.maxStock || 250;
+            const pct = Math.min(100, Math.round((item.stock / capacity) * 100));
+
             return `
-              <div class="rounded-xl border ${borderClass} p-3 transition shadow-2xs hover:shadow-sm bg-white flex flex-col justify-between">
+              <div class="rounded-xl border ${borderClass} p-3.5 transition shadow-2xs hover:shadow-md bg-white flex flex-col justify-between group">
                 <div>
-                  <div class="flex items-center justify-between gap-1 mb-1.5">
-                    <span class="font-mono text-[11px] font-black px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200">
+                  <!-- Rack Header -->
+                  <div class="flex items-center justify-between gap-1 mb-2">
+                    <span class="font-mono text-xs font-black px-2 py-0.5 rounded bg-blue-50 text-blue-800 border border-blue-200 group-hover:border-blue-400">
                       ${item.rack}
                     </span>
-                    <span class="w-2.5 h-2.5 rounded-full ${statusColor}" title="Status: ${item.status}"></span>
+                    <div class="flex items-center gap-1.5">
+                      <span class="w-2 h-2 rounded-full ${statusColor}"></span>
+                      <span class="text-[10px] font-bold px-1.5 py-0.2 rounded border ${statusBadge}">${item.status || (isCritical ? 'Kritis' : isLow ? 'Menipis' : 'Aman')}</span>
+                    </div>
                   </div>
-                  <p class="font-bold text-xs text-slate-800 line-clamp-1" title="${Util.escapeHtml(item.name)}">${Util.escapeHtml(item.name)}</p>
-                  <p class="font-mono text-[10px] text-slate-400 mb-2">${item.sku} | ${item.zone.split(' ')[0]}</p>
+
+                  <!-- Product Info -->
+                  <div class="flex items-center gap-2.5 mb-2">
+                    <img 
+                      src="${item.image || 'https://via.placeholder.com/60?text=Barang'}" 
+                      alt="${Util.escapeHtml(item.name)}" 
+                      class="w-10 h-10 rounded-lg object-cover border border-slate-200 flex-shrink-0 cursor-pointer"
+                      onclick="App.previewImage('${item.image || ''}', '${Util.escapeHtml(item.name)}')"
+                      title="Klik lihat foto"
+                    />
+                    <div class="min-w-0">
+                      <p class="font-bold text-xs text-slate-800 line-clamp-1 group-hover:text-blue-700" title="${Util.escapeHtml(item.name)}">${Util.escapeHtml(item.name)}</p>
+                      <p class="font-mono text-[10px] text-slate-400 truncate">${item.sku} &bull; ${item.category}</p>
+                    </div>
+                  </div>
+
+                  <!-- Specific Location Coordinates -->
+                  <div class="p-2 bg-slate-50 rounded-lg border border-slate-200/70 text-[10px] space-y-1 mb-2.5">
+                    <div class="flex items-center justify-between font-medium">
+                      <span class="text-slate-500"><i class="fa-solid fa-map-pin text-rose-500 mr-1"></i>Lorong & Bin:</span>
+                      <span class="font-bold text-slate-800 font-mono">${item.aisle || 'Lorong A-01'}</span>
+                    </div>
+                    <div class="flex items-center justify-between font-medium">
+                      <span class="text-slate-500"><i class="fa-solid fa-layer-group text-blue-500 mr-1"></i>Tingkat Rak:</span>
+                      <span class="font-semibold text-slate-700 font-mono">${item.tier || 'Level 1'}</span>
+                    </div>
+                    <div class="flex items-center justify-between font-mono text-[9px] text-slate-400 pt-1 border-t border-slate-200">
+                      <span>Grid:</span>
+                      <span class="truncate max-w-[140px]">${item.coordinates || (item.rack + ' ' + (item.bin || ''))}</span>
+                    </div>
+                  </div>
                 </div>
 
-                <div class="pt-2 border-t border-slate-100 flex items-center justify-between text-xs">
-                  <div>
-                    <span class="text-[10px] text-slate-400">Stok:</span>
-                    <span class="font-bold ${isCritical ? 'text-rose-600' : isLow ? 'text-amber-600' : 'text-slate-800'}">${item.stock}</span>
-                    <span class="text-[10px] text-slate-500">${item.unit}</span>
+                <!-- Stock & Action Footer -->
+                <div>
+                  <div class="pt-2 border-t border-slate-100 mb-2">
+                    <div class="flex items-center justify-between text-xs mb-1">
+                      <span class="text-[10px] text-slate-400">Stok Fisik:</span>
+                      <span class="font-bold font-mono ${isCritical ? 'text-rose-600' : isLow ? 'text-amber-600' : 'text-slate-800'}">
+                        ${item.stock} <span class="text-[10px] font-normal text-slate-500">${item.unit}</span>
+                      </span>
+                    </div>
+                    <div class="w-full bg-slate-100 h-1.5 rounded-full overflow-hidden" title="Kapasitas: ${item.stock}/${capacity} (${pct}%)">
+                      <div class="h-full ${isCritical ? 'bg-rose-500' : isLow ? 'bg-amber-500' : 'bg-emerald-500'}" style="width: ${pct}%"></div>
+                    </div>
+                    <span class="text-[9px] text-slate-400 block text-right mt-0.5">${pct}% dari kapasitas (${capacity})</span>
                   </div>
-                  <button 
-                    onclick="WMS.openItemModal('${item.id}')" 
-                    class="text-blue-600 hover:text-blue-800 text-[11px] font-bold"
-                  >
-                    Detail &raquo;
-                  </button>
+
+                  <div class="grid grid-cols-2 gap-1.5">
+                    <button 
+                      onclick="WMS.openInboundModal('${item.id}')" 
+                      class="py-1 px-1.5 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1"
+                      title="Restok Inbound (Otomatis Buat BAPB)"
+                    >
+                      <i class="fa-solid fa-plus text-[9px]"></i> Inbound
+                    </button>
+                    <button 
+                      onclick="WMS.openItemModal('${item.id}')" 
+                      class="py-1 px-1.5 bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 border border-slate-200 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1"
+                      title="Lihat Detail & Edit Lokasi"
+                    >
+                      <i class="fa-solid fa-pen-to-square text-[9px]"></i> Detail
+                    </button>
+                  </div>
                 </div>
               </div>
             `;
@@ -1038,22 +1167,43 @@ const WMS = {
               </div>
             </div>
 
-            <!-- Location & Stock -->
+            <!-- Location & Specific Coordinates -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
               <div>
                 <label class="block text-xs font-semibold text-slate-700 mb-1">Zona Gudang *</label>
                 <select id="wms-zone" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 bg-white">
-                  <option value="Zona A (Pangan Pokok)" ${(item.zone || '').includes('Zona A') ? 'selected' : ''}>Zona A (Pangan Pokok - Sembako)</option>
-                  <option value="Zona B (Kebutuhan Rumah Tangga & Palen)" ${(item.zone || '').includes('Zona B') ? 'selected' : ''}>Zona B (Kebutuhan Rumah Tangga & Palen)</option>
-                  <option value="Zona C (Alat Tulis Kantor & Buku)" ${(item.zone || '').includes('Zona C') ? 'selected' : ''}>Zona C (Alat Tulis Kantor & Buku)</option>
-                  <option value="Zona D (Kosmetik & Perawatan Tubuh)" ${(item.zone || '').includes('Zona D') ? 'selected' : ''}>Zona D (Kosmetik & Perawatan Tubuh)</option>
+                  <option value="Zona A (Pangan Pokok & Sembako)" ${(item.zone || '').includes('Zona A') ? 'selected' : ''}>Zona A (Pangan Pokok & Sembako)</option>
+                  <option value="Zona B (Palen & Perlengkapan Harian)" ${(item.zone || '').includes('Zona B') ? 'selected' : ''}>Zona B (Palen & Perlengkapan Harian)</option>
+                  <option value="Zona C (Alat Tulis Kantor & Kertas)" ${(item.zone || '').includes('Zona C') ? 'selected' : ''}>Zona C (Alat Tulis Kantor & Kertas)</option>
+                  <option value="Zona D (Kosmetik, Skincare & Perawatan)" ${(item.zone || '').includes('Zona D') ? 'selected' : ''}>Zona D (Kosmetik, Skincare & Perawatan)</option>
                   <option value="Zona E (Keperluan Bayi & Anak)" ${(item.zone || '').includes('Zona E') ? 'selected' : ''}>Zona E (Keperluan Bayi & Anak)</option>
                 </select>
               </div>
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Lokasi Rak Bins *</label>
-                <input type="text" id="wms-rack" value="${Util.escapeHtml(item.rack)}" placeholder="Rak A-01-01" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono font-bold" />
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Kode Rak Gudang *</label>
+                <input type="text" id="wms-rack" value="${Util.escapeHtml(item.rack || 'Rak A-01-01')}" placeholder="Rak A-01-01" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono font-bold" />
               </div>
+            </div>
+
+            <!-- Specific Aisle, Bin & Coordinates -->
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Lorong / Aisle *</label>
+                <input type="text" id="wms-aisle" value="${Util.escapeHtml(item.aisle || 'Lorong A-01')}" placeholder="Lorong A-01" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Bin / Slot *</label>
+                <input type="text" id="wms-bin" value="${Util.escapeHtml(item.bin || 'Bin 01 (Level 1)')}" placeholder="Bin 01 (Level 1)" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Kapasitas Rak (Maksimum)</label>
+                <input type="number" id="wms-capacity" value="${item.capacity || item.maxStock || 250}" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Koordinat Spesifik Grid Gudang</label>
+              <input type="text" id="wms-coordinates" value="${Util.escapeHtml(item.coordinates || '')}" placeholder="Zona A [Lorong A-01, Bay 01, Level 1]" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg focus:ring-2 focus:ring-blue-500 font-mono" />
             </div>
 
             <div class="grid grid-cols-1 md:grid-cols-2 gap-3">
@@ -1125,8 +1275,12 @@ const WMS = {
     const category = document.getElementById("wms-category").value;
     const unit = document.getElementById("wms-unit").value.trim() || "Dus";
     const status = document.getElementById("wms-status").value;
-    const zone = document.getElementById("wms-zone").value.trim() || "Zona A (Pangan Pokok)";
+    const zone = document.getElementById("wms-zone").value.trim() || "Zona A (Pangan Pokok & Sembako)";
     const rack = document.getElementById("wms-rack").value.trim() || "Rak A-01-01";
+    const aisle = document.getElementById("wms-aisle").value.trim() || "Lorong A-01";
+    const bin = document.getElementById("wms-bin").value.trim() || "Bin 01 (Level 1)";
+    const capacity = Number(document.getElementById("wms-capacity").value) || 250;
+    const coordinates = document.getElementById("wms-coordinates").value.trim() || `${zone.split(' ')[0]} [${aisle}, ${rack}, ${bin}]`;
     const stock = Number(document.getElementById("wms-stock").value) || 0;
     const minStock = Number(document.getElementById("wms-minstock").value) || 0;
     const batchNo = document.getElementById("wms-batch").value.trim();
@@ -1135,18 +1289,31 @@ const WMS = {
     const notes = document.getElementById("wms-notes").value.trim();
     const image = document.getElementById("wms-image-url").value.trim() || "https://via.placeholder.com/200?text=" + encodeURIComponent(name);
 
+    const levelMatch = bin.match(/Level\s*(\d)/i) || rack.match(/-(\d+)$/);
+    const levelNum = levelMatch ? parseInt(levelMatch[1], 10) : 1;
+
+    const itemPayload = {
+      name, sku, category, unit, status, zone, rack, aisle, bin,
+      tier: `Level ${levelNum}`,
+      level: levelNum,
+      capacity,
+      maxStock: capacity,
+      coordinates,
+      stock, minStock, batchNo, expDate, supplier, notes, image
+    };
+
     if (existingId) {
       const index = data.wmsItems.findIndex(i => i.id === existingId);
       if (index !== -1) {
         data.wmsItems[index] = {
           ...data.wmsItems[index],
-          name, sku, category, unit, status, zone, rack, stock, minStock, batchNo, expDate, supplier, notes, image
+          ...itemPayload
         };
       }
     } else {
       const newItem = {
         id: "WMS-" + Math.floor(100 + Math.random() * 900),
-        name, sku, category, unit, status, zone, rack, stock, minStock, batchNo, expDate, supplier, notes, image
+        ...itemPayload
       };
       data.wmsItems.push(newItem);
     }
