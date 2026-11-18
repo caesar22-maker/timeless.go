@@ -1461,7 +1461,16 @@ const App = {
   }
 };
 
+if (typeof window !== 'undefined') {
+  window.App = App;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { App };
+}
+
 // Initialize when DOM ready
-document.addEventListener("DOMContentLoaded", () => {
-  App.init();
-});
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener("DOMContentLoaded", () => {
+    App.init();
+  });
+}

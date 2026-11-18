@@ -1401,6 +1401,18 @@ const Storage = {
     return Boolean(this.getSession());
   },
 
+  getCurrentUser: function() {
+    const session = this.getSession();
+    if (session && session.user) return session.user;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const custAcc = localStorage.getItem(CUSTOMER_ACCOUNT_KEY);
+        if (custAcc) return JSON.parse(custAcc);
+      } catch (e) {}
+    }
+    return null;
+  },
+
   // Auth role get/set
   getCurrentRole: function() {
     if (typeof localStorage !== 'undefined') {
@@ -1619,3 +1631,10 @@ const Util = {
     return url;
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.Storage = Storage;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { Storage };
+}

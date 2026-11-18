@@ -37,6 +37,15 @@ const replacement = `<!-- COMBINED APPLICATION LOGIC -->\n<script>\n${scriptsCom
 html = html.replace(scriptTagsRegex, replacement);
 
 fs.writeFileSync(path.join(baseDir, 'grosir-app-standalone.html'), html, 'utf8');
-// Also write to parent scratch directory for easy user access
+// Also write to parent documents and scratch directories for easy user access
 fs.writeFileSync(path.join(baseDir, '..', 'grosir-app-standalone.html'), html, 'utf8');
+
+const scratchDir = 'C:\\Users\\USER\\.gemini\\antigravity\\scratch';
+if (fs.existsSync(scratchDir)) {
+  fs.writeFileSync(path.join(scratchDir, 'grosir-app-standalone.html'), html, 'utf8');
+  const scratchAppDir = path.join(scratchDir, 'grosir-app');
+  if (fs.existsSync(scratchAppDir)) {
+    fs.writeFileSync(path.join(scratchAppDir, 'grosir-app-standalone.html'), html, 'utf8');
+  }
+}
 console.log('Successfully generated grosir-app-standalone.html (Size: ' + (Buffer.byteLength(html, 'utf8') / 1024).toFixed(1) + ' KB)');

@@ -16990,6 +16990,18 @@ const Storage = {
     return Boolean(this.getSession());
   },
 
+  getCurrentUser: function() {
+    const session = this.getSession();
+    if (session && session.user) return session.user;
+    if (typeof localStorage !== 'undefined') {
+      try {
+        const custAcc = localStorage.getItem(CUSTOMER_ACCOUNT_KEY);
+        if (custAcc) return JSON.parse(custAcc);
+      } catch (e) {}
+    }
+    return null;
+  },
+
   // Auth role get/set
   getCurrentRole: function() {
     if (typeof localStorage !== 'undefined') {
@@ -17208,6 +17220,13 @@ const Util = {
     return url;
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.Storage = Storage;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { Storage };
+}
 
 
 /* ========== map.js ========== */
@@ -23036,14 +23055,15 @@ const WMS = {
           </div>
 
           <!-- Footer Actions -->
-          <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
-            <button type="button" onclick="App.closeModal('wms-import-modal')" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-200 rounded-xl font-bold transition">
+          <div class="px-6 py-3.5 bg-slate-50 border-t border-slate-200 flex items-center justify-between relative z-30">
+            <button type="button" onclick="App.closeModal('wms-import-modal')" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-200 rounded-xl font-bold transition cursor-pointer">
               Batal
             </button>
             <button 
               type="button" 
-              onclick="WMS.applyImportWmsData()" 
-              class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2"
+              id="btn-apply-wms-import"
+              onclick="WMS.applyImportWmsData(event)" 
+              class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 active:bg-blue-800 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-2 cursor-pointer relative z-30 select-none hover:shadow-lg active:scale-95"
             >
               <i class="fa-solid fa-floppy-disk"></i> Terapkan & Simpan ke Database WMS
             </button>
@@ -23055,6 +23075,18 @@ const WMS = {
 
     App.closeModal('wms-import-modal');
     document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    // Direct event listener binding as backup
+    const applyBtn = document.getElementById('btn-apply-wms-import');
+    if (applyBtn) {
+      applyBtn.addEventListener('click', function(e) {
+        if (e) {
+          if (typeof e.preventDefault === 'function') e.preventDefault();
+          if (typeof e.stopPropagation === 'function') e.stopPropagation();
+        }
+        WMS.applyImportWmsData(e);
+      });
+    }
   },
 
   handleImportFile: function(event) {
@@ -23200,39 +23232,110 @@ const WMS = {
     });
   },
 
-  applyImportWmsData: function() {
-    const itemsToSave = this._importedStagedItems || this.buildMappedWmsFromCatalog();
-    const data = Storage.getData();
-    data.wmsItems = itemsToSave;
-
-    // Sync stock to shopProducts
-    if (data.shopProducts) {
-      data.shopProducts.forEach((p, i) => {
-        if (itemsToSave[i]) p.stock = itemsToSave[i].stock;
-      });
+  applyImportWmsData: function(event) {
+    if (event) {
+      if (typeof event.preventDefault === 'function') event.preventDefault();
+      if (typeof event.stopPropagation === 'function') event.stopPropagation();
     }
 
-    // Add log entry
-    if (!data.wmsLogs) data.wmsLogs = [];
-    const now = new Date().toISOString().replace('T', ' ').slice(0, 16);
-    data.wmsLogs.unshift({
-      id: "LOG-" + Date.now().toString().slice(-6),
-      time: now,
-      type: "STOCK_OPNAME",
-      itemName: "Import & Sinkronisasi 250 Master SKU Gudang",
-      sku: "ALL-250-SKU",
-      qtyChange: "+250 Posisi Rak",
-      docRef: "IMP-WMS-" + now.slice(0, 10).replace(/-/g, ''),
-      staff: Storage.getCurrentUser() ? (Storage.getCurrentUser().name || Storage.getCurrentUser().email) : "Admin Gudang",
-      notes: "Sinkronisasi berhasil: seluruh 250 produk UMKM terpetakan ke denah posisi rak gudang."
-    });
+    const btn = document.getElementById('btn-apply-wms-import');
+    if (btn) {
+      btn.disabled = true;
+      btn.classList.add('opacity-75', 'cursor-not-allowed');
+      btn.innerHTML = '<i class="fa-solid fa-spinner fa-spin"></i> Menyimpan ke WMS...';
+    }
 
-    Storage.saveData(data);
-    App.closeModal('wms-import-modal');
-    this._importedStagedItems = null;
-    App.showToast(`Berhasil menyimpan ${itemsToSave.length} barang ke Inventaris Rak WMS!`, "success");
-    this.render();
-    if (typeof Shop !== 'undefined' && Shop.render) Shop.render();
+    try {
+      const itemsToSave = (this._importedStagedItems && this._importedStagedItems.length > 0)
+        ? this._importedStagedItems
+        : this.buildMappedWmsFromCatalog();
+
+      const data = Storage.getData() || {};
+      data.wmsItems = itemsToSave;
+
+      // Sync stock to shopProducts
+      if (data.shopProducts && Array.isArray(data.shopProducts)) {
+        data.shopProducts.forEach((p, i) => {
+          if (itemsToSave[i] && typeof itemsToSave[i].stock === 'number') {
+            p.stock = itemsToSave[i].stock;
+          }
+        });
+      }
+
+      // Safe staff name retrieval
+      let staffName = "Admin Gudang";
+      try {
+        if (typeof Storage !== 'undefined') {
+          let u = null;
+          if (typeof Storage.getCurrentUser === 'function') {
+            u = Storage.getCurrentUser();
+          }
+          if (!u && typeof Storage.getSession === 'function') {
+            const s = Storage.getSession();
+            if (s && s.user) u = s.user;
+          }
+          if (u && typeof u === 'object') {
+            staffName = u.name || u.email || staffName;
+          }
+        }
+      } catch (errStaff) {
+        console.warn("Could not determine staff name:", errStaff);
+      }
+
+      // Add log entry
+      if (!data.wmsLogs) data.wmsLogs = [];
+      const now = new Date().toISOString().replace('T', ' ').slice(0, 16);
+      data.wmsLogs.unshift({
+        id: "LOG-" + Date.now().toString().slice(-6),
+        time: now,
+        type: "STOCK_OPNAME",
+        itemName: "Import & Sinkronisasi 250 Master SKU Gudang",
+        sku: "ALL-250-SKU",
+        qtyChange: "+250 Posisi Rak",
+        docRef: "IMP-WMS-" + now.slice(0, 10).replace(/-/g, ''),
+        staff: staffName,
+        notes: "Sinkronisasi berhasil: seluruh 250 produk UMKM terpetakan ke denah posisi rak gudang."
+      });
+
+      Storage.saveData(data);
+      this._importedStagedItems = null;
+
+      // Close modal
+      if (typeof App !== 'undefined' && typeof App.closeModal === 'function') {
+        App.closeModal('wms-import-modal');
+      }
+      const leftoverModal = document.getElementById('wms-import-modal');
+      if (leftoverModal) {
+        if (typeof leftoverModal.remove === 'function') {
+          leftoverModal.remove();
+        } else if (leftoverModal.parentNode) {
+          leftoverModal.parentNode.removeChild(leftoverModal);
+        }
+      }
+
+      // Show toast
+      if (typeof App !== 'undefined' && typeof App.showToast === 'function') {
+        App.showToast(`Berhasil menyimpan ${itemsToSave.length} barang ke Inventaris Rak WMS!`, "success");
+      }
+
+      // Refresh views
+      if (typeof this.render === 'function') {
+        this.render();
+      }
+      if (typeof Shop !== 'undefined' && typeof Shop.render === 'function') {
+        Shop.render();
+      }
+    } catch (err) {
+      console.error("Error in applyImportWmsData:", err);
+      if (typeof App !== 'undefined' && typeof App.showToast === 'function') {
+        App.showToast("Gagal menyimpan data WMS: " + (err.message || err), "error");
+      }
+      if (btn) {
+        btn.disabled = false;
+        btn.classList.remove('opacity-75', 'cursor-not-allowed');
+        btn.innerHTML = '<i class="fa-solid fa-floppy-disk"></i> Terapkan & Simpan ke Database WMS';
+      }
+    }
   }
 };
 
@@ -26507,10 +26610,19 @@ const App = {
   }
 };
 
+if (typeof window !== 'undefined') {
+  window.App = App;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { App };
+}
+
 // Initialize when DOM ready
-document.addEventListener("DOMContentLoaded", () => {
-  App.init();
-});
+if (typeof document !== 'undefined' && document.addEventListener) {
+  document.addEventListener("DOMContentLoaded", () => {
+    App.init();
+  });
+}
 
 
 </script>

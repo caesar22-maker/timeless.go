@@ -108,9 +108,35 @@ assert(wmsHtml.includes('Aman'), 'WMS table view renders status "Aman"');
 // Requirement 1: Import functionality exists and works
 assert(typeof sandbox.WMS.openImportModal === 'function', 'WMS.openImportModal function exists');
 assert(typeof sandbox.WMS.buildMappedWmsFromCatalog === 'function', 'WMS.buildMappedWmsFromCatalog exists');
+assert(typeof sandbox.WMS.applyImportWmsData === 'function', 'WMS.applyImportWmsData function exists');
+assert(html.includes('id="btn-apply-wms-import"'), 'HTML contains btn-apply-wms-import button id');
+assert(html.includes('WMS.applyImportWmsData(event)'), 'HTML contains WMS.applyImportWmsData click handler');
+
 const mappedItems = sandbox.WMS.buildMappedWmsFromCatalog();
 assert(mappedItems.length === 250, 'buildMappedWmsFromCatalog maps all 250 items', `Mapped: ${mappedItems.length}`);
 assert(mappedItems[0].rack === 'Rak B-01-01', 'Imported Item 0 has Rak B-01-01');
+
+// Test invoking applyImportWmsData() directly
+let toastShown = null;
+let modalClosed = null;
+sandbox.App.showToast = (msg, type) => { toastShown = { msg, type }; };
+sandbox.App.closeModal = (id) => { modalClosed = id; };
+
+let importException = null;
+try {
+  sandbox.WMS.applyImportWmsData();
+} catch (e) {
+  importException = e;
+}
+assert(importException === null, 'WMS.applyImportWmsData() executed without any exceptions');
+assert(modalClosed === 'wms-import-modal', 'WMS.applyImportWmsData() closed wms-import-modal');
+assert(toastShown && toastShown.type === 'success', 'WMS.applyImportWmsData() triggered success toast', toastShown?.msg);
+
+const storedAfterImport = sandbox.Storage.getData();
+assert(storedAfterImport.wmsItems && storedAfterImport.wmsItems.length === 250, 'Database contains 250 items after applyImportWmsData()');
+assert(storedAfterImport.wmsLogs && storedAfterImport.wmsLogs.length > 0, 'Database contains audit log after applyImportWmsData()');
+assert(storedAfterImport.wmsLogs[0].type === 'STOCK_OPNAME', 'Log entry type is STOCK_OPNAME');
+assert(typeof storedAfterImport.wmsLogs[0].staff === 'string' && storedAfterImport.wmsLogs[0].staff.length > 0, 'Log entry contains valid staff name', storedAfterImport.wmsLogs[0].staff);
 
 // Requirement 2: Automated Surat Jalan Generation
 assert(typeof sandbox.Documents.createSuratJalanFromOrder === 'function', 'Documents.createSuratJalanFromOrder function exists');
