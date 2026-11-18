@@ -19,7 +19,7 @@ console.log('Original wmsItems:', (data.wmsItems || []).length);
 // Zona E: Bayi & Anak
 const zoneConfigs = {
   'Sembako': { code: 'B', name: 'Zona B', startAisle: 1 },
-  'Palen': { code: 'B', name: 'Zona B', startAisle: 6 },
+  'Palen': { code: 'A', name: 'Zona A', startAisle: 1 },
   'ATK': { code: 'C', name: 'Zona C', startAisle: 1 },
   'Kosmetik': { code: 'D', name: 'Zona D', startAisle: 1 },
   'Keperluan Bayi & Anak': { code: 'E', name: 'Zona E', startAisle: 1 }
