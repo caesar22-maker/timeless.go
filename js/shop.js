@@ -159,20 +159,32 @@ const Shop = {
         </div>
 
         <!-- Search Input -->
-        <div class="relative min-w-[260px]">
+        <div class="relative min-w-[280px]">
           <i class="fa-solid fa-magnifying-glass absolute left-3 top-2.5 text-slate-400 text-sm"></i>
           <input 
             type="text" 
+            id="shop-search-input"
             placeholder="Cari kode, nama, varian produk UMKM..." 
             value="${Util.escapeHtml(this.searchQuery)}"
-            oninput="Shop.handleSearch(this.value)"
-            class="w-full pl-9 pr-3 py-1.5 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
+            oninput="Shop.handleSearchInput(event)"
+            onkeydown="if(event.key === 'Enter') { event.preventDefault(); Shop.executeSearch(this.value); }"
+            class="w-full pl-9 pr-8 py-1.5 text-sm rounded-lg border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-500"
           />
+          ${this.searchQuery ? `
+            <button 
+              type="button" 
+              onclick="Shop.clearSearch()" 
+              class="absolute right-2.5 top-2 text-slate-400 hover:text-slate-600 p-0.5" 
+              title="Hapus pencarian"
+            >
+              <i class="fa-solid fa-xmark text-xs"></i>
+            </button>
+          ` : ''}
         </div>
       </div>
 
       <!-- Products Grid -->
-      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5">
+      <div class="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-3 xl:grid-cols-4 gap-5" id="product-grid">
         ${paginatedProducts.length === 0 ? `
           <div class="col-span-full text-center py-16 bg-white rounded-2xl border border-slate-200 text-slate-400">
             <i class="fa-solid fa-basket-shopping text-4xl mb-2 block text-slate-300"></i>
@@ -344,10 +356,58 @@ const Shop = {
     this.render();
   },
 
-  handleSearch: function(val) {
+  _searchDebounceTimer: null,
+
+  handleSearchInput: function(event) {
+    const val = event.target.value;
     this.searchQuery = val;
+    clearTimeout(this._searchDebounceTimer);
+    this._searchDebounceTimer = setTimeout(() => {
+      this.executeSearch(val);
+    }, 300);
+  },
+
+  executeSearch: function(val) {
+    clearTimeout(this._searchDebounceTimer);
+    if (typeof val === 'string') {
+      this.searchQuery = val;
+    } else {
+      const input = document.getElementById('shop-search-input');
+      this.searchQuery = input ? input.value : this.searchQuery;
+    }
+    this.currentPage = 1;
+
+    // Preserve focus & cursor position
+    const input = document.getElementById('shop-search-input');
+    const isFocused = input && (document.activeElement === input);
+    const cursorPos = input ? input.selectionStart : null;
+
+    this.render();
+
+    if (isFocused) {
+      const newInput = document.getElementById('shop-search-input');
+      if (newInput) {
+        newInput.focus();
+        if (cursorPos !== null) {
+          try {
+            newInput.setSelectionRange(cursorPos, cursorPos);
+          } catch (e) {}
+        }
+      }
+    }
+  },
+
+  handleSearch: function(val) {
+    this.executeSearch(val);
+  },
+
+  clearSearch: function() {
+    clearTimeout(this._searchDebounceTimer);
+    this.searchQuery = "";
     this.currentPage = 1;
     this.render();
+    const input = document.getElementById('shop-search-input');
+    if (input) input.focus();
   },
 
   // Single price tier (1 tingkatan harga)
@@ -1627,3 +1687,10 @@ const Shop = {
     this.render();
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.Shop = Shop;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { Shop };
+}

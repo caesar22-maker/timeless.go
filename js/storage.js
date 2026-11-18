@@ -1244,7 +1244,7 @@ const Storage = {
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && parsed.shopProducts && parsed.shopProducts.length >= 200 && parsed.inventoryTools && parsed.inventoryTools.length >= 40) {
-            if (!parsed.wmsItems || !Array.isArray(parsed.wmsItems) || parsed.wmsItems.length < 250 || !parsed.wmsItems[0].coordinates) {
+            if (!parsed.wmsItems || !Array.isArray(parsed.wmsItems) || parsed.wmsItems.length < 250 || !parsed.wmsItems[0].coordinates || parsed.wmsItems[0].rack !== 'Rak B-01-01') {
               parsed.wmsItems = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.wmsItems || []));
             }
             // Ensure 100% synchronization of stock quantities between shopProducts and wmsItems

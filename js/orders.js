@@ -518,6 +518,14 @@ const Orders = {
               >
                 <i class="fa-solid fa-print"></i> Nota
               </button>
+
+              <button 
+                onclick="Documents.previewSuratJalan('${order.id}')" 
+                class="px-2.5 py-2 text-purple-700 hover:text-white bg-purple-50 hover:bg-purple-600 rounded-xl text-xs font-bold transition flex items-center gap-1 border border-purple-200 shadow-xs"
+                title="Lihat / Cetak Surat Jalan Resmi (DO)"
+              >
+                <i class="fa-solid fa-truck-ramp-box"></i> Surat Jalan
+              </button>
             </div>
           </div>
 
@@ -975,6 +983,14 @@ const Orders = {
                         >
                           <i class="fa-solid fa-file-invoice text-indigo-600"></i> Faktur
                         </button>
+
+                        <button 
+                          onclick="Documents.previewSuratJalan('${order.id}')" 
+                          class="px-2.5 py-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs font-semibold transition border border-purple-200"
+                          title="Cetak / Lihat Surat Jalan (DO)"
+                        >
+                          <i class="fa-solid fa-truck-ramp-box text-purple-600"></i> Surat Jalan
+                        </button>
                       </div>
                     </div>
 
@@ -1314,10 +1330,31 @@ const Orders = {
       }
     }
 
+    // AUTOMATED SURAT JALAN (DELIVERY NOTE) GENERATION TRIGGER
+    let generatedSjDoc = null;
+    if (newStatus === "Dalam Pengiriman" || newStatus === "Sedang Diantar") {
+      if (typeof Documents !== 'undefined' && Documents.createSuratJalanFromOrder) {
+        generatedSjDoc = Documents.createSuratJalanFromOrder(order, {
+          vehicle,
+          plateNumber: plate,
+          driverName: driver,
+          driverPhone: driverPhone
+        });
+        if (generatedSjDoc) {
+          order.suratJalanNumber = generatedSjDoc.docNumber;
+          order.suratJalanDocId = generatedSjDoc.id;
+        }
+      }
+    }
+
     Storage.saveData(data);
     if (typeof Storage !== 'undefined' && Storage.saveOrder) Storage.saveOrder(order);
 
-    App.showToast(`Status pesanan ${order.id} berhasil diperbarui menjadi "${newStatus}"!`, "success");
+    if (generatedSjDoc) {
+      App.showToast(`Status pesanan ${order.id} diubah ke "${newStatus}". Dokumen Surat Jalan (${generatedSjDoc.docNumber}) berhasil diterbitkan otomatis di Manajemen Dokumen!`, "success");
+    } else {
+      App.showToast(`Status pesanan ${order.id} berhasil diperbarui menjadi "${newStatus}"!`, "success");
+    }
     App.closeModal('process-order-modal');
 
     this.selectedTrackingOrderId = order.id;
@@ -1541,9 +1578,16 @@ const Orders = {
                           <button 
                             onclick="Documents.previewInvoice('${o.id}')" 
                             class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs transition"
-                            title="Cetak Surat Jalan / Nota"
+                            title="Cetak Faktur Penjualan"
                           >
-                            <i class="fa-solid fa-print"></i>
+                            <i class="fa-solid fa-file-invoice text-indigo-600"></i>
+                          </button>
+                          <button 
+                            onclick="Documents.previewSuratJalan('${o.id}')" 
+                            class="p-1.5 bg-purple-50 hover:bg-purple-100 text-purple-700 rounded-lg text-xs transition border border-purple-200"
+                            title="Cetak / Lihat Surat Jalan (DO)"
+                          >
+                            <i class="fa-solid fa-truck-ramp-box"></i>
                           </button>
                           <button 
                             onclick="Orders.deleteOrder('${o.id}')" 
@@ -1847,12 +1891,23 @@ const Orders = {
       attachmentUrl: ""
     });
 
+    // Otomatis terbitkan Surat Jalan jika status pengiriman sedang diantar
+    if (status === "Dalam Pengiriman" || status === "Sedang Diantar") {
+      if (typeof Documents !== 'undefined' && Documents.createSuratJalanFromOrder) {
+        const sj = Documents.createSuratJalanFromOrder(newOrder, { vehicle, plateNumber, driverName, driverPhone });
+        if (sj) {
+          newOrder.suratJalanNumber = sj.docNumber;
+          newOrder.suratJalanDocId = sj.id;
+        }
+      }
+    }
+
     Storage.saveData(data);
     if (typeof Storage !== 'undefined' && Storage.saveOrder) Storage.saveOrder(newOrder);
     if (typeof Storage !== 'undefined' && Storage.saveDocument) Storage.saveDocument(data.documents[0]);
 
     App.closeModal('new-order-modal');
-    App.showToast(`Pengiriman baru ${id} & Faktur Penjualan berhasil dibuat!`, "success");
+    App.showToast(`Pengiriman baru ${id} & Dokumen Pengiriman resmi berhasil diterbitkan!`, "success");
     this.selectedTrackingOrderId = id;
     this.renderTrackingPanel();
   },
@@ -1873,3 +1928,10 @@ const Orders = {
     }
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.Orders = Orders;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { Orders };
+}

@@ -804,20 +804,28 @@ const Documents = {
               </div>
             </div>
 
-            <!-- Client Info & Payment Status -->
-            <div class="grid grid-cols-2 gap-6 mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
+            <!-- Client Info & Payment / Delivery Status -->
+            <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
               <div>
-                <p class="text-xs uppercase font-bold text-slate-400 mb-1">DITUJUKAN KEPADA:</p>
+                <p class="text-xs uppercase font-bold text-slate-400 mb-1">DITUJUKAN KEPADA (TUJUAN PENGIRIMAN):</p>
                 <h4 class="text-sm font-bold text-slate-900">${doc.clientName}</h4>
                 <p class="text-xs text-slate-600">${doc.clientPhone || '-'}</p>
-                <p class="text-xs text-slate-600">${doc.clientAddress || '-'}</p>
+                <p class="text-xs text-slate-700 font-medium mt-1"><i class="fa-solid fa-location-dot text-rose-500 text-xs mr-1"></i> ${doc.clientAddress || '-'}</p>
               </div>
-              <div class="text-right">
-                <p class="text-xs uppercase font-bold text-slate-400 mb-1">STATUS & METODE BAYAR:</p>
-                <div class="inline-block px-3 py-1 rounded font-extrabold text-xs uppercase border ${isLunas ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-amber-50 text-amber-700 border-amber-300'}">
-                  ${doc.paymentStatus}
-                </div>
-                <p class="text-xs font-semibold text-slate-700 mt-1">${doc.paymentMethod || 'Tunai / Transfer'}</p>
+              <div class="md:text-right">
+                <p class="text-xs uppercase font-bold text-slate-400 mb-1">${doc.type === 'Surat Jalan (DO)' ? 'INFO ARMADA & PENGIRIMAN:' : 'STATUS & METODE BAYAR:'}</p>
+                ${doc.type === 'Surat Jalan (DO)' ? `
+                  <div class="text-xs text-slate-700 space-y-0.5">
+                    <p><strong>Armada:</strong> <span class="text-blue-900 font-bold">${doc.vehicle || 'Truk Box Toko GBA'}</span> (${doc.plateNumber || 'N 8899 AB'})</p>
+                    <p><strong>Driver:</strong> <span class="font-bold">${doc.driverName || 'Pak Bambang'}</span> ${doc.driverPhone ? `(${doc.driverPhone})` : ''}</p>
+                    <p class="text-slate-500 text-[11px]">Metode: ${doc.paymentMethod || 'COD / Tunai'}</p>
+                  </div>
+                ` : `
+                  <div class="inline-block px-3 py-1 rounded font-extrabold text-xs uppercase border ${isLunas ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-amber-50 text-amber-700 border-amber-300'}">
+                    ${doc.paymentStatus}
+                  </div>
+                  <p class="text-xs font-semibold text-slate-700 mt-1">${doc.paymentMethod || 'Tunai / Transfer'}</p>
+                `}
               </div>
             </div>
 
@@ -877,19 +885,39 @@ const Documents = {
                   </div>
                 ` : ''}
               </div>
-              <div class="flex justify-around text-center text-xs">
-                <div>
-                  <p class="text-slate-500 mb-14">Penerima / Pembeli,</p>
-                  <p class="font-bold border-t border-slate-400 pt-1 text-slate-800">( ${Util.escapeHtml(doc.clientName.split('(')[0].trim())} )</p>
+              ${doc.type === 'Surat Jalan (DO)' ? `
+                <div class="grid grid-cols-3 gap-2 text-center text-xs">
+                  <div>
+                    <p class="text-slate-500 mb-14 text-[11px]">Penerima Barang,</p>
+                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800 text-[11px]">( ${Util.escapeHtml(doc.clientName.split('(')[0].trim())} )</p>
+                  </div>
+                  <div>
+                    <p class="text-slate-500 mb-14 text-[11px]">Pengemudi / Kurir,</p>
+                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800 text-[11px]">( ${Util.escapeHtml(doc.driverName || 'Driver Logistik')} )</p>
+                  </div>
+                  <div class="relative">
+                    <p class="text-slate-500 mb-14 text-[11px]">Petugas Gudang,</p>
+                    <span class="absolute top-4 left-1/2 -translate-x-1/2 text-[9px] font-black text-purple-700/30 uppercase tracking-widest border-2 border-dashed border-purple-700/30 rounded-full w-16 h-16 flex items-center justify-center rotate-[-15deg] pointer-events-none">
+                      LOGISTIK
+                    </span>
+                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800 text-[11px]">( ${Util.escapeHtml(doc.signatureName || 'Bagian Pengiriman')} )</p>
+                  </div>
                 </div>
-                <div class="relative">
-                  <p class="text-slate-500 mb-14">Hormat Kami,</p>
-                  <span class="absolute top-4 left-1/2 -translate-x-1/2 text-[10px] font-black text-blue-700/30 uppercase tracking-widest border-2 border-dashed border-blue-700/30 rounded-full w-20 h-20 flex items-center justify-center rotate-[-15deg] pointer-events-none">
-                    STEMPEL RESMI
-                  </span>
-                  <p class="font-bold border-t border-slate-400 pt-1 text-slate-800">( ${Util.escapeHtml(doc.signatureName || profile.name)} )</p>
+              ` : `
+                <div class="flex justify-around text-center text-xs">
+                  <div>
+                    <p class="text-slate-500 mb-14">Penerima / Pembeli,</p>
+                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800">( ${Util.escapeHtml(doc.clientName.split('(')[0].trim())} )</p>
+                  </div>
+                  <div class="relative">
+                    <p class="text-slate-500 mb-14">Hormat Kami,</p>
+                    <span class="absolute top-4 left-1/2 -translate-x-1/2 text-[10px] font-black text-blue-700/30 uppercase tracking-widest border-2 border-dashed border-blue-700/30 rounded-full w-20 h-20 flex items-center justify-center rotate-[-15deg] pointer-events-none">
+                      STEMPEL RESMI
+                    </span>
+                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800">( ${Util.escapeHtml(doc.signatureName || profile.name)} )</p>
+                  </div>
                 </div>
-              </div>
+              `}
             </div>
           </div>
         </div>
@@ -959,5 +987,115 @@ const Documents = {
     } else {
       App.showToast("Dokumen faktur tidak ditemukan untuk pesanan: " + orderOrDocId, "warning");
     }
+  },
+
+  // ==========================================
+  // AUTOMATED SURAT JALAN (DELIVERY NOTE) GENERATION
+  // ==========================================
+  createSuratJalanFromOrder: function(order, options = {}) {
+    if (!order) return null;
+    const data = Storage.getData();
+    if (!data.documents) data.documents = [];
+
+    // Check if Surat Jalan for this order already exists
+    let doc = data.documents.find(d => 
+      d.refOrder === order.id || 
+      d.refDoc === order.id || 
+      d.id === "DOC-SJ-" + order.id
+    );
+
+    const now = new Date();
+    const year = now.getFullYear();
+    const month = String(now.getMonth() + 1).padStart(2, '0');
+    const rand = (order.id || '').replace(/^ORD-?/i, '') || Math.floor(100 + Math.random() * 900);
+    const docNumber = `SJ/GBA/${year}/${month}/${rand}`;
+
+    const items = (order.items || []).map(it => {
+      const qty = Number(it.quantity || it.qty || 1);
+      const price = Number(it.price || 0);
+      return {
+        name: it.name || it.productName || "Barang Grosir",
+        qty: qty,
+        unit: it.unit || "Dus",
+        price: price,
+        subtotal: Number(it.subtotal || (qty * price))
+      };
+    });
+
+    const grandTotal = items.reduce((acc, it) => acc + (it.subtotal || 0), 0) || Number(order.totalAmount || 0);
+
+    const docObj = {
+      id: doc ? doc.id : ("DOC-SJ-" + order.id),
+      docNumber: doc ? doc.docNumber : docNumber,
+      refDoc: order.id,
+      refOrder: order.id,
+      type: "Surat Jalan (DO)",
+      date: now.toISOString().slice(0, 10),
+      orderTimestamp: order.orderDate || now.toISOString().replace('T', ' ').slice(0, 16),
+      dueDate: "-",
+      clientName: order.customerName || "Pelanggan",
+      clientPhone: order.customerPhone || "-",
+      clientAddress: order.customerAddress || "-",
+      paymentStatus: (order.paymentStatus && order.paymentStatus.includes("Lunas")) ? "LUNAS" : "DIPROSES",
+      paymentMethod: order.paymentMethod || "Tunai / Transfer",
+      vehicle: order.vehicle || options.vehicle || "Truk Engkel Box Toko",
+      plateNumber: order.plateNumber || options.plateNumber || "N 8899 AB",
+      driverName: order.driverName || options.driverName || "Pak Bambang (Driver Logistik)",
+      driverPhone: order.driverPhone || options.driverPhone || "0812-3344-5566",
+      items: items,
+      discount: 0,
+      taxPercent: 0,
+      taxAmount: 0,
+      grandTotal: grandTotal,
+      notes: `Surat Jalan Pengiriman Resmi untuk Pesanan ${order.id}. Dikirim via armada ${order.vehicle || options.vehicle || 'Truk Box'} (${order.plateNumber || options.plateNumber || 'N 8899 AB'}), Driver: ${order.driverName || options.driverName || 'Pak Bambang'}. Mohon periksa barang saat serah terima.`,
+      signatureName: "Bagian Pengiriman & Logistik",
+      attachmentUrl: order.podImage || ""
+    };
+
+    if (doc) {
+      const idx = data.documents.findIndex(d => d.id === doc.id);
+      if (idx !== -1) data.documents[idx] = { ...data.documents[idx], ...docObj };
+    } else {
+      data.documents.unshift(docObj);
+    }
+
+    Storage.saveData(data);
+    if (typeof Storage !== 'undefined' && Storage.saveDocument) {
+      try { Storage.saveDocument(docObj); } catch (e) {}
+    }
+
+    return docObj;
+  },
+
+  previewSuratJalan: function(orderOrDocId) {
+    if (!orderOrDocId) return;
+    const data = Storage.getData();
+    let doc = (data.documents || []).find(d => 
+      d.id === orderOrDocId || 
+      d.id === "DOC-SJ-" + orderOrDocId || 
+      d.docNumber === orderOrDocId || 
+      (d.refOrder && d.refOrder === orderOrDocId) ||
+      (d.refDoc && d.refDoc === orderOrDocId)
+    );
+
+    if (!doc && data.orders) {
+      const order = data.orders.find(o => o.id === orderOrDocId);
+      if (order) {
+        doc = this.createSuratJalanFromOrder(order);
+      }
+    }
+
+    if (doc) {
+      this.previewDocument(doc.id);
+    } else {
+      App.showToast("Surat Jalan tidak ditemukan untuk ID: " + orderOrDocId, "warning");
+    }
   }
 };
+
+if (typeof window !== 'undefined') {
+  window.Documents = Documents;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { Documents };
+}
