@@ -174,7 +174,12 @@ const Documents = {
                       <div class="text-xs text-slate-400">Tempo: ${Util.formatDate(doc.dueDate)}</div>
                     </td>
                     <td class="py-3 px-3">
-                      <div class="font-semibold text-slate-800">${Util.escapeHtml(doc.clientName)}</div>
+                      <div class="font-semibold text-slate-800 flex items-center gap-1.5">
+                        ${(doc.type && (doc.type.includes('PO') || doc.type.includes('Purchase Order') || doc.type.includes('Berita Acara') || doc.type.includes('Penerimaan'))) 
+                          ? `<span class="px-1.5 py-0.5 bg-purple-50 text-purple-700 border border-purple-200 rounded text-[10px] font-bold">Supplier</span>` 
+                          : `<span class="px-1.5 py-0.5 bg-blue-50 text-blue-700 border border-blue-200 rounded text-[10px] font-bold">Klien</span>`}
+                        ${Util.escapeHtml(doc.clientName || doc.supplier || '-')}
+                      </div>
                       <div class="text-xs text-slate-500 truncate max-w-xs">${Util.escapeHtml(doc.clientAddress || '-')}</div>
                     </td>
                     <td class="py-3 px-3 text-center font-medium">
@@ -807,10 +812,17 @@ const Documents = {
             <!-- Client Info & Payment / Delivery Status -->
             <div class="grid grid-cols-1 md:grid-cols-2 gap-4 mb-6 p-4 bg-slate-50 rounded-lg border border-slate-200">
               <div>
-                <p class="text-xs uppercase font-bold text-slate-400 mb-1">DITUJUKAN KEPADA (TUJUAN PENGIRIMAN):</p>
-                <h4 class="text-sm font-bold text-slate-900">${doc.clientName}</h4>
-                <p class="text-xs text-slate-600">${doc.clientPhone || '-'}</p>
-                <p class="text-xs text-slate-700 font-medium mt-1"><i class="fa-solid fa-location-dot text-rose-500 text-xs mr-1"></i> ${doc.clientAddress || '-'}</p>
+                <p class="text-xs uppercase font-bold text-slate-400 mb-1">
+                  ${(doc.type && (doc.type.includes('PO') || doc.type.includes('Purchase Order') || doc.type.includes('Berita Acara') || doc.type.includes('Penerimaan'))) 
+                    ? 'PIHAK SUPPLIER / PEMASOK:' 
+                    : 'DITUJUKAN KEPADA (TUJUAN PENGIRIMAN):'}
+                </p>
+                <h4 class="text-sm font-bold text-slate-900">${Util.escapeHtml(doc.clientName || doc.supplier || '-')}</h4>
+                <p class="text-xs text-slate-600">${Util.escapeHtml(doc.clientPhone || '-')}</p>
+                <p class="text-xs text-slate-700 font-medium mt-1">
+                  <i class="fa-solid ${(doc.type && (doc.type.includes('PO') || doc.type.includes('Purchase Order') || doc.type.includes('Berita Acara') || doc.type.includes('Penerimaan'))) ? 'fa-building text-indigo-600' : 'fa-location-dot text-rose-500'} text-xs mr-1"></i> 
+                  ${Util.escapeHtml(doc.clientAddress || '-')}
+                </p>
               </div>
               <div class="md:text-right">
                 <p class="text-xs uppercase font-bold text-slate-400 mb-1">${doc.type === 'Surat Jalan (DO)' ? 'INFO ARMADA & PENGIRIMAN:' : 'STATUS & METODE BAYAR:'}</p>
@@ -906,8 +918,12 @@ const Documents = {
               ` : `
                 <div class="flex justify-around text-center text-xs">
                   <div>
-                    <p class="text-slate-500 mb-14">Penerima / Pembeli,</p>
-                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800">( ${Util.escapeHtml(doc.clientName.split('(')[0].trim())} )</p>
+                    <p class="text-slate-500 mb-14">
+                      ${(doc.type && (doc.type.includes('PO') || doc.type.includes('Purchase Order') || doc.type.includes('Berita Acara') || doc.type.includes('Penerimaan'))) 
+                        ? 'Pihak Supplier / Pemasok,' 
+                        : 'Penerima / Pembeli,'}
+                    </p>
+                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800">( ${Util.escapeHtml((doc.clientName || doc.supplier || '').split('(')[0].trim())} )</p>
                   </div>
                   <div class="relative">
                     <p class="text-slate-500 mb-14">Hormat Kami,</p>

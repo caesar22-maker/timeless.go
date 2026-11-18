@@ -185,6 +185,39 @@ sandbox.Shop.executeSearch("BLASTOZ");
 const filteredProducts = sandbox.DEFAULT_STORE_DATA.shopProducts.filter(p => p.name.toLowerCase().includes("blastoz"));
 assert(filteredProducts.length >= 1, 'Search query correctly filters products');
 
+// Requirement: Logo Replacement & Supplier Party on PO and Goods Receipt
+assert(!html.includes('photo-1578916171728-46686eac8d58?w=150'), 'Old unsplash logo removed from header & profile');
+assert(html.includes('data:image/jpeg;base64,'), 'Standalone HTML embeds new TG logo as Base64 data URI');
+assert(fs.existsSync(path.join(__dirname, 'images', 'logo.jpg')), 'Logo image file exists at images/logo.jpg');
+
+// Test Document Preview for Purchase Order (PO) and Goods Receipt (Berita Acara)
+let previewInsertedHtml = "";
+sandbox.document.body.insertAdjacentHTML = (pos, h) => { previewInsertedHtml = h; };
+
+// 1. Test Purchase Order (PO)
+const poDoc = sandbox.DEFAULT_STORE_DATA.documents.find(d => d.type.includes('PO') || d.type.includes('Purchase Order'));
+assert(poDoc !== undefined, 'Sample Purchase Order (PO) document exists in dataset');
+sandbox.Documents.previewDocument(poDoc.id);
+assert(previewInsertedHtml.includes('PIHAK SUPPLIER / PEMASOK:'), 'PO preview displays "PIHAK SUPPLIER / PEMASOK:" header');
+assert(previewInsertedHtml.includes('Pihak Supplier / Pemasok,'), 'PO preview displays "Pihak Supplier / Pemasok," signature label');
+assert(previewInsertedHtml.includes('PT Arta Boga Cemerlang'), 'PO preview displays supplier name in party & signature');
+
+// 2. Test Goods Receipt / Berita Acara Penerimaan Barang
+const bapbDoc = sandbox.DEFAULT_STORE_DATA.documents.find(d => d.type.includes('Berita Acara') || d.type.includes('Penerimaan'));
+assert(bapbDoc !== undefined, 'Sample Berita Acara Penerimaan Barang exists in dataset');
+sandbox.Documents.previewDocument(bapbDoc.id);
+assert(previewInsertedHtml.includes('PIHAK SUPPLIER / PEMASOK:'), 'Goods Receipt preview displays "PIHAK SUPPLIER / PEMASOK:" header');
+assert(previewInsertedHtml.includes('Pihak Supplier / Pemasok,'), 'Goods Receipt preview displays "Pihak Supplier / Pemasok," signature label');
+assert(previewInsertedHtml.includes('PT Arta Boga Cemerlang'), 'Goods Receipt preview displays supplier name in party & signature');
+assert(previewInsertedHtml.includes('Staff Gudang Inbound'), 'Goods Receipt preview displays "Staff Gudang Inbound" receiving staff signature');
+
+// 3. Test Faktur Penjualan keeps normal "Penerima / Pembeli,"
+const invDoc = sandbox.DEFAULT_STORE_DATA.documents.find(d => d.type.includes('Faktur'));
+assert(invDoc !== undefined, 'Sample Faktur Penjualan exists in dataset');
+sandbox.Documents.previewDocument(invDoc.id);
+assert(previewInsertedHtml.includes('DITUJUKAN KEPADA (TUJUAN PENGIRIMAN):'), 'Faktur Penjualan displays standard customer destination header');
+assert(previewInsertedHtml.includes('Penerima / Pembeli,'), 'Faktur Penjualan displays "Penerima / Pembeli," signature label');
+
 console.log(`\n========================================`);
 console.log(`TEST SUMMARY: ${passedTests} / ${totalTests} PASSED (${Math.round((passedTests/totalTests)*100)}%)`);
 console.log(`========================================\n`);

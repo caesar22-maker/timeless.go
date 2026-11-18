@@ -1257,12 +1257,12 @@ const Storage = {
               });
             }
             if (!parsed.wmsLogs || !Array.isArray(parsed.wmsLogs)) parsed.wmsLogs = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.wmsLogs || []));
-            if (!parsed.documents || !Array.isArray(parsed.documents)) parsed.documents = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.documents || []));
+            if (!parsed.documents || !Array.isArray(parsed.documents) || parsed.documents.length < 3) parsed.documents = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.documents || []));
             if (!parsed.orders || !Array.isArray(parsed.orders)) parsed.orders = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.orders || []));
             if (!parsed.inventoryTools || parsed.inventoryTools.length < 50 || !parsed.inventoryTools.some(t => t.status === 'Currently In Use')) {
               parsed.inventoryTools = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.inventoryTools || []));
             }
-            if (!parsed.profile || parsed.profile.name !== 'TIMELESS.GO X ABADI GROSIR') {
+            if (!parsed.profile || parsed.profile.name !== 'TIMELESS.GO X ABADI GROSIR' || !parsed.profile.logoUrl || parsed.profile.logoUrl.includes('unsplash.com')) {
               parsed.profile = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.profile || {}));
             }
 

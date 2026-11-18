@@ -30,6 +30,14 @@ for (const file of jsFiles) {
   scriptsCombined += `\n/* ========== ${file} ========== */\n${code}\n`;
 }
 
+// Inline logo into standalone HTML as base64 data URI
+const logoPath = path.join(baseDir, 'images', 'logo.jpg');
+if (fs.existsSync(logoPath)) {
+  const logoDataUri = 'data:image/jpeg;base64,' + fs.readFileSync(logoPath).toString('base64');
+  html = html.split('images/logo.jpg').join(logoDataUri);
+  scriptsCombined = scriptsCombined.split('images/logo.jpg').join(logoDataUri);
+}
+
 // Replace the script tags
 const scriptTagsRegex = /<!-- JAVASCRIPT MODULES -->[\s\S]*?<\/body>/;
 const replacement = `<!-- COMBINED APPLICATION LOGIC -->\n<script>\n${scriptsCombined}\n</script>\n</body>`;

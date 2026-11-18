@@ -6,7 +6,7 @@
 
 const DEFAULT_STORE_DATA = {
     "profile": {
-        "logoUrl": "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=150&auto=format&fit=crop&q=80",
+        "logoUrl": "images/logo.jpg",
         "address": "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162",
         "logoText": "TIMELESS.GO",
         "bannerImage": "https://images.unsplash.com/photo-1578916171728-46686eac8d58?w=1600&auto=format&fit=crop&q=85",
@@ -15003,6 +15003,64 @@ const DEFAULT_STORE_DATA = {
             "taxAmount": 0,
             "signatureName": "Bagian Penjualan Grosir",
             "notes": "Pembayaran telah lunas. Terima kasih atas transaksi grosir Anda."
+        },
+        {
+            "id": "DOC-PO-001",
+            "docNumber": "PO/GBA/2026/11/0241",
+            "type": "Purchase Order (PO)",
+            "date": "2026-11-14",
+            "dueDate": "2026-11-20",
+            "clientName": "PT Arta Boga Cemerlang",
+            "supplier": "PT Arta Boga Cemerlang",
+            "clientPhone": "0812-3456-7890",
+            "clientAddress": "Kawasan Industri Rungkut, Surabaya - Jawa Timur",
+            "paymentStatus": "DIPROSES",
+            "paymentMethod": "Transfer Bank BCA / Kredit 30 Hari",
+            "items": [
+                {
+                    "name": "BLASTOZ COKLAT ARTA @6",
+                    "qty": 50,
+                    "unit": "Pack",
+                    "price": 21650,
+                    "subtotal": 1082500
+                }
+            ],
+            "discount": 0,
+            "taxPercent": 0,
+            "taxAmount": 0,
+            "grandTotal": 1082500,
+            "notes": "Pesanan Pembelian resmi kepada supplier. Mohon kirim sesuai spesifikasi dan tanggal jatuh tempo pengiriman.",
+            "signatureName": "Bagian Purchasing / Pengadaan",
+            "attachmentUrl": ""
+        },
+        {
+            "id": "DOC-BAPB-001",
+            "docNumber": "BAPB-20261118-2410",
+            "type": "Berita Acara Penerimaan Barang",
+            "date": "2026-11-18",
+            "dueDate": "2026-11-18",
+            "clientName": "PT Arta Boga Cemerlang",
+            "supplier": "PT Arta Boga Cemerlang",
+            "clientPhone": "0812-3456-7890",
+            "clientAddress": "Gudang Pemasok / Distributor Rekanan",
+            "paymentStatus": "LUNAS",
+            "paymentMethod": "Penerimaan Fisik Gudang",
+            "items": [
+                {
+                    "name": "BLASTOZ COKLAT ARTA @6",
+                    "qty": 50,
+                    "unit": "Pack",
+                    "price": 21650,
+                    "subtotal": 1082500
+                }
+            ],
+            "discount": 0,
+            "taxPercent": 0,
+            "taxAmount": 0,
+            "grandTotal": 1082500,
+            "notes": "Berita Acara Penerimaan Barang otomatis dari Inbound WMS. No. Ref/PO: PO-2026-241. Petugas Penerima: Staff Gudang Inbound.",
+            "signatureName": "Staff Gudang Inbound",
+            "attachmentUrl": ""
         }
     ],
     "orders": [
