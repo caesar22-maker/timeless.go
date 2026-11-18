@@ -22,38 +22,6 @@ const DEFAULT_STORE_DATA = {
     },
     "wmsItems": [
         {
-            "id": "WMS-001",
-            "sku": "1905260001",
-            "name": "BLASTOZ COKLAT ARTA @6",
-            "category": "Sembako",
-            "unit": "Pack",
-            "stock": 150,
-            "minStock": 20,
-            "maxStock": 250,
-            "capacity": 250,
-            "zone": "Zona B",
-            "zoneCode": "B",
-            "aisle": "Lorong B-01",
-            "rack": "Rak B-01-01",
-            "bin": "Bin 01",
-            "tier": "Level 1",
-            "level": 1,
-            "coordinates": "Zona Rak B-01-01",
-            "gridPosition": {
-                "zone": "B",
-                "aisle": "01",
-                "bay": "01",
-                "level": 1,
-                "slot": "01"
-            },
-            "status": "Aman",
-            "batchNo": "BATCH-BLASTOZ-01",
-            "expDate": "2027-10-15",
-            "supplier": "PT Arta Boga Cemerlang",
-            "image": "images/products/SHOP-001.jpg",
-            "notes": "Rasa: Cokelat (Chocolate), Berat Bersih per Buah: 24 gram, Isi per Box: 12 pcs, Berat Total per Box: Sekitar 288-300g"
-        },
-        {
             "id": "WMS-002",
             "sku": "1605260009",
             "name": "CANNON BALL ARTA @6",

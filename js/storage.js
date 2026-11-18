@@ -1244,8 +1244,11 @@ const Storage = {
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && parsed.shopProducts && parsed.shopProducts.length >= 200 && parsed.inventoryTools && parsed.inventoryTools.length >= 40) {
-            if (!parsed.wmsItems || !Array.isArray(parsed.wmsItems) || parsed.wmsItems.length < 250 || !parsed.wmsItems[0].coordinates || parsed.wmsItems[0].rack !== 'Rak B-01-01') {
+            if (!parsed.wmsItems || !Array.isArray(parsed.wmsItems) || parsed.wmsItems.length === 0) {
               parsed.wmsItems = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.wmsItems || []));
+            } else {
+              // Ensure BLASTOZ COKLAT ARTA @6 is removed from wmsItems as requested
+              parsed.wmsItems = parsed.wmsItems.filter(i => i.id !== "WMS-001" && i.sku !== "1905260001" && i.name !== "BLASTOZ COKLAT ARTA @6");
             }
             // Ensure 100% synchronization of stock quantities between shopProducts and wmsItems
             if (Array.isArray(parsed.wmsItems) && Array.isArray(parsed.shopProducts)) {

@@ -1392,13 +1392,26 @@ const WMS = {
 
   deleteItem: function(itemId) {
     const data = Storage.getData();
-    const item = data.wmsItems.find(i => i.id === itemId);
+    const item = (data.wmsItems || []).find(i => i.id === itemId || i.sku === itemId);
     if (!item) return;
 
-    if (confirm(`Apakah Anda yakin ingin menghapus barang "${item.name}" dari sistem gudang?`)) {
-      data.wmsItems = data.wmsItems.filter(i => i.id !== itemId);
+    if (confirm(`Apakah Anda yakin ingin menghapus barang "${item.name}" dari inventaris rak gudang?`)) {
+      data.wmsItems = data.wmsItems.filter(i => i.id !== itemId && i.sku !== itemId);
+      if (!data.wmsLogs) data.wmsLogs = [];
+      const now = new Date().toISOString().replace('T', ' ').slice(0, 16);
+      data.wmsLogs.unshift({
+        id: "LOG-" + Date.now().toString().slice(-6),
+        time: now,
+        type: "STOCK_OPNAME",
+        itemName: `Hapus Barang: ${item.name}`,
+        sku: item.sku,
+        qtyChange: `-${item.stock} ${item.unit}`,
+        docRef: "DEL-WMS-" + now.slice(0, 10).replace(/-/g, ''),
+        staff: "Admin Gudang",
+        notes: `Barang ${item.name} (${item.sku}) telah dihapus dari inventaris rak gudang posisi ${item.rack}.`
+      });
       Storage.saveData(data);
-      App.showToast(`Barang "${item.name}" berhasil dihapus.`, "info");
+      App.showToast(`Barang "${item.name}" berhasil dihapus dari inventaris rak WMS.`, "info");
       this.render();
     }
   },
@@ -1630,7 +1643,9 @@ const WMS = {
 
   buildMappedWmsFromCatalog: function() {
     const data = Storage.getData();
-    const prods = data.shopProducts || (typeof DEFAULT_STORE_DATA !== 'undefined' ? DEFAULT_STORE_DATA.shopProducts : []) || [];
+    // Exclude BLASTOZ COKLAT ARTA @6 as requested to be removed from WMS Rack Inventory
+    const prods = (data.shopProducts || (typeof DEFAULT_STORE_DATA !== 'undefined' ? DEFAULT_STORE_DATA.shopProducts : []) || [])
+      .filter(p => p.sku !== "1905260001" && p.name !== "BLASTOZ COKLAT ARTA @6");
     
     const zoneConfigs = {
       'Sembako': { code: 'B', name: 'Zona B', startAisle: 1 },
@@ -1654,35 +1669,6 @@ const WMS = {
       const rack = `Rak ${zCode}-${aisleStr}-${shelfStr}`;
       const bin = `Bin ${shelfStr}`;
       const coord = `Zona Rak ${zCode}-${aisleStr}-${shelfStr}`;
-
-      if (idx === 0) {
-        return {
-          id: "WMS-001",
-          sku: "1905260001",
-          name: "BLASTOZ COKLAT ARTA @6",
-          category: "Sembako",
-          unit: "Pack",
-          stock: 150,
-          minStock: 20,
-          maxStock: 250,
-          capacity: 250,
-          zone: "Zona B",
-          zoneCode: "B",
-          aisle: "Lorong B-01",
-          rack: "Rak B-01-01",
-          bin: "Bin 01",
-          tier: "Level 1",
-          level: 1,
-          coordinates: "Zona Rak B-01-01",
-          gridPosition: { zone: "B", aisle: "01", bay: "01", level: 1, slot: "01" },
-          status: "Aman",
-          batchNo: "BATCH-BLASTOZ-01",
-          expDate: "2027-10-15",
-          supplier: "PT Arta Boga Cemerlang",
-          image: p.image || "images/products/SHOP-001.jpg",
-          notes: p.description || ""
-        };
-      }
 
       const existing = (data.wmsItems && data.wmsItems[idx]) ? data.wmsItems[idx] : {};
       const stock = existing.stock && existing.stock > 0 ? existing.stock : (50 + ((idx * 7) % 150));

@@ -76,45 +76,47 @@ vm.runInContext(scriptMatch[1], sandbox);
 const data = sandbox.DEFAULT_STORE_DATA;
 assert(typeof data !== 'undefined', 'DEFAULT_STORE_DATA loaded successfully in sandbox');
 
-// Requirement 1: 250 items in WMS matching Reference Photo
-assert(data.wmsItems && data.wmsItems.length === 250, 'wmsItems contains exactly 250 items', `Found: ${data.wmsItems?.length}`);
+// Requirement 1: Warehouse Rack & Position Inventory in WMS
+assert(data.wmsItems && data.wmsItems.length === 249, 'wmsItems contains 249 items (BLASTOZ removed as requested)', `Found: ${data.wmsItems?.length}`);
+const blastozFound = data.wmsItems.some(i => i.name.includes("BLASTOZ") || i.sku === "1905260001");
+assert(!blastozFound, 'BLASTOZ COKLAT ARTA @6 has been removed from WMS Rack Inventory');
 
-const blastoz = data.wmsItems[0];
-assert(blastoz.name === "BLASTOZ COKLAT ARTA @6", 'Item 0 name is BLASTOZ COKLAT ARTA @6');
-assert(blastoz.sku === "1905260001", 'Item 0 SKU is 1905260001');
-assert(blastoz.rack === "Rak B-01-01", 'Item 0 rack is Rak B-01-01 (matches photo)', `Found: ${blastoz.rack}`);
-assert(blastoz.bin === "Bin 01", 'Item 0 bin is Bin 01 (matches photo)', `Found: ${blastoz.bin}`);
-assert(blastoz.zone === "Zona B", 'Item 0 zone is Zona B (matches photo)', `Found: ${blastoz.zone}`);
-assert(blastoz.coordinates === "Zona Rak B-01-01", 'Item 0 coordinates is Zona Rak B-01-01 (matches photo)', `Found: ${blastoz.coordinates}`);
-assert(blastoz.stock === 150, 'Item 0 stock is 150 (matches photo)', `Found: ${blastoz.stock}`);
-assert(blastoz.minStock === 20, 'Item 0 minStock is 20 (matches photo)', `Found: ${blastoz.minStock}`);
-assert(blastoz.batchNo === "BATCH-BLASTOZ-01", 'Item 0 batch is BATCH-BLASTOZ-01 (matches photo)', `Found: ${blastoz.batchNo}`);
-assert(blastoz.expDate === "2027-10-15", 'Item 0 expDate is 2027-10-15 (matches photo)', `Found: ${blastoz.expDate}`);
-assert(blastoz.status === "Aman", 'Item 0 status is Aman (matches photo)', `Found: ${blastoz.status}`);
-assert(blastoz.supplier === "PT Arta Boga Cemerlang", 'Item 0 supplier is PT Arta Boga Cemerlang (matches photo)', `Found: ${blastoz.supplier}`);
+const firstWmsItem = data.wmsItems[0];
+assert(firstWmsItem.name === "CANNON BALL ARTA @6", 'First WMS item is CANNON BALL ARTA @6');
+assert(firstWmsItem.sku === "1605260009", 'First item SKU is 1605260009');
+assert(firstWmsItem.rack === "Rak B-01-02", 'First item rack is Rak B-01-02', `Found: ${firstWmsItem.rack}`);
+assert(firstWmsItem.bin === "Bin 02", 'First item bin is Bin 02', `Found: ${firstWmsItem.bin}`);
+assert(firstWmsItem.zone === "Zona B", 'First item zone is Zona B', `Found: ${firstWmsItem.zone}`);
+assert(firstWmsItem.coordinates === "Zona Rak B-01-02", 'First item coordinates is Zona Rak B-01-02', `Found: ${firstWmsItem.coordinates}`);
+assert(firstWmsItem.stock === 100, 'First item stock is 100', `Found: ${firstWmsItem.stock}`);
+assert(firstWmsItem.minStock === 25, 'First item minStock is 25', `Found: ${firstWmsItem.minStock}`);
+assert(firstWmsItem.batchNo === "BATCH-0009-2026", 'First item batch is BATCH-0009-2026', `Found: ${firstWmsItem.batchNo}`);
+assert(firstWmsItem.expDate === "2027-11-30", 'First item expDate is 2027-11-30', `Found: ${firstWmsItem.expDate}`);
+assert(firstWmsItem.status === "Aman", 'First item status is Aman', `Found: ${firstWmsItem.status}`);
+assert(firstWmsItem.supplier === "PT Arta Boga Cemerlang", 'First item supplier is PT Arta Boga Cemerlang', `Found: ${firstWmsItem.supplier}`);
 
 // Verify WMS table row HTML rendering
-const wmsHtml = sandbox.WMS.renderTableView([blastoz]);
-assert(wmsHtml.includes('Rak B-01-01'), 'WMS table view renders "Rak B-01-01"');
-assert(wmsHtml.includes('Bin 01'), 'WMS table view renders "Bin 01" badge');
+const wmsHtml = sandbox.WMS.renderTableView([firstWmsItem]);
+assert(wmsHtml.includes('Rak B-01-02'), 'WMS table view renders "Rak B-01-02"');
+assert(wmsHtml.includes('Bin 02'), 'WMS table view renders "Bin 02" badge');
 assert(wmsHtml.includes('Zona B'), 'WMS table view renders "Zona B"');
-assert(wmsHtml.includes('Zona Rak B-01-01'), 'WMS table view renders coordinate "Zona Rak B-01-01"');
-assert(wmsHtml.includes('150'), 'WMS table view renders stock "150"');
+assert(wmsHtml.includes('Zona Rak B-01-02'), 'WMS table view renders coordinate "Zona Rak B-01-02"');
+assert(wmsHtml.includes('100'), 'WMS table view renders stock "100"');
 assert(wmsHtml.includes('Maks: 250'), 'WMS table view renders "Maks: 250"');
-assert(wmsHtml.includes('BATCH-BLASTOZ-01'), 'WMS table view renders batch');
-assert(wmsHtml.includes('Exp: 15 Okt 2027'), 'WMS table view renders formatted "Exp: 15 Okt 2027"');
+assert(wmsHtml.includes('BATCH-0009-2026'), 'WMS table view renders batch');
 assert(wmsHtml.includes('Aman'), 'WMS table view renders status "Aman"');
 
 // Requirement 1: Import functionality exists and works
 assert(typeof sandbox.WMS.openImportModal === 'function', 'WMS.openImportModal function exists');
 assert(typeof sandbox.WMS.buildMappedWmsFromCatalog === 'function', 'WMS.buildMappedWmsFromCatalog exists');
 assert(typeof sandbox.WMS.applyImportWmsData === 'function', 'WMS.applyImportWmsData function exists');
+assert(typeof sandbox.WMS.deleteItem === 'function', 'WMS.deleteItem function exists');
 assert(html.includes('id="btn-apply-wms-import"'), 'HTML contains btn-apply-wms-import button id');
 assert(html.includes('WMS.applyImportWmsData(event)'), 'HTML contains WMS.applyImportWmsData click handler');
 
 const mappedItems = sandbox.WMS.buildMappedWmsFromCatalog();
-assert(mappedItems.length === 250, 'buildMappedWmsFromCatalog maps all 250 items', `Mapped: ${mappedItems.length}`);
-assert(mappedItems[0].rack === 'Rak B-01-01', 'Imported Item 0 has Rak B-01-01');
+assert(mappedItems.length === 249, 'buildMappedWmsFromCatalog maps 249 items (BLASTOZ excluded)', `Mapped: ${mappedItems.length}`);
+assert(!mappedItems.some(i => i.name.includes("BLASTOZ")), 'Mapped items do not contain BLASTOZ');
 
 // Test invoking applyImportWmsData() directly
 let toastShown = null;
@@ -133,7 +135,7 @@ assert(modalClosed === 'wms-import-modal', 'WMS.applyImportWmsData() closed wms-
 assert(toastShown && toastShown.type === 'success', 'WMS.applyImportWmsData() triggered success toast', toastShown?.msg);
 
 const storedAfterImport = sandbox.Storage.getData();
-assert(storedAfterImport.wmsItems && storedAfterImport.wmsItems.length === 250, 'Database contains 250 items after applyImportWmsData()');
+assert(storedAfterImport.wmsItems && storedAfterImport.wmsItems.length === 249, 'Database contains 249 items after applyImportWmsData()');
 assert(storedAfterImport.wmsLogs && storedAfterImport.wmsLogs.length > 0, 'Database contains audit log after applyImportWmsData()');
 assert(storedAfterImport.wmsLogs[0].type === 'STOCK_OPNAME', 'Log entry type is STOCK_OPNAME');
 assert(typeof storedAfterImport.wmsLogs[0].staff === 'string' && storedAfterImport.wmsLogs[0].staff.length > 0, 'Log entry contains valid staff name', storedAfterImport.wmsLogs[0].staff);
