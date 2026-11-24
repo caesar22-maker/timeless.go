@@ -10,7 +10,7 @@
 const MapService = {
   // 1. DATA RESMI TOKO (TITIK ASAL / ORIGIN)
   STORE_ORIGIN: {
-    name: "Grosir Berkah Abadi (Gudang Pusat)",
+    name: "TIMELESS.GO X ABADI GROSIR (Gudang Pusat)",
     address: "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162",
     coords: [-8.0415, 112.6315], // Latitude, Longitude resmi Kendalpayak Pakisaji Malang
     phone: "0812-3456-7890",
@@ -27,6 +27,8 @@ const MapService = {
     "pakisaji": [-8.0620, 112.5980],
     "gadang": [-8.0150, 112.6280],
     "sukun": [-7.9950, 112.6230],
+    "s. supriadi": [-7.9980, 112.6190],
+    "supriadi": [-7.9980, 112.6190],
     "klojen": [-7.9825, 112.6308],
     "alun-alun malang": [-7.9825, 112.6308],
     "kotalama": [-7.9948, 112.6325],
@@ -116,8 +118,9 @@ const MapService = {
 
     const lower = cleanStr.toLowerCase();
 
-    // 4. Cek Kamus Lokal Cepat (Matching Kata Kunci)
-    for (const [key, coords] of Object.entries(this.KNOWN_LOCATIONS)) {
+    // 4. Cek Kamus Lokal Cepat (Matching Kata Kunci, prioritas kata kunci terpanjang/spesifik)
+    const sortedEntries = Object.entries(this.KNOWN_LOCATIONS).sort((a, b) => b[0].length - a[0].length);
+    for (const [key, coords] of sortedEntries) {
       if (lower.includes(key)) {
         this._geocodeCache[cleanStr] = coords;
         return coords;

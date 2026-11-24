@@ -130,6 +130,7 @@ const Documents = {
               <option value="Faktur Penjualan" ${this.currentFilter === 'Faktur Penjualan' ? 'selected' : ''}>Faktur Penjualan</option>
               <option value="Surat Jalan (DO)" ${this.currentFilter === 'Surat Jalan (DO)' ? 'selected' : ''}>Surat Jalan (DO)</option>
               <option value="Purchase Order (PO)" ${this.currentFilter === 'Purchase Order (PO)' ? 'selected' : ''}>Purchase Order (PO)</option>
+              <option value="Bukti Pengeluaran Barang" ${this.currentFilter === 'Bukti Pengeluaran Barang' ? 'selected' : ''}>Bukti Pengeluaran Barang</option>
               <option value="LUNAS" ${this.currentFilter === 'LUNAS' ? 'selected' : ''}>Status: LUNAS</option>
               <option value="DIPROSES" ${this.currentFilter === 'DIPROSES' ? 'selected' : ''}>Status: DIPROSES</option>
             </select>
@@ -312,6 +313,7 @@ const Documents = {
                   <option value="Surat Jalan (DO)" ${doc.type === 'Surat Jalan (DO)' ? 'selected' : ''}>Surat Jalan (Delivery Order)</option>
                   <option value="Purchase Order (PO)" ${doc.type === 'Purchase Order (PO)' ? 'selected' : ''}>Purchase Order (PO Supplier)</option>
                   <option value="Berita Acara Penerimaan" ${doc.type === 'Berita Acara Penerimaan' ? 'selected' : ''}>Berita Acara Penerimaan (BAPB)</option>
+                  <option value="Bukti Pengeluaran Barang" ${doc.type === 'Bukti Pengeluaran Barang' ? 'selected' : ''}>Bukti Pengeluaran Barang (Goods Issue)</option>
                 </select>
               </div>
 
@@ -815,23 +817,39 @@ const Documents = {
                 <p class="text-xs uppercase font-bold text-slate-400 mb-1">
                   ${(doc.type && (doc.type.includes('PO') || doc.type.includes('Purchase Order') || doc.type.includes('Berita Acara') || doc.type.includes('Penerimaan'))) 
                     ? 'PIHAK SUPPLIER / PEMASOK:' 
-                    : 'DITUJUKAN KEPADA (TUJUAN PENGIRIMAN):'}
+                    : doc.type === 'Bukti Pengeluaran Barang'
+                      ? 'LOKASI ASAL & TUJUAN PENGELUARAN (TRANSFER):'
+                      : 'DITUJUKAN KEPADA (TUJUAN PENGIRIMAN):'}
                 </p>
                 <h4 class="text-sm font-bold text-slate-900">${Util.escapeHtml(doc.clientName || doc.supplier || '-')}</h4>
-                <p class="text-xs text-slate-600">${Util.escapeHtml(doc.clientPhone || '-')}</p>
-                <p class="text-xs text-slate-700 font-medium mt-1">
-                  <i class="fa-solid ${(doc.type && (doc.type.includes('PO') || doc.type.includes('Purchase Order') || doc.type.includes('Berita Acara') || doc.type.includes('Penerimaan'))) ? 'fa-building text-indigo-600' : 'fa-location-dot text-rose-500'} text-xs mr-1"></i> 
-                  ${Util.escapeHtml(doc.clientAddress || '-')}
-                </p>
+                ${doc.type === 'Bukti Pengeluaran Barang' ? `
+                  <p class="text-xs text-indigo-700 font-bold mt-0.5"><i class="fa-solid fa-warehouse mr-1"></i> <b>Asal Gudang:</b> ${Util.escapeHtml(doc.sourceLocation || 'Gudang Utama WMS')}</p>
+                  <p class="text-xs text-emerald-700 font-bold mt-0.5"><i class="fa-solid fa-store mr-1"></i> <b>Tujuan:</b> ${Util.escapeHtml(doc.destinationLocation || doc.clientAddress || 'Toko Grosir')}</p>
+                  ${doc.refDoc ? `<p class="text-[11px] font-mono text-slate-500 mt-1">No. Ref Mutasi: <b>${Util.escapeHtml(doc.refDoc)}</b></p>` : ''}
+                ` : `
+                  <p class="text-xs text-slate-600">${Util.escapeHtml(doc.clientPhone || '-')}</p>
+                  <p class="text-xs text-slate-700 font-medium mt-1">
+                    <i class="fa-solid ${(doc.type && (doc.type.includes('PO') || doc.type.includes('Purchase Order') || doc.type.includes('Berita Acara') || doc.type.includes('Penerimaan'))) ? 'fa-building text-indigo-600' : 'fa-location-dot text-rose-500'} text-xs mr-1"></i> 
+                    ${Util.escapeHtml(doc.clientAddress || '-')}
+                  </p>
+                `}
               </div>
               <div class="md:text-right">
-                <p class="text-xs uppercase font-bold text-slate-400 mb-1">${doc.type === 'Surat Jalan (DO)' ? 'INFO ARMADA & PENGIRIMAN:' : 'STATUS & METODE BAYAR:'}</p>
+                <p class="text-xs uppercase font-bold text-slate-400 mb-1">
+                  ${doc.type === 'Surat Jalan (DO)' ? 'INFO ARMADA & PENGIRIMAN:' : doc.type === 'Bukti Pengeluaran Barang' ? 'STATUS PENGELUARAN STOK:' : 'STATUS & METODE BAYAR:'}
+                </p>
                 ${doc.type === 'Surat Jalan (DO)' ? `
                   <div class="text-xs text-slate-700 space-y-0.5">
                     <p><strong>Armada:</strong> <span class="text-blue-900 font-bold">${doc.vehicle || 'Truk Box Toko GBA'}</span> (${doc.plateNumber || 'N 8899 AB'})</p>
                     <p><strong>Driver:</strong> <span class="font-bold">${doc.driverName || 'Pak Bambang'}</span> ${doc.driverPhone ? `(${doc.driverPhone})` : ''}</p>
                     <p class="text-slate-500 text-[11px]">Metode: ${doc.paymentMethod || 'COD / Tunai'}</p>
                   </div>
+                ` : doc.type === 'Bukti Pengeluaran Barang' ? `
+                  <div class="inline-block px-3 py-1 rounded font-extrabold text-xs uppercase border bg-emerald-50 text-emerald-700 border-emerald-300">
+                    ${doc.paymentStatus || 'TERKIRIM'}
+                  </div>
+                  <p class="text-xs font-semibold text-slate-700 mt-1">${doc.paymentMethod || 'Mutasi Pengeluaran Internal'}</p>
+                  <p class="text-[11px] text-slate-500 mt-0.5">Otorisasi: Kepala Gudang</p>
                 ` : `
                   <div class="inline-block px-3 py-1 rounded font-extrabold text-xs uppercase border ${isLunas ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-amber-50 text-amber-700 border-amber-300'}">
                     ${doc.paymentStatus}
@@ -913,6 +931,23 @@ const Documents = {
                       LOGISTIK
                     </span>
                     <p class="font-bold border-t border-slate-400 pt-1 text-slate-800 text-[11px]">( ${Util.escapeHtml(doc.signatureName || 'Bagian Pengiriman')} )</p>
+                  </div>
+                </div>
+              ` : doc.type === 'Bukti Pengeluaran Barang' ? `
+                <div class="flex justify-around text-center text-xs">
+                  <div class="relative">
+                    <p class="text-slate-500 mb-14">Petugas Gudang (Pengeluar),</p>
+                    <span class="absolute top-4 left-1/2 -translate-x-1/2 text-[9px] font-black text-blue-700/30 uppercase tracking-widest border-2 border-dashed border-blue-700/30 rounded-full w-16 h-16 flex items-center justify-center rotate-[-10deg] pointer-events-none">
+                      GUDANG WMS
+                    </span>
+                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800">( ${Util.escapeHtml(doc.signatureName || 'Kepala Gudang')} )</p>
+                  </div>
+                  <div class="relative">
+                    <p class="text-slate-500 mb-14">Penerima (Toko / Etalase),</p>
+                    <span class="absolute top-4 left-1/2 -translate-x-1/2 text-[9px] font-black text-emerald-700/30 uppercase tracking-widest border-2 border-dashed border-emerald-700/30 rounded-full w-16 h-16 flex items-center justify-center rotate-[10deg] pointer-events-none">
+                      DISPLAY TOKO
+                    </span>
+                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800">( ${Util.escapeHtml((doc.clientName || 'Penanggung Jawab Toko').split('(')[0].trim())} )</p>
                   </div>
                 </div>
               ` : `

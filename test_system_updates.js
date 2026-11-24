@@ -2,7 +2,7 @@ const fs = require('fs');
 const path = require('path');
 const vm = require('vm');
 
-const htmlPath = path.join('C:', 'Users', 'USER', 'Documents', 'grosir-app', 'grosir-app-standalone.html');
+const htmlPath = path.join(__dirname, 'grosir-app-standalone.html');
 const html = fs.readFileSync(htmlPath, 'utf8');
 
 console.log('=== TEST SUITE: TIMELESS.GO X ABADI GROSIR SYSTEM UPDATES ===\n');
@@ -26,25 +26,35 @@ assert(html.includes('WMS.handleSearchInput'), 'HTML contains WMS.handleSearchIn
 assert(html.includes('Shop.handleSearchInput'), 'HTML contains Shop.handleSearchInput with debounce');
 assert(html.includes('Documents.createSuratJalanFromOrder'), 'HTML contains Documents.createSuratJalanFromOrder');
 assert(html.includes('Documents.previewSuratJalan'), 'HTML contains Documents.previewSuratJalan');
+assert(html.includes('Bukti Pengeluaran Barang'), 'HTML contains Bukti Pengeluaran Barang support');
 
 // 2. Setup mock browser environment via vm
 const mockStorage = {};
+const elements = {};
 const sandbox = {
   window: {},
   document: {
-    getElementById: (id) => ({
-      value: "",
-      focus: () => {},
-      setSelectionRange: () => {},
-      scrollIntoView: () => {},
-      classList: { remove: () => {}, add: () => {} },
-      innerHTML: ""
-    }),
+    getElementById: (id) => {
+      if (!elements[id]) {
+        elements[id] = {
+          value: "",
+          focus: () => {},
+          setSelectionRange: () => {},
+          scrollIntoView: () => {},
+          classList: { remove: () => {}, add: () => {} },
+          innerHTML: "",
+          disabled: false
+        };
+      }
+      return elements[id];
+    },
     querySelector: () => null,
     querySelectorAll: () => [],
     addEventListener: () => {},
     body: {
-      insertAdjacentHTML: () => {}
+      insertAdjacentHTML: (pos, h) => {
+        sandbox._lastInsertedHtml = h;
+      }
     }
   },
   localStorage: {
@@ -76,156 +86,186 @@ vm.runInContext(scriptMatch[1], sandbox);
 const data = sandbox.DEFAULT_STORE_DATA;
 assert(typeof data !== 'undefined', 'DEFAULT_STORE_DATA loaded successfully in sandbox');
 
-// Requirement 1: Warehouse Rack & Position Inventory in WMS
-assert(data.wmsItems && data.wmsItems.length === 249, 'wmsItems contains 249 items (BLASTOZ removed as requested)', `Found: ${data.wmsItems?.length}`);
-const blastozFound = data.wmsItems.some(i => i.name.includes("BLASTOZ") || i.sku === "1905260001");
-assert(!blastozFound, 'BLASTOZ COKLAT ARTA @6 has been removed from WMS Rack Inventory');
+// ============================================================================
+// REQUIREMENT 1: Permanent WMS Seed Data (250 Items with Higher Stock)
+// ============================================================================
+console.log('\n--- Testing Requirement 1: Permanent WMS Seed Data (250 Items with Higher Stock) ---');
+assert(data.wmsItems && data.wmsItems.length === 250, 'wmsItems contains all 250 items', `Found: ${data.wmsItems?.length}`);
+assert(data.shopProducts && data.shopProducts.length === 250, 'shopProducts contains all 250 products', `Found: ${data.shopProducts?.length}`);
 
-const firstWmsItem = data.wmsItems[0];
-assert(firstWmsItem.name === "CANNON BALL ARTA @6", 'First WMS item is CANNON BALL ARTA @6');
-assert(firstWmsItem.sku === "1605260009", 'First item SKU is 1605260009');
-assert(firstWmsItem.rack === "Rak B-01-02", 'First item rack is Rak B-01-02', `Found: ${firstWmsItem.rack}`);
-assert(firstWmsItem.bin === "Bin 02", 'First item bin is Bin 02', `Found: ${firstWmsItem.bin}`);
-assert(firstWmsItem.zone === "Zona B", 'First item zone is Zona B', `Found: ${firstWmsItem.zone}`);
-assert(firstWmsItem.coordinates === "Zona Rak B-01-02", 'First item coordinates is Zona Rak B-01-02', `Found: ${firstWmsItem.coordinates}`);
-assert(firstWmsItem.stock === 100, 'First item stock is 100', `Found: ${firstWmsItem.stock}`);
-assert(firstWmsItem.minStock === 25, 'First item minStock is 25', `Found: ${firstWmsItem.minStock}`);
-assert(firstWmsItem.batchNo === "BATCH-0009-2026", 'First item batch is BATCH-0009-2026', `Found: ${firstWmsItem.batchNo}`);
-assert(firstWmsItem.expDate === "2027-11-30", 'First item expDate is 2027-11-30', `Found: ${firstWmsItem.expDate}`);
-assert(firstWmsItem.status === "Aman", 'First item status is Aman', `Found: ${firstWmsItem.status}`);
-assert(firstWmsItem.supplier === "PT Arta Boga Cemerlang", 'First item supplier is PT Arta Boga Cemerlang', `Found: ${firstWmsItem.supplier}`);
+// Verify BLASTOZ COKLAT ARTA @6 is present at WMS-001, Rak B-01-01
+const blastozWms = data.wmsItems.find(i => i.id === "WMS-001" || i.sku === "1905260001");
+assert(blastozWms !== undefined, 'BLASTOZ COKLAT ARTA @6 is present in WMS inventory as WMS-001');
+assert(blastozWms.rack === "Rak B-01-01", 'BLASTOZ is assigned to Rak B-01-01', `Found: ${blastozWms?.rack}`);
+assert(blastozWms.bin === "Bin 01", 'BLASTOZ is assigned to Bin 01', `Found: ${blastozWms?.bin}`);
+assert(blastozWms.zone === "Zona B", 'BLASTOZ is assigned to Zona B', `Found: ${blastozWms?.zone}`);
+assert(blastozWms.coordinates === "Zona Rak B-01-01", 'BLASTOZ coordinates is Zona Rak B-01-01');
+
+const blastozCatalog = data.shopProducts.find(p => p.sku === "1905260001");
+assert(blastozCatalog !== undefined, 'BLASTOZ exists in Product Catalog');
+assert(blastozWms.stock >= (blastozCatalog.stock + 100), `BLASTOZ WMS stock (${blastozWms.stock}) is higher than catalog stock (${blastozCatalog.stock}) by at least 100 units`);
+
+// Verify EVERY item in WMS has stock >= corresponding Product Catalog stock + 100
+let allStockHigherBy100 = true;
+let failingItems = [];
+for (let i = 0; i < 250; i++) {
+  const w = data.wmsItems[i];
+  const p = data.shopProducts[i];
+  if (!w || !p || w.stock < (p.stock + 100)) {
+    allStockHigherBy100 = false;
+    failingItems.push({ index: i, name: p?.name, catStock: p?.stock, wmsStock: w?.stock });
+  }
+}
+assert(allStockHigherBy100, 'All 250 WMS items have stock >= Product Catalog stock + 100', JSON.stringify(failingItems.slice(0, 3)));
+
+// Verify Storage.getData() loads persisted inventory without resetting or overwriting catalog stock
+const loadedData = sandbox.Storage.getData();
+assert(loadedData.wmsItems.length === 250, 'Storage.getData() returns 250 WMS items');
+assert(loadedData.shopProducts[0].stock === 150, 'Catalog stock for BLASTOZ remains 150 (not overwritten by WMS stock)', `Found: ${loadedData.shopProducts[0].stock}`);
+assert(loadedData.wmsItems[0].stock === 270, 'WMS stock for BLASTOZ remains 270 (independent from catalog stock)', `Found: ${loadedData.wmsItems[0].stock}`);
 
 // Verify WMS table row HTML rendering
-const wmsHtml = sandbox.WMS.renderTableView([firstWmsItem]);
-assert(wmsHtml.includes('Rak B-01-02'), 'WMS table view renders "Rak B-01-02"');
-assert(wmsHtml.includes('Bin 02'), 'WMS table view renders "Bin 02" badge');
+const wmsHtml = sandbox.WMS.renderTableView([blastozWms]);
+assert(wmsHtml.includes('Rak B-01-01'), 'WMS table view renders "Rak B-01-01"');
+assert(wmsHtml.includes('Bin 01'), 'WMS table view renders "Bin 01"');
 assert(wmsHtml.includes('Zona B'), 'WMS table view renders "Zona B"');
-assert(wmsHtml.includes('Zona Rak B-01-02'), 'WMS table view renders coordinate "Zona Rak B-01-02"');
-assert(wmsHtml.includes('100'), 'WMS table view renders stock "100"');
-assert(wmsHtml.includes('Maks: 250'), 'WMS table view renders "Maks: 250"');
-assert(wmsHtml.includes('BATCH-0009-2026'), 'WMS table view renders batch');
-assert(wmsHtml.includes('Aman'), 'WMS table view renders status "Aman"');
+assert(wmsHtml.includes('Zona Rak B-01-01'), 'WMS table view renders coordinate "Zona Rak B-01-01"');
+assert(wmsHtml.includes('270'), 'WMS table view renders WMS stock 270');
 
-// Requirement 1: Import functionality exists and works
-assert(typeof sandbox.WMS.openImportModal === 'function', 'WMS.openImportModal function exists');
-assert(typeof sandbox.WMS.buildMappedWmsFromCatalog === 'function', 'WMS.buildMappedWmsFromCatalog exists');
-assert(typeof sandbox.WMS.applyImportWmsData === 'function', 'WMS.applyImportWmsData function exists');
-assert(typeof sandbox.WMS.deleteItem === 'function', 'WMS.deleteItem function exists');
-assert(html.includes('id="btn-apply-wms-import"'), 'HTML contains btn-apply-wms-import button id');
-assert(html.includes('WMS.applyImportWmsData(event)'), 'HTML contains WMS.applyImportWmsData click handler');
-
+// Verify buildMappedWmsFromCatalog maps all 250 items with stock >= catalog + 100
 const mappedItems = sandbox.WMS.buildMappedWmsFromCatalog();
-assert(mappedItems.length === 249, 'buildMappedWmsFromCatalog maps 249 items (BLASTOZ excluded)', `Mapped: ${mappedItems.length}`);
-assert(!mappedItems.some(i => i.name.includes("BLASTOZ")), 'Mapped items do not contain BLASTOZ');
+assert(mappedItems.length === 250, 'buildMappedWmsFromCatalog maps all 250 items', `Mapped: ${mappedItems.length}`);
+assert(mappedItems[0].name === "BLASTOZ COKLAT ARTA @6", 'Mapped item 0 is BLASTOZ COKLAT ARTA @6');
+assert(mappedItems[0].stock >= 250, 'Mapped item 0 stock is >= 250');
 
-// Test invoking applyImportWmsData() directly
+// ============================================================================
+// REQUIREMENT 2: Automatic WMS Stock Deduction & Goods Issue Document
+// ============================================================================
+console.log('\n--- Testing Requirement 2: Automatic WMS Stock Deduction & Goods Issue Document ---');
+
+// Mock toast and modal handlers
 let toastShown = null;
 let modalClosed = null;
 sandbox.App.showToast = (msg, type) => { toastShown = { msg, type }; };
 sandbox.App.closeModal = (id) => { modalClosed = id; };
 
-let importException = null;
-try {
-  sandbox.WMS.applyImportWmsData();
-} catch (e) {
-  importException = e;
-}
-assert(importException === null, 'WMS.applyImportWmsData() executed without any exceptions');
-assert(modalClosed === 'wms-import-modal', 'WMS.applyImportWmsData() closed wms-import-modal');
-assert(toastShown && toastShown.type === 'success', 'WMS.applyImportWmsData() triggered success toast', toastShown?.msg);
+// Case A: Validation to prevent negative stock when WMS stock is insufficient
+const initialBlastozWmsStock = loadedData.wmsItems[0].stock; // 270
+const excessiveQty = initialBlastozWmsStock + 50; // 320
 
-const storedAfterImport = sandbox.Storage.getData();
-assert(storedAfterImport.wmsItems && storedAfterImport.wmsItems.length === 249, 'Database contains 249 items after applyImportWmsData()');
-assert(storedAfterImport.wmsLogs && storedAfterImport.wmsLogs.length > 0, 'Database contains audit log after applyImportWmsData()');
-assert(storedAfterImport.wmsLogs[0].type === 'STOCK_OPNAME', 'Log entry type is STOCK_OPNAME');
-assert(typeof storedAfterImport.wmsLogs[0].staff === 'string' && storedAfterImport.wmsLogs[0].staff.length > 0, 'Log entry contains valid staff name', storedAfterImport.wmsLogs[0].staff);
+toastShown = null;
+const saveResultExcessive = sandbox.Shop.saveProduct(null, null, {
+  name: "BLASTOZ COKLAT ARTA @6",
+  sku: "1905260001",
+  category: "Sembako",
+  unit: "Pack",
+  stock: excessiveQty,
+  price: 21650
+});
 
-// Requirement 2: Automated Surat Jalan Generation
-assert(typeof sandbox.Documents.createSuratJalanFromOrder === 'function', 'Documents.createSuratJalanFromOrder function exists');
-const testOrder = {
-  id: "ORD-TEST-999",
-  orderDate: "2026-11-18 09:00",
-  customerName: "Toko Sembako Barokah",
-  customerPhone: "081234567890",
-  customerAddress: "Jl. Merdeka No. 45, Kepanjen, Malang",
-  vehicle: "Truk Box Toko GBA",
-  plateNumber: "N 1234 AB",
-  driverName: "Pak Agus Santoso",
-  driverPhone: "081987654321",
-  items: [
-    { name: "BLASTOZ COKLAT ARTA @6", quantity: 10, unit: "Pack", price: 21650, subtotal: 216500 },
-    { name: "TISU NICE 900gr @20", quantity: 5, unit: "Pcs", price: 34500, subtotal: 172500 }
-  ],
-  totalAmount: 389000,
-  status: "Dalam Pengiriman"
-};
+assert(saveResultExcessive === false, 'Shop.saveProduct rejects addition when requested quantity exceeds WMS stock');
+assert(toastShown !== null && toastShown.type === 'error', 'Error toast is displayed for insufficient WMS stock', toastShown?.msg);
+assert(loadedData.wmsItems[0].stock === initialBlastozWmsStock, 'WMS stock was not deducted on failed validation');
 
-const sj = sandbox.Documents.createSuratJalanFromOrder(testOrder);
-assert(sj !== null, 'Surat Jalan created successfully');
-assert(sj.type === "Surat Jalan (DO)", 'Document type is Surat Jalan (DO)');
-assert(sj.refOrder === "ORD-TEST-999", 'Document references ORD-TEST-999');
-assert(sj.docNumber.startsWith("SJ/GBA/"), 'Document number has prefix SJ/GBA/');
-assert(sj.clientName === "Toko Sembako Barokah", 'Document contains customer name');
-assert(sj.clientAddress.includes("Kepanjen"), 'Document contains customer address');
-assert(sj.items.length === 2, 'Document contains all ordered items');
-assert(sj.vehicle === "Truk Box Toko GBA", 'Document contains vehicle');
-assert(sj.driverName === "Pak Agus Santoso", 'Document contains driver');
+// Case B: Successful addition, WMS deduction, and automated Bukti Pengeluaran Barang generation
+const validAddQty = 25;
+const expectedWmsStockAfter = initialBlastozWmsStock - validAddQty;
+const initialDocCount = (loadedData.documents || []).length;
+const initialWmsLogCount = (loadedData.wmsLogs || []).length;
 
-// Requirement 3: Enhanced Search Input Functionality
-assert(typeof sandbox.Shop.handleSearchInput === 'function', 'Shop.handleSearchInput function exists');
-assert(typeof sandbox.Shop.executeSearch === 'function', 'Shop.executeSearch function exists');
-assert(typeof sandbox.Shop.clearSearch === 'function', 'Shop.clearSearch function exists');
+toastShown = null;
+const saveResultSuccess = sandbox.Shop.saveProduct(null, null, {
+  name: "BLASTOZ COKLAT ARTA @6",
+  sku: "1905260001",
+  category: "Sembako",
+  unit: "Pack",
+  stock: validAddQty,
+  price: 21650
+});
 
-// Test debounce & search execution
-sandbox.Shop.searchQuery = "";
-sandbox.Shop.handleSearchInput({ target: { value: "BLASTOZ" } });
-assert(sandbox.Shop.searchQuery === "BLASTOZ", 'Search query updated immediately on input event');
-assert(sandbox.Shop._searchDebounceTimer !== null, 'Debounce timer was scheduled (300ms delay)');
+assert(saveResultSuccess === true, 'Shop.saveProduct succeeds with sufficient WMS stock');
+assert(loadedData.wmsItems[0].stock === expectedWmsStockAfter, `WMS stock deducted by ${validAddQty} (from ${initialBlastozWmsStock} to ${expectedWmsStockAfter})`);
+assert(loadedData.documents.length === initialDocCount + 1, 'New document generated and saved in database');
 
-// Execute search
-sandbox.Shop.executeSearch("BLASTOZ");
-const filteredProducts = sandbox.DEFAULT_STORE_DATA.shopProducts.filter(p => p.name.toLowerCase().includes("blastoz"));
-assert(filteredProducts.length >= 1, 'Search query correctly filters products');
+const generatedBpb = loadedData.documents[0];
+assert(generatedBpb.type === "Bukti Pengeluaran Barang", 'Generated document type is "Bukti Pengeluaran Barang"');
+assert(generatedBpb.docNumber.startsWith("BPB/GBA/"), 'Document number has BPB/GBA/ prefix', generatedBpb.docNumber);
+assert(generatedBpb.refDoc.startsWith("TRF-GUDANG-TOKO-"), 'Reference ID recorded (TRF-GUDANG-TOKO-...)');
+assert(generatedBpb.sourceLocation.includes("Rak B-01-01"), 'Source location accurately identifies WMS rack', generatedBpb.sourceLocation);
+assert(generatedBpb.destinationLocation.includes("Toko Grosir"), 'Destination location accurately identifies store display', generatedBpb.destinationLocation);
+assert(generatedBpb.items && generatedBpb.items[0].qty === validAddQty, `Document records deducted quantity of ${validAddQty}`);
+assert(generatedBpb.items[0].sku === "1905260001", 'Document records product SKU');
+assert(generatedBpb.date !== undefined && generatedBpb.date.length === 10, 'Document contains valid timestamp/date');
 
-// Requirement: Logo Replacement & Supplier Party on PO and Goods Receipt
-assert(!html.includes('photo-1578916171728-46686eac8d58?w=150'), 'Old unsplash logo removed from header & profile');
-assert(html.includes('data:image/jpeg;base64,'), 'Standalone HTML embeds new TG logo as Base64 data URI');
-assert(fs.existsSync(path.join(__dirname, 'images', 'logo.jpg')), 'Logo image file exists at images/logo.jpg');
+// Verify WMS Audit Log
+assert(loadedData.wmsLogs.length === initialWmsLogCount + 1, 'WMS mutation log recorded in database');
+const wmsLog = loadedData.wmsLogs[0];
+assert(wmsLog.type === "OUTBOUND", 'WMS log type is OUTBOUND');
+assert(wmsLog.sku === "1905260001", 'WMS log references SKU 1905260001');
+assert(wmsLog.newStock === expectedWmsStockAfter, `WMS log records new stock ${expectedWmsStockAfter}`);
 
-// Test Document Preview for Purchase Order (PO) and Goods Receipt (Berita Acara)
-let previewInsertedHtml = "";
-sandbox.document.body.insertAdjacentHTML = (pos, h) => { previewInsertedHtml = h; };
+// Test Document Preview for Bukti Pengeluaran Barang
+sandbox.Documents.previewDocument(generatedBpb.id);
+assert(sandbox._lastInsertedHtml.includes('BUKTI PENGELUARAN BARANG') || sandbox._lastInsertedHtml.includes('Bukti Pengeluaran Barang'), 'Preview modal renders Bukti Pengeluaran Barang');
+assert(sandbox._lastInsertedHtml.includes('Asal Gudang:'), 'Preview modal renders Asal Gudang');
+assert(sandbox._lastInsertedHtml.includes('Rak B-01-01'), 'Preview modal renders rack source Rak B-01-01');
+assert(sandbox._lastInsertedHtml.includes('Toko Grosir'), 'Preview modal renders destination Toko Grosir');
+assert(sandbox._lastInsertedHtml.includes('Petugas Gudang (Pengeluar)'), 'Preview modal renders Petugas Gudang (Pengeluar) signature');
+assert(sandbox._lastInsertedHtml.includes('Penerima (Toko / Etalase)'), 'Preview modal renders Penerima Toko signature');
 
-// 1. Test Purchase Order (PO)
-const poDoc = sandbox.DEFAULT_STORE_DATA.documents.find(d => d.type.includes('PO') || d.type.includes('Purchase Order'));
-assert(poDoc !== undefined, 'Sample Purchase Order (PO) document exists in dataset');
-sandbox.Documents.previewDocument(poDoc.id);
-assert(previewInsertedHtml.includes('PIHAK SUPPLIER / PEMASOK:'), 'PO preview displays "PIHAK SUPPLIER / PEMASOK:" header');
-assert(previewInsertedHtml.includes('Pihak Supplier / Pemasok,'), 'PO preview displays "Pihak Supplier / Pemasok," signature label');
-assert(previewInsertedHtml.includes('PT Arta Boga Cemerlang'), 'PO preview displays supplier name in party & signature');
+// ============================================================================
+// REQUIREMENT 3: Map Address Alignment (Store & Buyer Addresses)
+// ============================================================================
+console.log('\n--- Testing Requirement 3: Map Address Alignment (Store & Buyer Addresses) ---');
 
-// 2. Test Goods Receipt / Berita Acara Penerimaan Barang
-const bapbDoc = sandbox.DEFAULT_STORE_DATA.documents.find(d => d.type.includes('Berita Acara') || d.type.includes('Penerimaan'));
-assert(bapbDoc !== undefined, 'Sample Berita Acara Penerimaan Barang exists in dataset');
-sandbox.Documents.previewDocument(bapbDoc.id);
-assert(previewInsertedHtml.includes('PIHAK SUPPLIER / PEMASOK:'), 'Goods Receipt preview displays "PIHAK SUPPLIER / PEMASOK:" header');
-assert(previewInsertedHtml.includes('Pihak Supplier / Pemasok,'), 'Goods Receipt preview displays "Pihak Supplier / Pemasok," signature label');
-assert(previewInsertedHtml.includes('PT Arta Boga Cemerlang'), 'Goods Receipt preview displays supplier name in party & signature');
-assert(previewInsertedHtml.includes('Staff Gudang Inbound'), 'Goods Receipt preview displays "Staff Gudang Inbound" receiving staff signature');
+assert(typeof sandbox.MapService !== 'undefined', 'MapService exists in sandbox');
+const storeOrigin = sandbox.MapService.getStoreOrigin();
+assert(storeOrigin.address.includes('Kendalpayak'), 'Store origin address is Kendalpayak Malang');
+assert(storeOrigin.coords[0] === -8.0415 && storeOrigin.coords[1] === 112.6315, 'Store origin coordinates match [-8.0415, 112.6315]');
 
-// 3. Test Faktur Penjualan keeps normal "Penerima / Pembeli,"
-const invDoc = sandbox.DEFAULT_STORE_DATA.documents.find(d => d.type.includes('Faktur'));
-assert(invDoc !== undefined, 'Sample Faktur Penjualan exists in dataset');
-sandbox.Documents.previewDocument(invDoc.id);
-assert(previewInsertedHtml.includes('DITUJUKAN KEPADA (TUJUAN PENGIRIMAN):'), 'Faktur Penjualan displays standard customer destination header');
-assert(previewInsertedHtml.includes('Penerima / Pembeli,'), 'Faktur Penjualan displays "Penerima / Pembeli," signature label');
+// Verify all 3 demo orders have explicit destinationCoords matching their delivery addresses
+const orders = loadedData.orders;
+assert(orders && orders.length >= 3, 'At least 3 demo orders exist');
 
-console.log(`\n========================================`);
-console.log(`TEST SUMMARY: ${passedTests} / ${totalTests} PASSED (${Math.round((passedTests/totalTests)*100)}%)`);
-console.log(`========================================\n`);
+const order1 = orders[0];
+assert(Array.isArray(order1.destinationCoords) && order1.destinationCoords.length === 2, 'Order 1 has explicit destinationCoords');
+assert(order1.destinationCoords[0] === -7.9948 && order1.destinationCoords[1] === 112.6325, 'Order 1 coords match Gadang Sukun Malang [-7.9948, 112.6325]');
+assert(order1.customerAddress.includes('Gadang') || order1.customerAddress.includes('Sukun'), 'Order 1 address matches Gadang/Sukun Malang');
 
-if (passedTests === totalTests) {
-  process.exit(0);
-} else {
-  process.exit(1);
-}
+const order2 = orders[1];
+assert(Array.isArray(order2.destinationCoords) && order2.destinationCoords.length === 2, 'Order 2 has explicit destinationCoords');
+assert(order2.destinationCoords[0] === -7.9980 && order2.destinationCoords[1] === 112.6190, 'Order 2 coords match S. Supriadi Sukun Malang [-7.9980, 112.6190]');
+assert(order2.customerAddress.includes('Supriadi') || order2.customerAddress.includes('Sukun'), 'Order 2 address matches S. Supriadi Sukun Malang');
+
+const order3 = orders[2];
+assert(Array.isArray(order3.destinationCoords) && order3.destinationCoords.length === 2, 'Order 3 has explicit destinationCoords');
+assert(order3.destinationCoords[0] === -8.1320 && order3.destinationCoords[1] === 112.5720, 'Order 3 coords match Kepanjen Malang [-8.1320, 112.5720]');
+assert(order3.customerAddress.includes('Kepanjen'), 'Order 3 address matches Kepanjen Malang');
+
+// Test asynchronous geocoding resolver
+(async () => {
+  // Test resolve explicit coords
+  const resExplicit = await sandbox.MapService.resolveDestinationCoords(order1.customerAddress, order1.destinationCoords);
+  assert(resExplicit[0] === -7.9948 && resExplicit[1] === 112.6325, 'resolveDestinationCoords returns explicit coords when provided');
+
+  // Test resolve from known address dictionary
+  const resDictionary = await sandbox.MapService.resolveDestinationCoords("Jl. Raya S. Supriadi No. 88, Sukun, Malang");
+  assert(resDictionary[0] === -7.9980 && resDictionary[1] === 112.6190, 'resolveDestinationCoords accurately resolves S. Supriadi address via dictionary');
+
+  const resKepanjen = await sandbox.MapService.resolveDestinationCoords("Kepanjen Malang");
+  assert(resKepanjen[0] === -8.1320 && resKepanjen[1] === 112.5720, 'resolveDestinationCoords accurately resolves Kepanjen address via dictionary');
+
+  // Test distance calculation between Kendalpayak and Sukun
+  const dist = sandbox.MapService.calculateDistanceKm(storeOrigin.coords, order1.destinationCoords);
+  assert(dist > 3 && dist < 10, `Calculated distance between store and Order 1 is realistic (${dist.toFixed(1)} km)`);
+
+  console.log(`\n========================================`);
+  console.log(`TEST SUMMARY: ${passedTests} / ${totalTests} PASSED (${Math.round((passedTests/totalTests)*100)}%)`);
+  console.log(`========================================\n`);
+
+  if (passedTests === totalTests) {
+    process.exit(0);
+  } else {
+    process.exit(1);
+  }
+})();

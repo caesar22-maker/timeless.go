@@ -1244,24 +1244,41 @@ const Storage = {
         if (stored) {
           const parsed = JSON.parse(stored);
           if (parsed && parsed.shopProducts && parsed.shopProducts.length >= 200 && parsed.inventoryTools && parsed.inventoryTools.length >= 40) {
-            if (!parsed.wmsItems || !Array.isArray(parsed.wmsItems) || parsed.wmsItems.length === 0) {
-              parsed.wmsItems = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.wmsItems || []));
-            } else {
-              // Ensure BLASTOZ COKLAT ARTA @6 is removed from wmsItems as requested
-              parsed.wmsItems = parsed.wmsItems.filter(i => i.id !== "WMS-001" && i.sku !== "1905260001" && i.name !== "BLASTOZ COKLAT ARTA @6");
+            // Permanent WMS Seed Data: Ensure all 250 items exist in WMS and persist across sessions
+            if (!parsed.wmsItems || !Array.isArray(parsed.wmsItems) || parsed.wmsItems.length < 250) {
+              const defaultWms = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.wmsItems || []));
+              if (!parsed.wmsItems || !Array.isArray(parsed.wmsItems) || parsed.wmsItems.length === 0) {
+                parsed.wmsItems = defaultWms;
+              } else {
+                // Ensure all 250 items are present, preserving any existing modifications
+                defaultWms.forEach(defItem => {
+                  const existingIdx = parsed.wmsItems.findIndex(w => w.id === defItem.id || w.sku === defItem.sku);
+                  if (existingIdx === -1) {
+                    parsed.wmsItems.push(defItem);
+                  }
+                });
+                parsed.wmsItems.sort((a, b) => {
+                  const numA = parseInt((a.id || "").replace(/\D/g, "")) || 0;
+                  const numB = parseInt((b.id || "").replace(/\D/g, "")) || 0;
+                  return numA - numB;
+                });
+              }
             }
-            // Ensure 100% synchronization of stock quantities between shopProducts and wmsItems
+
+            // Ensure initial WMS stock is higher than catalog stock by at least 100 units (without overwriting catalog stock)
             if (Array.isArray(parsed.wmsItems) && Array.isArray(parsed.shopProducts)) {
               parsed.wmsItems.forEach(w => {
-                const sp = parsed.shopProducts.find(p => p.sku === w.sku || p.name.toLowerCase() === w.name.toLowerCase());
-                if (sp) {
-                  sp.stock = w.stock;
+                const sp = parsed.shopProducts.find(p => p.sku === w.sku || (p.name && w.name && p.name.toLowerCase() === w.name.toLowerCase()));
+                const minReq = (sp && typeof sp.stock === 'number') ? (sp.stock + 100) : 100;
+                if (typeof w.stock !== 'number' || w.stock < minReq) {
+                  w.stock = (sp && typeof sp.stock === 'number') ? (sp.stock + 120) : 120;
                 }
               });
             }
+
             if (!parsed.wmsLogs || !Array.isArray(parsed.wmsLogs)) parsed.wmsLogs = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.wmsLogs || []));
             if (!parsed.documents || !Array.isArray(parsed.documents) || parsed.documents.length < 3) parsed.documents = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.documents || []));
-            if (!parsed.orders || !Array.isArray(parsed.orders)) parsed.orders = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.orders || []));
+            if (!parsed.orders || !Array.isArray(parsed.orders) || parsed.orders.length < 3 || !parsed.orders[0].destinationCoords) parsed.orders = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.orders || []));
             if (!parsed.inventoryTools || parsed.inventoryTools.length < 50 || !parsed.inventoryTools.some(t => t.status === 'Currently In Use')) {
               parsed.inventoryTools = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.inventoryTools || []));
             }

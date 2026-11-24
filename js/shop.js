@@ -1520,21 +1520,21 @@ const Shop = {
     }
   },
 
-  saveProduct: function(event, existingId) {
-    event.preventDefault();
+  saveProduct: function(event, existingId, customProductData = null) {
+    if (event && typeof event.preventDefault === 'function') event.preventDefault();
     const data = Storage.getData();
 
-    const name = document.getElementById("shop-prod-name").value.trim();
-    const sku = document.getElementById("shop-prod-sku").value.trim();
-    const category = document.getElementById("shop-prod-category").value;
-    const unit = document.getElementById("shop-prod-unit").value.trim() || "Dus";
-    const stock = Number(document.getElementById("shop-prod-stock").value) || 0;
-    const badge = document.getElementById("shop-prod-badge").value.trim();
-    const image = document.getElementById("shop-prod-image-url").value.trim() || "https://via.placeholder.com/400?text=" + encodeURIComponent(name);
-    const description = document.getElementById("shop-prod-desc").value.trim();
-    const price = Number(document.getElementById("shop-prod-price").value) || 0;
+    const name = (customProductData && customProductData.name) || (document.getElementById("shop-prod-name") ? document.getElementById("shop-prod-name").value : "").trim();
+    const sku = (customProductData && customProductData.sku) || (document.getElementById("shop-prod-sku") ? document.getElementById("shop-prod-sku").value : "").trim();
+    const category = (customProductData && customProductData.category) || (document.getElementById("shop-prod-category") ? document.getElementById("shop-prod-category").value : "Sembako");
+    const unit = (customProductData && customProductData.unit) || ((document.getElementById("shop-prod-unit") ? document.getElementById("shop-prod-unit").value : "").trim() || "Dus");
+    const stock = Number(customProductData ? customProductData.stock : (document.getElementById("shop-prod-stock") ? document.getElementById("shop-prod-stock").value : 0)) || 0;
+    const badge = (customProductData && customProductData.badge) || (document.getElementById("shop-prod-badge") ? document.getElementById("shop-prod-badge").value : "").trim();
+    const image = (customProductData && customProductData.image) || (document.getElementById("shop-prod-image-url") ? document.getElementById("shop-prod-image-url").value : "").trim() || "https://via.placeholder.com/400?text=" + encodeURIComponent(name);
+    const description = (customProductData && customProductData.description) || (document.getElementById("shop-prod-desc") ? document.getElementById("shop-prod-desc").value : "").trim();
+    const price = Number(customProductData ? customProductData.price : (document.getElementById("shop-prod-price") ? document.getElementById("shop-prod-price").value : 0)) || 0;
 
-    const tiers = [
+    const tiers = (customProductData && customProductData.tiers) || [
       { minQty: 1, maxQty: 99999, price: price, label: "Harga Grosir Satuan" }
     ];
 
@@ -1554,21 +1554,124 @@ const Shop = {
       const idx = data.shopProducts.findIndex(p => p.id === existingId);
       if (idx !== -1) data.shopProducts[idx] = prodObj;
     } else {
+      // Automatic WMS Stock Deduction & Goods Issue Document on Catalog Product Addition
+      if (!data.wmsItems) data.wmsItems = [];
+      const matchingWms = data.wmsItems.find(w => 
+        (w.sku && sku && w.sku.toLowerCase() === sku.toLowerCase()) || 
+        (w.name && name && w.name.toLowerCase() === name.toLowerCase())
+      );
+
+      if (!matchingWms) {
+        if (typeof App !== 'undefined' && App.showToast) {
+          App.showToast(`Produk "${name}" belum terdaftar di inventaris gudang WMS. Harap daftarkan item di WMS terlebih dahulu sebelum menambahkan ke katalog toko.`, "error");
+        }
+        return false;
+      }
+
+      // Stock validation: prevent negative stock
+      if (matchingWms.stock < stock) {
+        if (typeof App !== 'undefined' && App.showToast) {
+          App.showToast(`Stok gudang WMS tidak mencukupi untuk "${name}". Tersedia di gudang: ${matchingWms.stock} ${matchingWms.unit || unit}, dibutuhkan: ${stock} ${unit}.`, "error");
+        }
+        return false;
+      }
+
+      // Deduct from WMS stock
+      matchingWms.stock -= stock;
+      matchingWms.status = matchingWms.stock <= (matchingWms.minStock / 2) ? "Kritis" : matchingWms.stock <= matchingWms.minStock ? "Menipis" : "Aman";
+
+      // Automatically generate Goods Issue Document (Bukti Pengeluaran Barang)
+      const now = new Date();
+      const dateStr = now.toISOString().slice(0, 10);
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const randId = Math.floor(1000 + Math.random() * 9000);
+      const bpbDocNumber = `BPB/GBA/${year}/${month}/${randId}`;
+      const transferRefId = `TRF-GUDANG-TOKO-${Date.now().toString().slice(-6)}`;
+
+      const goodsIssueDoc = {
+        id: "DOC-BPB-" + Date.now(),
+        docNumber: bpbDocNumber,
+        refDoc: transferRefId,
+        refId: transferRefId,
+        type: "Bukti Pengeluaran Barang",
+        date: dateStr,
+        orderTimestamp: now.toISOString().replace('T', ' ').slice(0, 19),
+        dueDate: "-",
+        clientName: "Toko Grosir (Display Etalase)",
+        clientPhone: (data.profile && data.profile.phone) || "0812-3456-7890",
+        clientAddress: "Area Display Toko & Etalase Katalog Grosir - " + ((data.profile && data.profile.address) || "Kendalpayak Malang"),
+        sourceLocation: matchingWms.rack ? `${matchingWms.rack} (${matchingWms.zone || 'Gudang Utama'})` : "Gudang Utama (WMS)",
+        destinationLocation: "Toko Grosir (Etalase Katalog)",
+        paymentStatus: "TERKIRIM",
+        paymentMethod: "Mutasi Pengeluaran Internal",
+        items: [
+          {
+            sku: matchingWms.sku || sku,
+            name: name,
+            qty: stock,
+            unit: unit,
+            price: price,
+            subtotal: price * stock
+          }
+        ],
+        discount: 0,
+        taxPercent: 0,
+        taxAmount: 0,
+        grandTotal: price * stock,
+        notes: `Pengeluaran stok otomatis dari gudang WMS (${matchingWms.rack || 'Gudang'}) ke etalase toko untuk produk "${name}". Sisa stok gudang: ${matchingWms.stock} ${unit}.`,
+        signatureName: "Kepala Gudang & Logistik",
+        attachmentUrl: ""
+      };
+
+      if (!data.documents) data.documents = [];
+      data.documents.unshift(goodsIssueDoc);
+
+      // Audit Log in WMS Mutation Logs
+      if (!data.wmsLogs) data.wmsLogs = [];
+      let staffName = "Admin Gudang & Toko";
+      try {
+        if (typeof Storage !== 'undefined' && Storage.getCurrentUser && Storage.getCurrentUser()) {
+          staffName = Storage.getCurrentUser().name || Storage.getCurrentUser().username;
+        }
+      } catch (e) {}
+
+      data.wmsLogs.unshift({
+        id: "LOG-" + Date.now().toString().slice(-6),
+        sku: matchingWms.sku,
+        name: matchingWms.name,
+        type: "OUTBOUND",
+        typeLabel: "Pengeluaran (Transfer Toko)",
+        qty: `-${stock} ${unit}`,
+        previousStock: matchingWms.stock + stock,
+        newStock: matchingWms.stock,
+        rack: matchingWms.rack || "-",
+        operator: staffName,
+        date: now.toISOString().replace('T', ' ').slice(0, 16),
+        refDoc: bpbDocNumber,
+        notes: `Transfer stok ke etalase toko (Ref: ${transferRefId})`
+      });
+
       if (!data.shopProducts) data.shopProducts = [];
       data.shopProducts.push(prodObj);
     }
 
     Storage.saveData(data);
 
-    App.closeModal('shop-prod-modal');
-    App.showToast(`Produk "${name}" berhasil disimpan!`, "success");
-    this.render();
+    if (typeof App !== 'undefined') {
+      if (App.closeModal) App.closeModal('shop-prod-modal');
+      if (App.showToast) App.showToast(`Produk "${name}" berhasil disimpan!`, "success");
+    }
+    if (this.render && typeof document !== 'undefined' && document.getElementById('shop-content')) {
+      this.render();
+    }
 
     // Sinkronkan ke Supabase Cloud setelah UI di-render (async background)
     if (typeof Storage !== 'undefined' && Storage.saveProduct) {
       Storage._pendingProductSave = prodObj.id; // tandai agar realtime echo tidak re-render ulang
       Storage.saveProduct(prodObj).catch(e => console.warn("Gagal sync produk ke cloud:", e));
     }
+    return true;
   },
 
   deleteProduct: function(productId) {

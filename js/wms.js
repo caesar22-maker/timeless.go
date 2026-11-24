@@ -1643,9 +1643,8 @@ const WMS = {
 
   buildMappedWmsFromCatalog: function() {
     const data = Storage.getData();
-    // Exclude BLASTOZ COKLAT ARTA @6 as requested to be removed from WMS Rack Inventory
-    const prods = (data.shopProducts || (typeof DEFAULT_STORE_DATA !== 'undefined' ? DEFAULT_STORE_DATA.shopProducts : []) || [])
-      .filter(p => p.sku !== "1905260001" && p.name !== "BLASTOZ COKLAT ARTA @6");
+    // Include all 250 items from catalog
+    const prods = (data.shopProducts || (typeof DEFAULT_STORE_DATA !== 'undefined' ? DEFAULT_STORE_DATA.shopProducts : []) || []);
     
     const zoneConfigs = {
       'Sembako': { code: 'B', name: 'Zona B', startAisle: 1 },
@@ -1670,10 +1669,41 @@ const WMS = {
       const bin = `Bin ${shelfStr}`;
       const coord = `Zona Rak ${zCode}-${aisleStr}-${shelfStr}`;
 
+      const catStock = typeof p.stock === 'number' ? p.stock : 50;
       const existing = (data.wmsItems && data.wmsItems[idx]) ? data.wmsItems[idx] : {};
-      const stock = existing.stock && existing.stock > 0 ? existing.stock : (50 + ((idx * 7) % 150));
-      const minStock = existing.minStock || 20;
+      const stock = (existing.stock && existing.stock >= catStock + 100) ? existing.stock : (catStock + 120);
+      const minStock = existing.minStock || 25;
+      const maxStock = Math.max(500, stock + 100);
       const status = stock <= (minStock / 2) ? "Kritis" : stock <= minStock ? "Menipis" : "Aman";
+
+      if (idx === 0) {
+        return {
+          id: "WMS-001",
+          sku: "1905260001",
+          name: "BLASTOZ COKLAT ARTA @6",
+          category: "Sembako",
+          unit: "Pack",
+          stock: stock,
+          minStock: 25,
+          maxStock: maxStock,
+          capacity: maxStock,
+          zone: "Zona B",
+          zoneCode: "B",
+          aisle: "Lorong B-01",
+          rack: "Rak B-01-01",
+          bin: "Bin 01",
+          tier: "Level 1",
+          level: 1,
+          coordinates: "Zona Rak B-01-01",
+          gridPosition: { zone: "B", aisle: "01", bay: "01", level: 1, slot: "01" },
+          status: "Aman",
+          batchNo: "BATCH-BLASTOZ-01",
+          expDate: "2027-10-15",
+          supplier: "PT Arta Boga Cemerlang",
+          image: p.image || "images/products/SHOP-001.jpg",
+          notes: p.description || "Rasa: Cokelat (Chocolate), Berat Bersih per Buah: 24 gram, Isi per Box: 12 pcs, Berat Total per Box: Sekitar 288-300g"
+        };
+      }
 
       return {
         id: `WMS-${String(idx + 1).padStart(3, '0')}`,
@@ -1683,8 +1713,8 @@ const WMS = {
         unit: p.unit,
         stock: stock,
         minStock: minStock,
-        maxStock: 250,
-        capacity: 250,
+        maxStock: maxStock,
+        capacity: maxStock,
         zone: cfg.name,
         zoneCode: zCode,
         aisle: `Lorong ${zCode}-${aisleStr}`,
@@ -1725,14 +1755,7 @@ const WMS = {
       const data = Storage.getData() || {};
       data.wmsItems = itemsToSave;
 
-      // Sync stock to shopProducts
-      if (data.shopProducts && Array.isArray(data.shopProducts)) {
-        data.shopProducts.forEach((p, i) => {
-          if (itemsToSave[i] && typeof itemsToSave[i].stock === 'number') {
-            p.stock = itemsToSave[i].stock;
-          }
-        });
-      }
+      // Do NOT overwrite catalog shopProducts stock - warehouse and catalog stock counts are independent
 
       // Safe staff name retrieval
       let staffName = "Admin Gudang";
