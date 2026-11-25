@@ -553,7 +553,13 @@ const MapService = {
 
     // 5. FIT BOUNDS: Sesuaikan batas pandangan agar kedua Pin dan seluruh rute muat proporsional
     const allPoints = [originCoords, destCoords, ...waypoints];
-    map.fitBounds(L.latLngBounds(allPoints), { padding: [45, 45] });
+    if (map && typeof map.fitBounds === 'function' && typeof L !== 'undefined' && typeof L.latLngBounds === 'function') {
+      try {
+        map.fitBounds(L.latLngBounds(allPoints), { padding: [45, 45] });
+      } catch (fitErr) {
+        // Non-critical: continue without breaking
+      }
+    }
 
     // 6. INTERAKTIVITAS: SINKRONISASI PIN TUJUAN SECARA REAL-TIME JIKA DIUBAH / DIGESER
     if (config.allowDragDestination) {

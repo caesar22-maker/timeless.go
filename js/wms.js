@@ -2426,7 +2426,7 @@ const WMS = {
 
     // Direct event listener binding as backup
     const applyBtn = document.getElementById('btn-apply-wms-import');
-    if (applyBtn) {
+    if (applyBtn && typeof applyBtn.addEventListener === 'function') {
       applyBtn.addEventListener('click', function(e) {
         if (e) {
           if (typeof e.preventDefault === 'function') e.preventDefault();

@@ -1533,6 +1533,9 @@ const Storage = {
   exportJSON: function() {
     const data = this.getData();
     const jsonStr = JSON.stringify(data, null, 2);
+    if (typeof Blob === 'undefined' || typeof URL === 'undefined' || typeof document === 'undefined') {
+      return jsonStr;
+    }
     const blob = new Blob([jsonStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");

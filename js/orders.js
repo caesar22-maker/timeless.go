@@ -122,7 +122,9 @@ const Orders = {
         // Update telemetry coords & route summary badge
         const coordsEl = document.getElementById("map-telemetry-coords");
         if (coordsEl) {
-          const tPos = syncResult.truckMarker ? syncResult.truckMarker.getLatLng() : { lat: syncResult.originCoords[0], lng: syncResult.originCoords[1] };
+          const tPos = (syncResult.truckMarker && typeof syncResult.truckMarker.getLatLng === 'function')
+            ? syncResult.truckMarker.getLatLng()
+            : { lat: syncResult.originCoords[0], lng: syncResult.originCoords[1] };
           coordsEl.textContent = `GPS: ${tPos.lat.toFixed(4)}, ${tPos.lng.toFixed(4)} • Jarak: ${syncResult.routeInfo.distanceKm} km (ETA ±${syncResult.routeInfo.durationMinutes} mnt)`;
         }
 
@@ -138,27 +140,31 @@ const Orders = {
   },
 
   centerOnFleet: function() {
-    if (this.currentMap && this.currentTruckMarker) {
+    if (this.currentMap && this.currentTruckMarker && typeof this.currentTruckMarker.getLatLng === 'function') {
       const pos = this.currentTruckMarker.getLatLng();
-      this.currentMap.setView(pos, 15, { animate: true });
-      this.currentTruckMarker.openPopup();
+      if (typeof this.currentMap.setView === 'function') {
+        this.currentMap.setView(pos, 15, { animate: true });
+      }
+      if (typeof this.currentTruckMarker.openPopup === 'function') {
+        this.currentTruckMarker.openPopup();
+      }
     }
   },
 
   centerOnStore: function() {
-    if (this.currentMap && this.currentOriginCoords) {
+    if (this.currentMap && this.currentOriginCoords && typeof this.currentMap.setView === 'function') {
       this.currentMap.setView(this.currentOriginCoords, 15, { animate: true });
     }
   },
 
   centerOnDestination: function() {
-    if (this.currentMap && this.currentDestCoords) {
+    if (this.currentMap && this.currentDestCoords && typeof this.currentMap.setView === 'function') {
       this.currentMap.setView(this.currentDestCoords, 15, { animate: true });
     }
   },
 
   fitMapBounds: function() {
-    if (this.currentMap && this.currentWaypoints) {
+    if (this.currentMap && this.currentWaypoints && typeof this.currentMap.fitBounds === 'function' && typeof L !== 'undefined' && typeof L.latLngBounds === 'function') {
       this.currentMap.fitBounds(L.latLngBounds(this.currentWaypoints), { padding: [50, 50], animate: true });
     }
   },

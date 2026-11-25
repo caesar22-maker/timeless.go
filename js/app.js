@@ -129,22 +129,31 @@ const App = {
     // Update active state in nav buttons
     const navButtons = document.querySelectorAll(".nav-tab-btn");
     navButtons.forEach(btn => {
+      if (!btn || typeof btn.getAttribute !== 'function') return;
       const target = btn.getAttribute("data-tab");
       if (target === tabName) {
-        btn.classList.add("bg-blue-600", "text-white", "shadow-sm");
-        btn.classList.remove("text-slate-600", "hover:bg-slate-100", "bg-transparent");
+        if (btn.classList && typeof btn.classList.add === 'function') {
+          btn.classList.add("bg-blue-600", "text-white", "shadow-sm");
+          btn.classList.remove("text-slate-600", "hover:bg-slate-100", "bg-transparent");
+        }
       } else {
-        btn.classList.remove("bg-blue-600", "text-white", "shadow-sm");
-        btn.classList.add("text-slate-600", "hover:bg-slate-100");
+        if (btn.classList && typeof btn.classList.remove === 'function') {
+          btn.classList.remove("bg-blue-600", "text-white", "shadow-sm");
+          btn.classList.add("text-slate-600", "hover:bg-slate-100");
+        }
       }
     });
 
     // Hide all tab panels
-    document.querySelectorAll(".tab-pane").forEach(pane => pane.classList.add("hidden"));
+    document.querySelectorAll(".tab-pane").forEach(pane => {
+      if (pane && pane.classList && typeof pane.classList.add === 'function') {
+        pane.classList.add("hidden");
+      }
+    });
 
     // Show target panel & initialize module
     const activePane = document.getElementById(`${tabName}-panel`);
-    if (activePane) {
+    if (activePane && activePane.classList && typeof activePane.classList.remove === 'function') {
       activePane.classList.remove("hidden");
     }
 
@@ -160,7 +169,9 @@ const App = {
       Inventory.render();
     }
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   },
 
   // UPDATE HEADER & ROLE BADGES
@@ -241,7 +252,11 @@ const App = {
         navOrderBadge.textContent = activeOrdersCount;
       }
       // Hide lock icons
-      lockIcons.forEach(icon => icon.classList.add("hidden"));
+      lockIcons.forEach(icon => {
+        if (icon && icon.classList && typeof icon.classList.add === 'function') {
+          icon.classList.add("hidden");
+        }
+      });
     } else {
       const custAcc = Storage.getCustomerAccount();
       if (customerBadge) {
@@ -300,7 +315,11 @@ const App = {
         navOrdersBtn.classList.add("hidden");
       }
       // Show lock icons
-      lockIcons.forEach(icon => icon.classList.remove("hidden"));
+      lockIcons.forEach(icon => {
+        if (icon && icon.classList && typeof icon.classList.remove === 'function') {
+          icon.classList.remove("hidden");
+        }
+      });
     }
 
     // Perbarui indikator koneksi Cloud Supabase
@@ -1657,10 +1676,10 @@ const App = {
         textarea.style.position = "fixed";
         textarea.style.opacity = "0";
         document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
+        if (typeof textarea.focus === 'function') textarea.focus();
+        if (typeof textarea.select === 'function') textarea.select();
+        if (typeof document.execCommand === 'function') document.execCommand("copy");
+        if (typeof document.body.removeChild === 'function') document.body.removeChild(textarea);
       }
       this.showToast(successMsg, "success");
     } catch (err) {

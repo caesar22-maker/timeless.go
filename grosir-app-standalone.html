@@ -17198,6 +17198,9 @@ const Storage = {
   exportJSON: function() {
     const data = this.getData();
     const jsonStr = JSON.stringify(data, null, 2);
+    if (typeof Blob === 'undefined' || typeof URL === 'undefined' || typeof document === 'undefined') {
+      return jsonStr;
+    }
     const blob = new Blob([jsonStr], { type: "application/json" });
     const url = URL.createObjectURL(blob);
     const a = document.createElement("a");
@@ -17919,7 +17922,13 @@ const MapService = {
 
     // 5. FIT BOUNDS: Sesuaikan batas pandangan agar kedua Pin dan seluruh rute muat proporsional
     const allPoints = [originCoords, destCoords, ...waypoints];
-    map.fitBounds(L.latLngBounds(allPoints), { padding: [45, 45] });
+    if (map && typeof map.fitBounds === 'function' && typeof L !== 'undefined' && typeof L.latLngBounds === 'function') {
+      try {
+        map.fitBounds(L.latLngBounds(allPoints), { padding: [45, 45] });
+      } catch (fitErr) {
+        // Non-critical: continue without breaking
+      }
+    }
 
     // 6. INTERAKTIVITAS: SINKRONISASI PIN TUJUAN SECARA REAL-TIME JIKA DIUBAH / DIGESER
     if (config.allowDragDestination) {
@@ -20438,7 +20447,7 @@ const WMS = {
 
     // Direct event listener binding as backup
     const applyBtn = document.getElementById('btn-apply-wms-import');
-    if (applyBtn) {
+    if (applyBtn && typeof applyBtn.addEventListener === 'function') {
       applyBtn.addEventListener('click', function(e) {
         if (e) {
           if (typeof e.preventDefault === 'function') e.preventDefault();
@@ -21424,10 +21433,10 @@ const Documents = {
     const rows = document.querySelectorAll("#doc-items-tbody .item-row");
     const items = [];
     rows.forEach(row => {
-      const name = row.querySelector(".row-name").value.trim();
-      const qty = Number(row.querySelector(".row-qty").value) || 0;
-      const unit = row.querySelector(".row-unit").value.trim() || "Dus";
-      const price = Number(row.querySelector(".row-price").value) || 0;
+      const name = row.querySelector(".row-name")?.value?.trim() || "";
+      const qty = Number(row.querySelector(".row-qty")?.value) || 0;
+      const unit = row.querySelector(".row-unit")?.value?.trim() || "Dus";
+      const price = Number(row.querySelector(".row-price")?.value) || 0;
       if (name) {
         items.push({ name, qty, unit, price, subtotal: qty * price });
       }
@@ -22002,7 +22011,9 @@ const Orders = {
         // Update telemetry coords & route summary badge
         const coordsEl = document.getElementById("map-telemetry-coords");
         if (coordsEl) {
-          const tPos = syncResult.truckMarker ? syncResult.truckMarker.getLatLng() : { lat: syncResult.originCoords[0], lng: syncResult.originCoords[1] };
+          const tPos = (syncResult.truckMarker && typeof syncResult.truckMarker.getLatLng === 'function')
+            ? syncResult.truckMarker.getLatLng()
+            : { lat: syncResult.originCoords[0], lng: syncResult.originCoords[1] };
           coordsEl.textContent = `GPS: ${tPos.lat.toFixed(4)}, ${tPos.lng.toFixed(4)} • Jarak: ${syncResult.routeInfo.distanceKm} km (ETA ±${syncResult.routeInfo.durationMinutes} mnt)`;
         }
 
@@ -22018,27 +22029,31 @@ const Orders = {
   },
 
   centerOnFleet: function() {
-    if (this.currentMap && this.currentTruckMarker) {
+    if (this.currentMap && this.currentTruckMarker && typeof this.currentTruckMarker.getLatLng === 'function') {
       const pos = this.currentTruckMarker.getLatLng();
-      this.currentMap.setView(pos, 15, { animate: true });
-      this.currentTruckMarker.openPopup();
+      if (typeof this.currentMap.setView === 'function') {
+        this.currentMap.setView(pos, 15, { animate: true });
+      }
+      if (typeof this.currentTruckMarker.openPopup === 'function') {
+        this.currentTruckMarker.openPopup();
+      }
     }
   },
 
   centerOnStore: function() {
-    if (this.currentMap && this.currentOriginCoords) {
+    if (this.currentMap && this.currentOriginCoords && typeof this.currentMap.setView === 'function') {
       this.currentMap.setView(this.currentOriginCoords, 15, { animate: true });
     }
   },
 
   centerOnDestination: function() {
-    if (this.currentMap && this.currentDestCoords) {
+    if (this.currentMap && this.currentDestCoords && typeof this.currentMap.setView === 'function') {
       this.currentMap.setView(this.currentDestCoords, 15, { animate: true });
     }
   },
 
   fitMapBounds: function() {
-    if (this.currentMap && this.currentWaypoints) {
+    if (this.currentMap && this.currentWaypoints && typeof this.currentMap.fitBounds === 'function' && typeof L !== 'undefined' && typeof L.latLngBounds === 'function') {
       this.currentMap.fitBounds(L.latLngBounds(this.currentWaypoints), { padding: [50, 50], animate: true });
     }
   },
@@ -26537,6 +26552,13 @@ const Inventory = {
   }
 };
 
+if (typeof window !== 'undefined') {
+  window.Inventory = Inventory;
+}
+if (typeof module !== 'undefined' && module.exports) {
+  module.exports = { Inventory };
+}
+
 
 /* ========== app.js ========== */
 /**
@@ -26670,22 +26692,31 @@ const App = {
     // Update active state in nav buttons
     const navButtons = document.querySelectorAll(".nav-tab-btn");
     navButtons.forEach(btn => {
+      if (!btn || typeof btn.getAttribute !== 'function') return;
       const target = btn.getAttribute("data-tab");
       if (target === tabName) {
-        btn.classList.add("bg-blue-600", "text-white", "shadow-sm");
-        btn.classList.remove("text-slate-600", "hover:bg-slate-100", "bg-transparent");
+        if (btn.classList && typeof btn.classList.add === 'function') {
+          btn.classList.add("bg-blue-600", "text-white", "shadow-sm");
+          btn.classList.remove("text-slate-600", "hover:bg-slate-100", "bg-transparent");
+        }
       } else {
-        btn.classList.remove("bg-blue-600", "text-white", "shadow-sm");
-        btn.classList.add("text-slate-600", "hover:bg-slate-100");
+        if (btn.classList && typeof btn.classList.remove === 'function') {
+          btn.classList.remove("bg-blue-600", "text-white", "shadow-sm");
+          btn.classList.add("text-slate-600", "hover:bg-slate-100");
+        }
       }
     });
 
     // Hide all tab panels
-    document.querySelectorAll(".tab-pane").forEach(pane => pane.classList.add("hidden"));
+    document.querySelectorAll(".tab-pane").forEach(pane => {
+      if (pane && pane.classList && typeof pane.classList.add === 'function') {
+        pane.classList.add("hidden");
+      }
+    });
 
     // Show target panel & initialize module
     const activePane = document.getElementById(`${tabName}-panel`);
-    if (activePane) {
+    if (activePane && activePane.classList && typeof activePane.classList.remove === 'function') {
       activePane.classList.remove("hidden");
     }
 
@@ -26701,7 +26732,9 @@ const App = {
       Inventory.render();
     }
 
-    window.scrollTo({ top: 0, behavior: 'smooth' });
+    if (typeof window !== 'undefined' && typeof window.scrollTo === 'function') {
+      window.scrollTo({ top: 0, behavior: 'smooth' });
+    }
   },
 
   // UPDATE HEADER & ROLE BADGES
@@ -26782,7 +26815,11 @@ const App = {
         navOrderBadge.textContent = activeOrdersCount;
       }
       // Hide lock icons
-      lockIcons.forEach(icon => icon.classList.add("hidden"));
+      lockIcons.forEach(icon => {
+        if (icon && icon.classList && typeof icon.classList.add === 'function') {
+          icon.classList.add("hidden");
+        }
+      });
     } else {
       const custAcc = Storage.getCustomerAccount();
       if (customerBadge) {
@@ -26841,7 +26878,11 @@ const App = {
         navOrdersBtn.classList.add("hidden");
       }
       // Show lock icons
-      lockIcons.forEach(icon => icon.classList.remove("hidden"));
+      lockIcons.forEach(icon => {
+        if (icon && icon.classList && typeof icon.classList.remove === 'function') {
+          icon.classList.remove("hidden");
+        }
+      });
     }
 
     // Perbarui indikator koneksi Cloud Supabase
@@ -28198,10 +28239,10 @@ const App = {
         textarea.style.position = "fixed";
         textarea.style.opacity = "0";
         document.body.appendChild(textarea);
-        textarea.focus();
-        textarea.select();
-        document.execCommand("copy");
-        document.body.removeChild(textarea);
+        if (typeof textarea.focus === 'function') textarea.focus();
+        if (typeof textarea.select === 'function') textarea.select();
+        if (typeof document.execCommand === 'function') document.execCommand("copy");
+        if (typeof document.body.removeChild === 'function') document.body.removeChild(textarea);
       }
       this.showToast(successMsg, "success");
     } catch (err) {

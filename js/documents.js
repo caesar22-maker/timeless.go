@@ -718,10 +718,10 @@ const Documents = {
     const rows = document.querySelectorAll("#doc-items-tbody .item-row");
     const items = [];
     rows.forEach(row => {
-      const name = row.querySelector(".row-name").value.trim();
-      const qty = Number(row.querySelector(".row-qty").value) || 0;
-      const unit = row.querySelector(".row-unit").value.trim() || "Dus";
-      const price = Number(row.querySelector(".row-price").value) || 0;
+      const name = row.querySelector(".row-name")?.value?.trim() || "";
+      const qty = Number(row.querySelector(".row-qty")?.value) || 0;
+      const unit = row.querySelector(".row-unit")?.value?.trim() || "Dus";
+      const price = Number(row.querySelector(".row-price")?.value) || 0;
       if (name) {
         items.push({ name, qty, unit, price, subtotal: qty * price });
       }
