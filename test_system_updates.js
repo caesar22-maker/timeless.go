@@ -31,6 +31,53 @@ assert(html.includes('Bukti Pengeluaran Barang'), 'HTML contains Bukti Pengeluar
 // 2. Setup mock browser environment via vm
 const mockStorage = {};
 const elements = {};
+
+let notificationCreated = null;
+class MockNotification {
+  constructor(title, options) {
+    this.title = title;
+    this.options = options;
+    notificationCreated = this;
+  }
+}
+MockNotification.permission = "granted";
+MockNotification.requestPermission = async () => "granted";
+
+let audioPlayed = false;
+class MockAudioContext {
+  constructor() {
+    this.destination = {};
+    this.currentTime = 0;
+  }
+  createOscillator() {
+    return {
+      connect: () => {},
+      start: () => { audioPlayed = true; },
+      stop: () => {},
+      frequency: { setValueAtTime: () => {} },
+      type: 'sine'
+    };
+  }
+  createGain() {
+    return {
+      connect: () => {},
+      gain: { setValueAtTime: () => {}, exponentialRampToValueAtTime: () => {} }
+    };
+  }
+  close() {}
+}
+
+let broadcastMessages = [];
+class MockBroadcastChannel {
+  constructor(name) {
+    this.name = name;
+  }
+  postMessage(msg) {
+    broadcastMessages.push({ channel: this.name, data: msg });
+  }
+  addEventListener() {}
+}
+
 const sandbox = {
   window: {},
   document: {
@@ -66,6 +113,15 @@ const sandbox = {
   console: console,
   setTimeout: setTimeout,
   clearTimeout: clearTimeout,
+  confirm: () => true,
+  alert: () => {},
+  print: () => {},
+  scrollTo: () => {},
+  focus: () => {},
+  Notification: MockNotification,
+  AudioContext: MockAudioContext,
+  webkitAudioContext: MockAudioContext,
+  BroadcastChannel: MockBroadcastChannel,
   Date: Date,
   Math: Math,
   JSON: JSON,
@@ -258,6 +314,192 @@ assert(order3.customerAddress.includes('Kepanjen'), 'Order 3 address matches Kep
   // Test distance calculation between Kendalpayak and Sukun
   const dist = sandbox.MapService.calculateDistanceKm(storeOrigin.coords, order1.destinationCoords);
   assert(dist > 3 && dist < 10, `Calculated distance between store and Order 1 is realistic (${dist.toFixed(1)} km)`);
+
+  // ============================================================================
+  // COMPREHENSIVE SUITE: FIVE REQUESTED CORE CAPABILITIES
+  // ============================================================================
+
+  // ----------------------------------------------------------------------------
+  // Requirement 1: WMS Item Master Sync (Starting from Item #1)
+  // ----------------------------------------------------------------------------
+  console.log('\n--- Testing Core Requirement 1: WMS Item Master Sync from Item #1 ---');
+  const syncCount = sandbox.WMS.syncItemMasterFromCatalog(false);
+  assert(syncCount === 250, 'WMS.syncItemMasterFromCatalog synchronizes all 250 items', `Count: ${syncCount}`);
+
+  const syncedData = sandbox.Storage.getData();
+  const itemFirst = syncedData.wmsItems[0];
+  const prodFirst = syncedData.shopProducts[0];
+  assert(itemFirst.id === "WMS-001", 'First WMS item has ID WMS-001', itemFirst.id);
+  assert(itemFirst.sku === prodFirst.sku, 'First WMS item SKU matches Product Catalog Item #1 SKU', `${itemFirst.sku} === ${prodFirst.sku}`);
+  assert(itemFirst.name === prodFirst.name, 'First WMS item Name matches Product Catalog Item #1 Name', `${itemFirst.name} === ${prodFirst.name}`);
+  assert(itemFirst.category === prodFirst.category, 'First WMS item Category matches Product Catalog Item #1 Category');
+  assert(itemFirst.unit === prodFirst.unit, 'First WMS item Unit matches Product Catalog Item #1 Unit');
+  assert(itemFirst.stock >= prodFirst.stock + 100, 'First WMS item stock remains higher by at least 100 units');
+
+  const itemLast = syncedData.wmsItems[249];
+  const prodLast = syncedData.shopProducts[249];
+  assert(itemLast.id === "WMS-250", '250th WMS item has ID WMS-250', itemLast.id);
+  assert(itemLast.sku === prodLast.sku, '250th WMS item SKU matches Product Catalog Item #250 SKU');
+  assert(itemLast.name === prodLast.name, '250th WMS item Name matches Product Catalog Item #250 Name');
+  assert(itemLast.category === prodLast.category, '250th WMS item Category matches Product Catalog Item #250 Category');
+
+  // ----------------------------------------------------------------------------
+  // Requirement 2: Automated Outbound Stock Sync (Product Catalog & Online Shop)
+  // ----------------------------------------------------------------------------
+  console.log('\n--- Testing Core Requirement 2: Automated Outbound Stock Sync & Idempotency ---');
+  const wmsTargetBefore = syncedData.wmsItems[0];
+  const shopTargetBefore = syncedData.shopProducts[0];
+  const initialWmsStock = wmsTargetBefore.stock;
+  const initialShopStock = shopTargetBefore.stock;
+  const outboundQty = 12;
+  const testRefDoc = "REF-TEST-OUTBOUND-SYNC-100";
+
+  // Execute outbound transaction
+  const outboundSuccess = sandbox.WMS.saveOutbound(null, {
+    itemId: wmsTargetBefore.id,
+    qty: outboundQty,
+    refDoc: testRefDoc,
+    operator: "Dispatcher Test",
+    destination: "Toko Retail & Online Shop",
+    notes: "Test stock transfer to store"
+  });
+
+  assert(outboundSuccess === true, 'WMS.saveOutbound executes successfully');
+  const dataAfterOutbound = sandbox.Storage.getData();
+  const wmsTargetAfter = dataAfterOutbound.wmsItems[0];
+  const shopTargetAfter = dataAfterOutbound.shopProducts[0];
+
+  assert(wmsTargetAfter.stock === initialWmsStock - outboundQty, `WMS stock deducted by ${outboundQty} (from ${initialWmsStock} to ${wmsTargetAfter.stock})`);
+  assert(shopTargetAfter.stock === initialShopStock + outboundQty, `Product Catalog & Online Shop stock INCREASED by ${outboundQty} (from ${initialShopStock} to ${shopTargetAfter.stock})`);
+
+  // Test Idempotency / Double-counting protection:
+  let doubleCountErrorCaught = false;
+  try {
+    const resDuplicate = sandbox.WMS.saveOutbound(null, {
+      itemId: wmsTargetBefore.id,
+      qty: outboundQty,
+      refDoc: testRefDoc,
+      operator: "Dispatcher Test",
+      destination: "Toko Retail & Online Shop"
+    });
+    if (!resDuplicate) doubleCountErrorCaught = true;
+  } catch (e) {
+    doubleCountErrorCaught = true;
+  }
+  const dataAfterRetry = sandbox.Storage.getData();
+  assert(doubleCountErrorCaught || dataAfterRetry.shopProducts[0].stock === shopTargetAfter.stock, 'Safe DB update prevents double-counting on duplicate refDoc');
+  assert(dataAfterRetry.shopProducts[0].stock === shopTargetAfter.stock, 'Catalog stock was not incremented twice');
+  assert(dataAfterRetry.wmsItems[0].stock === wmsTargetAfter.stock, 'WMS stock was not decremented twice');
+
+  // Test Safe Reversal via cancelOutbound
+  const outboundLog = dataAfterOutbound.wmsLogs.find(l => l.refDoc === testRefDoc && l.type === 'OUTBOUND');
+  assert(outboundLog !== undefined, 'Outbound transaction log found in WMS logs');
+  const cancelResult = sandbox.WMS.cancelOutbound(outboundLog.id);
+  assert(cancelResult !== false, 'WMS.cancelOutbound executes successfully');
+
+  const dataAfterCancel = sandbox.Storage.getData();
+  assert(dataAfterCancel.wmsItems[0].stock === initialWmsStock, `WMS stock restored to initial ${initialWmsStock}`);
+  assert(dataAfterCancel.shopProducts[0].stock === initialShopStock, `Catalog & Shop stock reverted to initial ${initialShopStock}`);
+  const cancelledLog = dataAfterCancel.wmsLogs.find(l => l.id === outboundLog.id);
+  assert(cancelledLog.status === "DIBATALKAN", 'Outbound log status updated to DIBATALKAN');
+
+  // ----------------------------------------------------------------------------
+  // Requirement 3: Automatic Goods Outbound Proof Document (Surat Bukti Pengeluaran Barang)
+  // ----------------------------------------------------------------------------
+  console.log('\n--- Testing Core Requirement 3: Automatic Goods Outbound Proof Document ---');
+  const proofRefDoc = "REF-PROOF-DOC-200";
+  const proofQty = 15;
+  sandbox.WMS.saveOutbound(null, {
+    itemId: "WMS-001",
+    qty: proofQty,
+    refDoc: proofRefDoc,
+    operator: "Kepala Dispatch Gudang",
+    destination: "Etalase Toko Grosir & Display",
+    notes: "Pengeluaran resmi display toko"
+  });
+
+  const dataAfterProof = sandbox.Storage.getData();
+  const outboundDoc = dataAfterProof.documents.find(d => d.refDoc === proofRefDoc || (d.notes && d.notes.includes(proofRefDoc)));
+  assert(outboundDoc !== undefined, 'Outbound Goods Voucher document automatically generated in database');
+  assert(outboundDoc.type === "Surat Bukti Pengeluaran Barang", 'Document type is "Surat Bukti Pengeluaran Barang"', outboundDoc.type);
+  assert(outboundDoc.docNumber && outboundDoc.docNumber.startsWith('BPPB/GBA/'), 'Document number starts with BPPB/GBA/', outboundDoc.docNumber);
+  assert(outboundDoc.date && outboundDoc.date.length === 10, 'Document has valid date formatted YYYY-MM-DD', outboundDoc.date);
+  assert(outboundDoc.destinationLocation.includes('Etalase Toko Grosir') || outboundDoc.clientName.includes('Etalase Toko Grosir'), 'Destination accurately recorded in voucher');
+  assert(Array.isArray(outboundDoc.items) && outboundDoc.items.length >= 1, 'Document contains item list starting from Item #1');
+  assert(outboundDoc.items[0].no === 1, 'Item list index starts from 1');
+  assert(outboundDoc.items[0].name === "BLASTOZ COKLAT ARTA @6", 'Item name correctly listed');
+  assert(outboundDoc.items[0].qty === proofQty, `Item outbound quantity matches ${proofQty}`);
+  assert(outboundDoc.items[0].unit === "Pack", 'Item unit of measurement correctly listed');
+  assert(outboundDoc.approval && outboundDoc.approval.dispatcher && outboundDoc.approval.receiver, 'Document contains approval signatures structure');
+
+  // Test Document Preview & Printable View
+  sandbox.Documents.previewDocument(outboundDoc.id);
+  assert(sandbox._lastInsertedHtml.includes('BUKTI PENGELUARAN BARANG') || sandbox._lastInsertedHtml.includes('Bukti Pengeluaran Barang'), 'Preview modal renders Outbound Goods Voucher title');
+  assert(sandbox._lastInsertedHtml.includes('window.print()') || sandbox._lastInsertedHtml.includes('Cetak Dokumen'), 'Preview modal includes printable view action');
+  assert(sandbox._lastInsertedHtml.includes(outboundDoc.docNumber), 'Preview modal contains exact document number');
+
+  // ----------------------------------------------------------------------------
+  // Requirement 4: Map Locations Alignment (Store & Customer Account Addresses)
+  // ----------------------------------------------------------------------------
+  console.log('\n--- Testing Core Requirement 4: Map Locations & Customer Account Addresses ---');
+  const accounts = sandbox.Storage.DEFAULT_CUSTOMER_ACCOUNTS;
+  assert(Array.isArray(accounts) && accounts.length >= 3, 'Storage.DEFAULT_CUSTOMER_ACCOUNTS contains demo accounts');
+
+  const fatimah = accounts.find(a => a.name.includes('Fatimah'));
+  assert(fatimah !== undefined, 'Customer Ibu Hajjah Fatimah account exists');
+  assert(fatimah.address.includes('Gadang') && fatimah.address.includes('Malang'), 'Fatimah address corresponds to Gadang Sukun Malang');
+  assert(Array.isArray(fatimah.coords) && fatimah.coords[0] === -7.9948 && fatimah.coords[1] === 112.6325, 'Fatimah coordinates accurately match Gadang [-7.9948, 112.6325]');
+
+  const bambang = accounts.find(a => a.name.includes('Bambang'));
+  assert(bambang !== undefined, 'Customer Bpk. Bambang account exists');
+  assert(bambang.address.includes('Tangerang'), 'Bambang address corresponds to Pasar Anyar Tangerang');
+  assert(Array.isArray(bambang.coords) && bambang.coords[0] === -6.1783 && bambang.coords[1] === 106.6319, 'Bambang coordinates accurately match Tangerang [-6.1783, 106.6319]');
+
+  const anita = accounts.find(a => a.name.includes('Anita'));
+  assert(anita !== undefined, 'Customer Ibu Anita account exists');
+  assert(anita.address.includes('Jakarta'), 'Anita address corresponds to Gambir Jakarta');
+  assert(Array.isArray(anita.coords) && anita.coords[0] === -6.1674 && anita.coords[1] === 106.8249, 'Anita coordinates accurately match Jakarta [-6.1674, 106.8249]');
+
+  // ----------------------------------------------------------------------------
+  // Requirement 5: Automatic Administrator Device Notifications on Purchase
+  // ----------------------------------------------------------------------------
+  console.log('\n--- Testing Core Requirement 5: Automatic Admin Device Notifications on Purchase ---');
+  assert(typeof sandbox.App.notifyAdminOfNewOrder === 'function', 'App.notifyAdminOfNewOrder is defined');
+
+  audioPlayed = false;
+  notificationCreated = null;
+  broadcastMessages = [];
+  sandbox.Storage.setRole('admin');
+
+  const testOrder = {
+    id: "ORD-TEST-9999",
+    customerName: "Ibu Hajjah Fatimah",
+    customerPhone: "0812-9988-7766",
+    customerAddress: "Jl. Kolonel Sugiono No. 120, Gadang, Kec. Sukun, Kota Malang, Jawa Timur 65149",
+    destinationCoords: [-7.9948, 112.6325],
+    totalAmount: 350000,
+    paymentMethod: "Transfer Bank BCA",
+    orderDate: "2026-11-25 10:15",
+    items: [
+      { sku: "1905260001", name: "BLASTOZ COKLAT ARTA @6", qty: 10, price: 35000 }
+    ]
+  };
+
+  // Trigger admin notification
+  sandbox.App.notifyAdminOfNewOrder(testOrder);
+
+  assert(audioPlayed === true, 'Audio chime played on administrator device');
+  assert(notificationCreated !== null, 'Native Web Push / Desktop Notification triggered on admin device');
+  assert(notificationCreated && notificationCreated.title.includes('ORD-TEST-9999'), 'Notification title contains new order ID');
+  assert(notificationCreated && notificationCreated.options.body.includes('Ibu Hajjah Fatimah'), 'Notification body contains customer name');
+
+  const adminNotifData = sandbox.Storage.getData();
+  const recordedAdminNotif = (adminNotifData.adminNotifications || []).find(n => n.orderId === testOrder.id);
+  assert(recordedAdminNotif !== undefined, 'Notification persisted in database adminNotifications inbox');
+  assert(recordedAdminNotif.read === false, 'Notification is marked as unread');
+  assert(recordedAdminNotif.totalAmount === 350000, 'Notification records accurate order amount');
+
+  assert(broadcastMessages.length > 0 || mockStorage["GBA_ADMIN_NEW_ORDER_ALERT"] !== undefined, 'Cross-device / cross-tab broadcast message dispatched');
 
   console.log(`\n========================================`);
   console.log(`TEST SUMMARY: ${passedTests} / ${totalTests} PASSED (${Math.round((passedTests/totalTests)*100)}%)`);

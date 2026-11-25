@@ -143,6 +143,9 @@ const WMS = {
           </div>
         </div>
         <div class="flex flex-wrap items-center gap-2">
+          <button onclick="WMS.syncItemMasterFromCatalog(true)" class="px-3.5 py-2 bg-indigo-600 hover:bg-indigo-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition" title="Sinkronkan Master Item WMS dari Katalog Produk #1-250">
+            <i class="fa-solid fa-arrows-rotate"></i> Sinkron Master Item (#1)
+          </button>
           <button onclick="WMS.openImportModal()" class="px-4 py-2 bg-gradient-to-r from-blue-700 to-indigo-700 hover:from-blue-800 hover:to-indigo-800 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition" title="Import Data Produk PDF/Excel/Katalog ke Inventaris Rak WMS">
             <i class="fa-solid fa-file-import"></i> 📥 Import Data PDF / Rak WMS
           </button>
@@ -293,6 +296,7 @@ const WMS = {
                 <th class="py-2.5 px-3">No. Dokumen Ref / BAPB</th>
                 <th class="py-2.5 px-3">Petugas</th>
                 <th class="py-2.5 px-3">Keterangan</th>
+                <th class="py-2.5 px-3 text-center">Aksi / Dokumen</th>
               </tr>
             </thead>
             <tbody class="divide-y divide-slate-100">
@@ -303,14 +307,34 @@ const WMS = {
                 if (log.type === "STOCK_OPNAME") badge = "bg-purple-100 text-purple-700 font-bold";
 
                 return `
-                  <tr class="hover:bg-slate-50">
+                  <tr class="hover:bg-slate-50 ${log.status === 'DIBATALKAN' ? 'opacity-60 bg-slate-50/50' : ''}">
                     <td class="py-2 px-3 whitespace-nowrap font-medium text-slate-500">${log.date}</td>
-                    <td class="py-2 px-3"><span class="px-2 py-0.5 rounded text-[10px] ${badge}">${log.type}</span></td>
+                    <td class="py-2 px-3">
+                      <span class="px-2 py-0.5 rounded text-[10px] ${badge}">${log.type}</span>
+                      ${log.status === 'DIBATALKAN' ? '<span class="ml-1 px-1.5 py-0.5 rounded text-[9px] bg-rose-100 text-rose-700 font-bold">BATAL</span>' : ''}
+                    </td>
                     <td class="py-2 px-3 font-semibold text-slate-800">${Util.escapeHtml(log.itemName)} <span class="text-slate-400 font-normal">(${log.sku})</span></td>
                     <td class="py-2 px-3 text-center font-bold ${String(log.qty).startsWith('+') ? 'text-emerald-600' : 'text-rose-600'}">${log.qty}</td>
                     <td class="py-2 px-3 font-mono font-semibold text-slate-700">${log.refDoc || '-'}</td>
                     <td class="py-2 px-3 font-medium text-slate-700">${log.operator || '-'}</td>
                     <td class="py-2 px-3 text-slate-500">${Util.escapeHtml(log.notes || '-')}</td>
+                    <td class="py-2 px-3 text-center whitespace-nowrap">
+                      <div class="inline-flex items-center gap-1.5">
+                        ${log.docId ? `
+                          <button onclick="Documents.previewDocument('${log.docId}')" class="px-2 py-1 bg-indigo-50 hover:bg-indigo-100 text-indigo-700 rounded text-[11px] font-bold border border-indigo-200 shadow-2xs flex items-center gap-1" title="Lihat & Cetak Dokumen Resmi">
+                            <i class="fa-solid fa-file-invoice"></i> Dokumen
+                          </button>
+                        ` : ''}
+                        ${log.type === 'OUTBOUND' && log.status !== 'DIBATALKAN' ? `
+                          <button onclick="WMS.openEditOutboundModal('${log.id}')" class="px-2 py-1 bg-amber-50 hover:bg-amber-100 text-amber-700 rounded text-[11px] font-bold border border-amber-200 shadow-2xs flex items-center gap-1" title="Sesuaikan Qty Outbound">
+                            <i class="fa-solid fa-pen-to-square"></i>
+                          </button>
+                          <button onclick="WMS.cancelOutbound('${log.id}')" class="px-2 py-1 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded text-[11px] font-bold border border-rose-200 shadow-2xs flex items-center gap-1" title="Batalkan Outbound & Kembalikan Stok">
+                            <i class="fa-solid fa-rotate-left"></i>
+                          </button>
+                        ` : ''}
+                      </div>
+                    </td>
                   </tr>
                 `;
               }).join('')}
@@ -908,49 +932,158 @@ const WMS = {
     this.render();
   },
 
-  // MODAL OUTBOUND (BARANG KELUAR)
+  // SINKRONISASI MASTER ITEM WMS DARI PRODUCT CATALOG (MULAI DARI ITEM #1)
+  syncItemMasterFromCatalog: function(showToast = true) {
+    const data = Storage.getData();
+    if (!data.shopProducts || !Array.isArray(data.shopProducts) || data.shopProducts.length === 0) {
+      if (showToast && typeof App !== 'undefined') App.showToast("Data Katalog Produk tidak ditemukan.", "error");
+      return 0;
+    }
+
+    if (!data.wmsItems || !Array.isArray(data.wmsItems)) {
+      data.wmsItems = [];
+    }
+
+    let syncedCount = 0;
+    // Sinkronisasi berurutan mulai dari item index 0 / Item nomor 1 (WMS-001)
+    data.shopProducts.forEach((p, idx) => {
+      const itemNumber = idx + 1;
+      const targetId = `WMS-${String(itemNumber).padStart(3, '0')}`;
+
+      let w = data.wmsItems.find(item => item.id === targetId);
+      if (!w) {
+        w = data.wmsItems.find(item => item.sku === p.sku);
+      }
+      if (!w && data.wmsItems[idx]) {
+        w = data.wmsItems[idx];
+      }
+
+      if (w) {
+        w.id = targetId;
+        w.name = p.name;
+        w.sku = p.sku;
+        w.category = p.category;
+        w.unit = p.unit;
+        if (p.image && (!w.image || w.image.includes('placeholder'))) {
+          w.image = p.image;
+        }
+        if (p.description) {
+          w.notes = p.description;
+        }
+        // Pastikan stok WMS minimal catalog stock + 100 agar operasional gudang aman
+        const minStockReq = (typeof p.stock === 'number') ? (p.stock + 100) : 100;
+        if (typeof w.stock !== 'number' || w.stock < minStockReq) {
+          w.stock = minStockReq + 20;
+        }
+      } else {
+        const newItem = {
+          id: targetId,
+          sku: p.sku,
+          name: p.name,
+          category: p.category,
+          rack: p.rack || `Rak A-${String(Math.floor(idx/10) + 1).padStart(2, '0')}-01`,
+          zone: "Zona A",
+          bin: "Bin 01",
+          capacity: 350,
+          stock: (p.stock || 0) + 120,
+          minStock: 15,
+          unit: p.unit || "Pack",
+          status: "Aman",
+          image: p.image || "https://images.unsplash.com/photo-1582293041079-7814c2f12063?w=500",
+          supplier: "PT Sumber Alfaria Trijaya Tbk",
+          notes: p.description || ""
+        };
+        data.wmsItems.push(newItem);
+      }
+      syncedCount++;
+    });
+
+    // Urutkan item WMS berurutan dari #1
+    data.wmsItems.sort((a, b) => {
+      const numA = parseInt((a.id || "").replace(/\D/g, "")) || 0;
+      const numB = parseInt((b.id || "").replace(/\D/g, "")) || 0;
+      return numA - numB;
+    });
+
+    Storage.saveData(data);
+    if (showToast && typeof App !== 'undefined') {
+      App.showToast(`Sinkronisasi Master Item berhasil! ${syncedCount} data item WMS (mulai dari Item #1) telah disinkronkan dengan Katalog Produk.`, "success", 6000);
+    }
+    this.render();
+    return syncedCount;
+  },
+
+  // MODAL OUTBOUND (BARANG KELUAR & MUTASI KE TOKO / ETALASE)
   openOutboundModal: function() {
     const data = Storage.getData();
+    const year = new Date().getFullYear();
+    const month = String(new Date().getMonth() + 1).padStart(2, '0');
+    const rand = Math.floor(1000 + Math.random() * 9000);
+    const defaultDocNum = `BPPB/GBA/${year}/${month}/${rand}`;
+    const defaultRef = `SJ-${year}-${Math.floor(100 + Math.random() * 900)}`;
+
     const modalHtml = `
       <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" id="wms-outbound-modal">
-        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden modal-content-scale">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden modal-content-scale max-h-[95vh] flex flex-col">
           <div class="px-6 py-4 bg-amber-600 text-white flex items-center justify-between">
             <h3 class="text-lg font-bold flex items-center gap-2">
-              <i class="fa-solid fa-truck-ramp-box"></i> Pengeluaran Barang (Outbound)
+              <i class="fa-solid fa-truck-ramp-box"></i> Pengeluaran Barang (Outbound) & Mutasi Toko
             </h3>
             <button onclick="App.closeModal('wms-outbound-modal')" class="text-white/80 hover:text-white text-lg">
               <i class="fa-solid fa-xmark"></i>
             </button>
           </div>
-          <form onsubmit="WMS.saveOutbound(event)" class="p-6 space-y-3.5">
+
+          <form onsubmit="WMS.saveOutbound(event)" class="p-6 space-y-4 overflow-y-auto">
+            <!-- Notice Box -->
+            <div class="p-3 bg-amber-50 border border-amber-200 rounded-xl text-xs text-amber-900 flex items-start gap-2.5">
+              <i class="fa-solid fa-circle-info text-amber-600 mt-0.5 text-base flex-shrink-0"></i>
+              <div>
+                <p class="font-bold">Sinkronisasi Stok Otomatis & Penerbitan Dokumen Resmi:</p>
+                <p class="text-amber-800 text-[11px] mt-0.5 leading-relaxed">
+                  Jumlah barang keluar dari gudang WMS akan <strong>otomatis menambah stok</strong> di modul <strong>Product Catalog</strong> dan <strong>Online Shop</strong> secara atomik, serta otomatis menerbitkan <strong>Surat Bukti Pengeluaran Barang</strong>.
+                </p>
+              </div>
+            </div>
+
             <div>
               <label class="block text-xs font-semibold text-slate-700 mb-1">Pilih Barang yang Dikeluarkan *</label>
               <select id="outbound-item-id" required class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg bg-white">
-                ${data.wmsItems.map(i => `<option value="${i.id}">[${i.rack}] ${Util.escapeHtml(i.name)} (${i.sku}) - Tersedia: ${i.stock} ${i.unit}</option>`).join('')}
+                ${(data.wmsItems || []).map(i => `<option value="${i.id}">[${i.rack}] ${Util.escapeHtml(i.name)} (${i.sku}) - Tersedia: ${i.stock} ${i.unit}</option>`).join('')}
               </select>
             </div>
+
             <div class="grid grid-cols-2 gap-3">
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">Jumlah Keluar *</label>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Jumlah Keluar (Outbound Qty) *</label>
                 <input type="number" id="outbound-qty" required min="1" value="5" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg font-bold text-amber-700" />
               </div>
               <div>
-                <label class="block text-xs font-semibold text-slate-700 mb-1">No. Surat Jalan / Pesanan</label>
-                <input type="text" id="outbound-ref" value="SJ-${new Date().getFullYear()}-${Math.floor(100+Math.random()*900)}" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg font-mono" />
+                <label class="block text-xs font-semibold text-slate-700 mb-1">No. Surat Jalan / Referensi</label>
+                <input type="text" id="outbound-ref" value="${defaultRef}" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg font-mono" />
               </div>
             </div>
-            <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1">Petugas Pengeluaran / Driver</label>
-              <input type="text" id="outbound-operator" value="Staff Dispatch Gudang" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg" />
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Tujuan Distribusi / Penerima</label>
+                <input type="text" id="outbound-destination" value="Toko Retail & Online Shop" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg" placeholder="Toko Retail & Online Shop / Nama Klien" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Petugas Dispatch (Gudang)</label>
+                <input type="text" id="outbound-operator" value="Staff Dispatch Gudang" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg" />
+              </div>
             </div>
+
             <div>
-              <label class="block text-xs font-semibold text-slate-700 mb-1">Tujuan Pengiriman / Catatan</label>
-              <textarea id="outbound-notes" rows="2" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg" placeholder="Pengiriman pesanan grosir langganan"></textarea>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Pengeluaran / Keterangan</label>
+              <textarea id="outbound-notes" rows="2" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg" placeholder="Pengeluaran stok fisik dari gudang untuk stok display toko retail dan etalase online shop"></textarea>
             </div>
+
             <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
               <button type="button" onclick="App.closeModal('wms-outbound-modal')" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
-              <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-sm flex items-center gap-1.5">
-                <i class="fa-solid fa-truck-fast"></i> Kurangi Stok & Catat Outbound
+              <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-sm flex items-center gap-1.5 shadow-sm">
+                <i class="fa-solid fa-truck-fast"></i> Kurangi Stok WMS & Tambah ke Toko
               </button>
             </div>
           </form>
@@ -960,56 +1093,399 @@ const WMS = {
     document.body.insertAdjacentHTML('beforeend', modalHtml);
   },
 
-  saveOutbound: function(event) {
-    event.preventDefault();
+  // PENYIMPANAN OUTBOUND DENGAN SINKRONISASI STOK ATOMIK & SURAT BUKTI PENGELUARAN BARANG
+  saveOutbound: function(event, customPayload = null) {
+    if (event && event.preventDefault) event.preventDefault();
+
+    // Snapshot state awal untuk rollback atomik jika terjadi kegagalan
+    const snapshot = JSON.stringify(Storage.getData());
+
+    try {
+      const data = Storage.getData();
+
+      let itemId, qty, refDoc, operator, notes, destination;
+      if (customPayload) {
+        itemId = customPayload.itemId || customPayload.id;
+        qty = Number(customPayload.qty) || 0;
+        refDoc = customPayload.refDoc || "";
+        operator = customPayload.operator || "Staff Dispatch Gudang";
+        notes = customPayload.notes || "";
+        destination = customPayload.destination || "Toko Retail & Online Shop";
+      } else {
+        itemId = document.getElementById("outbound-item-id")?.value;
+        qty = Number(document.getElementById("outbound-qty")?.value) || 0;
+        refDoc = (document.getElementById("outbound-ref")?.value || "").trim();
+        operator = (document.getElementById("outbound-operator")?.value || "Staff Dispatch Gudang").trim();
+        notes = (document.getElementById("outbound-notes")?.value || "").trim();
+        destination = (document.getElementById("outbound-destination")?.value || "Toko Retail & Online Shop").trim();
+      }
+
+      if (!itemId) throw new Error("Barang WMS belum dipilih!");
+      if (qty <= 0) throw new Error("Jumlah keluar harus lebih besar dari 0!");
+
+      const item = (data.wmsItems || []).find(i => i.id === itemId || i.sku === itemId || (i.name && itemId && i.name.toLowerCase() === itemId.toLowerCase()));
+      if (!item) throw new Error("Data barang WMS tidak ditemukan di inventaris!");
+
+      if ((Number(item.stock) || 0) < qty) {
+        throw new Error(`Stok WMS tidak mencukupi! Tersedia hanya ${item.stock} ${item.unit}.`);
+      }
+
+      // Cegah pencatatan ganda (double-counting) jika referensi transaksi sudah tercatat aktif
+      if (refDoc && refDoc !== '-' && (data.wmsLogs || []).some(l => l.refDoc === refDoc && l.type === 'OUTBOUND' && l.status !== 'DIBATALKAN')) {
+        throw new Error(`Transaksi outbound dengan nomor referensi/dokumen "${refDoc}" sudah pernah dicatat sebelumnya. Gunakan fitur edit jika ingin mengubah jumlah.`);
+      }
+
+      // 1. Kurangi stok fisik di Gudang WMS
+      item.stock = (Number(item.stock) || 0) - qty;
+      if (item.stock <= (item.minStock || 10) / 2) {
+        item.status = "Kritis";
+      } else if (item.stock <= (item.minStock || 10)) {
+        item.status = "Menipis";
+      } else {
+        item.status = "Aman";
+      }
+
+      // 2. OTOMATIS TAMBAHKAN STOK OUTBOUND KE PRODUCT CATALOG & ONLINE SHOP SECARA AMAN (ATOMIC)
+      const shopProd = (data.shopProducts || []).find(p => 
+        p.sku === item.sku || 
+        p.id === item.id || 
+        (p.name && item.name && p.name.trim().toLowerCase() === item.name.trim().toLowerCase())
+      );
+      if (shopProd) {
+        shopProd.stock = (Number(shopProd.stock) || 0) + qty;
+      }
+
+      // 3. TERBITKAN OTOMATIS SURAT BUKTI PENGELUARAN BARANG (OUTBOUND DELIVERY NOTE)
+      const now = new Date();
+      const year = now.getFullYear();
+      const month = String(now.getMonth() + 1).padStart(2, '0');
+      const day = String(now.getDate()).padStart(2, '0');
+      const rand = Math.floor(1000 + Math.random() * 9000);
+      const docNumber = `BPPB/GBA/${year}/${month}/${rand}`;
+      const txId = "OUT-" + Date.now().toString().slice(-6);
+
+      const unitPrice = (shopProd && shopProd.price) ? shopProd.price : (item.price || 15000);
+      const grandTotal = unitPrice * qty;
+
+      const outboundDoc = {
+        id: "DOC-" + Date.now().toString().slice(-6),
+        txId: txId,
+        docNumber: docNumber,
+        refDoc: refDoc || docNumber,
+        type: "Surat Bukti Pengeluaran Barang",
+        date: `${year}-${month}-${day}`,
+        orderTimestamp: now.toISOString().replace('T', ' ').slice(0, 16),
+        dueDate: "-",
+        clientName: destination || "Toko Retail & Online Shop",
+        clientAddress: "Etalase Toko Grosir, Kendalpayak Malang",
+        sourceLocation: `${item.rack} (${item.zone || 'Gudang Utama'})`,
+        destinationLocation: destination || "Etalase Toko Retail & Online Shop",
+        paymentStatus: "TERCATAT & DISERAHKAN",
+        status: "TERCATAT",
+        paymentMethod: "Mutasi Internal Gudang ke Toko",
+        operator: operator,
+        signatureName: "Kepala Gudang & Logistik",
+        approval: {
+          dispatcher: operator,
+          receiver: destination.includes("Toko") ? "Penanggung Jawab Toko Retail" : destination,
+          supervisor: "Kepala Gudang & Logistik"
+        },
+        items: [
+          {
+            no: 1,
+            sku: item.sku,
+            name: item.name,
+            category: item.category || "Sembako",
+            qty: qty,
+            unit: item.unit || "Pack",
+            price: unitPrice,
+            subtotal: grandTotal
+          }
+        ],
+        grandTotal: grandTotal,
+        notes: notes || `Pengeluaran stok fisik dari ${item.rack} dialokasikan ke ${destination}. Dokumen: ${docNumber}.`
+      };
+
+      if (!data.documents) data.documents = [];
+      data.documents.unshift(outboundDoc);
+
+      // 4. CATAT LOG MUTASI AUDIT WMS
+      const logId = "LOG-" + Date.now().toString().slice(-5);
+      if (!data.wmsLogs) data.wmsLogs = [];
+      data.wmsLogs.unshift({
+        id: logId,
+        docId: outboundDoc.id,
+        txId: txId,
+        date: now.toISOString().replace('T', ' ').slice(0, 16),
+        type: "OUTBOUND",
+        sku: item.sku,
+        itemId: item.id,
+        itemName: item.name,
+        category: item.category || "Sembako",
+        qty: `-${qty} ${item.unit}`,
+        rawQty: qty,
+        newStock: item.stock,
+        refDoc: refDoc || docNumber,
+        destination: destination,
+        operator: operator,
+        status: "TERCATAT",
+        notes: notes || `Pengeluaran barang ke ${destination}. No. Dokumen: ${docNumber}`
+      });
+
+      // 5. ATOMIC COMMIT
+      Storage.saveData(data);
+      if (typeof Storage !== 'undefined' && Storage.saveWarehouseRecord) {
+        Storage.saveWarehouseRecord(item);
+      }
+      if (typeof Storage !== 'undefined' && Storage.saveDocument) {
+        Storage.saveDocument(outboundDoc);
+      }
+
+      if (typeof App !== 'undefined' && App.closeModal) App.closeModal('wms-outbound-modal');
+      if (typeof App !== 'undefined' && App.showToast) {
+        App.showToast(`Berhasil mengeluarkan ${qty} ${item.unit} ${item.name}! Stok Toko & Online Shop otomatis bertambah +${qty}. Dokumen ${docNumber} diterbitkan.`, "success", 6000);
+      }
+      this.render();
+      return true;
+    } catch (err) {
+      // Rollback bersih ke snapshot awal jika terjadi error
+      Storage.saveData(JSON.parse(snapshot));
+      if (typeof App !== 'undefined' && App.showToast) {
+        App.showToast(err.message || "Gagal memproses transaksi outbound!", "error");
+      }
+      return false;
+    }
+  },
+
+  // MEMBATALKAN TRANSAKSI OUTBOUND & MENGEMBALIKAN STOK KE GUDANG DAN MENGURANGI STOK TOKO
+  cancelOutbound: function(logId) {
     const data = Storage.getData();
-    const itemId = document.getElementById("outbound-item-id").value;
-    const qty = Number(document.getElementById("outbound-qty").value) || 0;
-    const refDoc = document.getElementById("outbound-ref").value.trim();
-    const operator = document.getElementById("outbound-operator").value.trim();
-    const notes = document.getElementById("outbound-notes").value.trim();
-
-    const item = data.wmsItems.find(i => i.id === itemId);
-    if (!item) return;
-
-    if (item.stock < qty) {
-      App.showToast(`Stok tidak mencukupi! Stok saat ini hanya ${item.stock} ${item.unit}.`, "error");
-      return;
+    const log = (data.wmsLogs || []).find(l => l.id === logId);
+    if (!log) {
+      if (typeof App !== 'undefined') App.showToast("Log mutasi tidak ditemukan.", "error");
+      return false;
     }
 
-    item.stock = (Number(item.stock) || 0) - qty;
-    if (item.stock <= item.minStock / 2) {
-      item.status = "Kritis";
-    } else if (item.stock <= item.minStock) {
-      item.status = "Menipis";
+    if (log.type !== "OUTBOUND") {
+      if (typeof App !== 'undefined') App.showToast("Hanya transaksi outbound yang dapat dibatalkan melalui fungsi ini.", "warning");
+      return false;
     }
 
-    // Sync to shopProducts
-    const shopProd = (data.shopProducts || []).find(p => p.sku === item.sku || p.id === item.id || p.name.toLowerCase() === item.name.toLowerCase());
-    if (shopProd) {
-      shopProd.stock = item.stock;
+    if (log.status === "DIBATALKAN") {
+      if (typeof App !== 'undefined') App.showToast("Transaksi outbound ini sudah pernah dibatalkan sebelumnya.", "warning");
+      return false;
     }
 
-    // Add log
-    if (!data.wmsLogs) data.wmsLogs = [];
-    data.wmsLogs.push({
-      id: "LOG-" + Date.now().toString().slice(-5),
-      date: new Date().toISOString().replace("T", " ").slice(0, 16),
-      type: "OUTBOUND",
-      sku: item.sku,
-      itemName: item.name,
-      qty: `-${qty} ${item.unit}`,
-      refDoc: refDoc,
-      operator: operator,
-      notes: notes
-    });
+    const qty = log.rawQty || parseInt(String(log.qty).replace(/\D/g, '')) || 0;
+    if (typeof window !== 'undefined' && window.confirm && !confirm(`Batalkan transaksi outbound "${log.itemName}" (${qty})?\n\nStok WMS akan dikembalikan (+${qty}) dan stok Toko / Online Shop akan dikurangi (-${qty}).`)) {
+      return false;
+    }
 
+    const snapshot = JSON.stringify(Storage.getData());
+
+    try {
+      const item = (data.wmsItems || []).find(i => i.sku === log.sku || i.id === log.itemId || (i.name && log.itemName && i.name.toLowerCase() === log.itemName.toLowerCase()));
+      const shopProd = (data.shopProducts || []).find(p => p.sku === log.sku || p.id === log.itemId || (p.name && log.itemName && p.name.toLowerCase() === log.itemName.toLowerCase()));
+
+      // Kembalikan stok ke WMS
+      if (item) {
+        item.stock = (Number(item.stock) || 0) + qty;
+        if (item.stock > (item.minStock || 10)) item.status = "Aman";
+      }
+
+      // Kurangi kembali stok dari Product Catalog / Online Shop
+      if (shopProd) {
+        shopProd.stock = Math.max(0, (Number(shopProd.stock) || 0) - qty);
+      }
+
+      // Tandai log sebagai dibatalkan
+      log.status = "DIBATALKAN";
+      log.notes = (log.notes ? log.notes + " " : "") + "[DIBATALKAN - Stok dikembalikan ke Gudang]";
+
+      // Tandai dokumen terkait sebagai dibatalkan
+      const doc = (data.documents || []).find(d => d.id === log.docId || d.refDoc === log.refDoc || d.docNumber === log.refDoc || d.txId === log.txId);
+      if (doc) {
+        doc.status = "DIBATALKAN";
+        doc.paymentStatus = "DIBATALKAN";
+        doc.notes = (doc.notes ? doc.notes + " " : "") + "[DOKUMEN DIBATALKAN - Mutasi Direverse]";
+      }
+
+      Storage.saveData(data);
+      if (typeof Storage !== 'undefined' && Storage.saveWarehouseRecord && item) Storage.saveWarehouseRecord(item);
+
+      if (typeof App !== 'undefined' && App.showToast) {
+        App.showToast(`Transaksi Outbound ${log.refDoc || log.id} berhasil dibatalkan. Stok WMS bertambah +${qty} dan stok Toko berkurang -${qty}.`, "success", 6000);
+      }
+      this.render();
+      return true;
+    } catch (err) {
+      Storage.saveData(JSON.parse(snapshot));
+      if (typeof App !== 'undefined' && App.showToast) {
+        App.showToast("Gagal membatalkan transaksi outbound: " + err.message, "error");
+      }
+      return false;
+    }
+  },
+
+  // MODAL EDIT JUMLAH OUTBOUND
+  openEditOutboundModal: function(logId) {
+    const data = Storage.getData();
+    const log = (data.wmsLogs || []).find(l => l.id === logId);
+    if (!log) return;
+
+    const currentQty = log.rawQty || parseInt(String(log.qty).replace(/\D/g, '')) || 0;
+    const item = (data.wmsItems || []).find(i => i.sku === log.sku || i.id === log.itemId);
+    const availableWms = item ? item.stock : 0;
+
+    const modalHtml = `
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" id="wms-edit-outbound-modal">
+        <div class="bg-white rounded-2xl max-w-md w-full shadow-2xl border border-slate-200 overflow-hidden modal-content-scale">
+          <div class="px-6 py-4 bg-amber-600 text-white flex items-center justify-between">
+            <h3 class="text-base font-bold flex items-center gap-2">
+              <i class="fa-solid fa-pen-to-square"></i> Penyesuaian Qty Outbound
+            </h3>
+            <button onclick="App.closeModal('wms-edit-outbound-modal')" class="text-white/80 hover:text-white text-lg">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <form onsubmit="WMS.saveEditOutbound(event, '${log.id}')" class="p-6 space-y-4">
+            <div class="bg-slate-50 p-3 rounded-xl border border-slate-200 text-xs text-slate-700">
+              <p class="font-bold text-slate-900">${Util.escapeHtml(log.itemName)}</p>
+              <p class="text-slate-500 font-mono mt-0.5">SKU: ${log.sku} | Ref: ${log.refDoc || '-'}</p>
+              <p class="text-slate-500 mt-1">Stok WMS Tersedia Saat Ini: <strong class="text-indigo-700">${availableWms}</strong></p>
+            </div>
+
+            <div class="grid grid-cols-2 gap-3">
+              <div>
+                <label class="block text-xs font-semibold text-slate-600 mb-1">Qty Sebelumnya</label>
+                <input type="number" disabled value="${currentQty}" class="w-full text-sm px-3 py-2 border border-slate-200 rounded-lg bg-slate-100 font-bold text-slate-500" />
+              </div>
+              <div>
+                <label class="block text-xs font-semibold text-slate-700 mb-1">Qty Baru (Revisi) *</label>
+                <input type="number" id="edit-outbound-new-qty" required min="1" value="${currentQty}" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg font-bold text-amber-700 focus:outline-none focus:ring-2 focus:ring-amber-500" />
+              </div>
+            </div>
+
+            <div>
+              <label class="block text-xs font-semibold text-slate-700 mb-1">Catatan Revisi / Keterangan</label>
+              <textarea id="edit-outbound-notes" rows="2" class="w-full text-sm px-3 py-2 border border-slate-300 rounded-lg" placeholder="Alasan penyesuaian jumlah outbound">${Util.escapeHtml(log.notes || '')}</textarea>
+            </div>
+
+            <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+              <button type="button" onclick="App.closeModal('wms-edit-outbound-modal')" class="px-4 py-2 text-sm text-slate-600 hover:bg-slate-100 rounded-lg">Batal</button>
+              <button type="submit" class="px-5 py-2 bg-amber-600 hover:bg-amber-700 text-white rounded-lg font-bold text-sm shadow-sm flex items-center gap-1.5">
+                <i class="fa-solid fa-floppy-disk"></i> Simpan Penyesuaian
+              </button>
+            </div>
+          </form>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  saveEditOutbound: function(event, logId) {
+    if (event && event.preventDefault) event.preventDefault();
+    const newQty = Number(document.getElementById("edit-outbound-new-qty")?.value) || 0;
+    const newNotes = (document.getElementById("edit-outbound-notes")?.value || "").trim();
+    return this.editOutbound(logId, newQty, newNotes);
+  },
+
+  // MENGUBAH / MENYESUAIKAN JUMLAH OUTBOUND SECARA ATOMIK
+  editOutbound: function(logId, newQty, newNotes = null, newRef = null) {
+    if (newQty <= 0) {
+      if (typeof App !== 'undefined') App.showToast("Jumlah revisi harus lebih dari 0.", "error");
+      return false;
+    }
+
+    const snapshot = JSON.stringify(Storage.getData());
+
+    try {
+      const data = Storage.getData();
+      const log = (data.wmsLogs || []).find(l => l.id === logId);
+      if (!log) throw new Error("Log mutasi tidak ditemukan.");
+      if (log.status === "DIBATALKAN") throw new Error("Transaksi yang sudah dibatalkan tidak dapat diedit.");
+
+      const oldQty = log.rawQty || parseInt(String(log.qty).replace(/\D/g, '')) || 0;
+      const diff = newQty - oldQty; // positif: butuh stok WMS lebih banyak, negatif: kembalikan ke WMS
+
+      const item = (data.wmsItems || []).find(i => i.sku === log.sku || i.id === log.itemId);
+      const shopProd = (data.shopProducts || []).find(p => p.sku === log.sku || p.id === log.itemId);
+
+      if (diff > 0) {
+        // Butuh diff unit tambahan dari WMS
+        if (!item || item.stock < diff) {
+          throw new Error(`Stok WMS tidak mencukupi untuk penambahan ${diff} unit! Tersedia: ${item ? item.stock : 0}.`);
+        }
+        item.stock -= diff;
+        if (shopProd) shopProd.stock = (Number(shopProd.stock) || 0) + diff;
+      } else if (diff < 0) {
+        // Kurangi outbound sebesar |diff|, kembalikan ke WMS
+        const returnUnits = Math.abs(diff);
+        if (item) item.stock = (Number(item.stock) || 0) + returnUnits;
+        if (shopProd) shopProd.stock = Math.max(0, (Number(shopProd.stock) || 0) - returnUnits);
+      }
+
+      // Update data log
+      const unit = (item && item.unit) || "Pack";
+      log.rawQty = newQty;
+      log.qty = `-${newQty} ${unit}`;
+      if (item) log.newStock = item.stock;
+      if (newNotes !== null) log.notes = newNotes;
+      if (newRef !== null) log.refDoc = newRef;
+
+      // Update dokumen terkait jika ada
+      const doc = (data.documents || []).find(d => d.id === log.docId || d.refDoc === log.refDoc || d.docNumber === log.refDoc || d.txId === log.txId);
+      if (doc && doc.items && doc.items[0]) {
+        doc.items[0].qty = newQty;
+        const unitPrice = doc.items[0].price || 0;
+        doc.items[0].subtotal = newQty * unitPrice;
+        doc.grandTotal = doc.items[0].subtotal;
+        if (newNotes) doc.notes = newNotes;
+      }
+
+      Storage.saveData(data);
+      if (typeof Storage !== 'undefined' && Storage.saveWarehouseRecord && item) Storage.saveWarehouseRecord(item);
+      if (typeof Storage !== 'undefined' && Storage.saveDocument && doc) Storage.saveDocument(doc);
+
+      if (typeof App !== 'undefined' && App.closeModal) App.closeModal('wms-edit-outbound-modal');
+      if (typeof App !== 'undefined' && App.showToast) {
+        App.showToast(`Berhasil merevisi jumlah outbound menjadi ${newQty} ${unit}! Stok WMS dan Toko telah disinkronkan.`, "success");
+      }
+      this.render();
+      return true;
+    } catch (err) {
+      Storage.saveData(JSON.parse(snapshot));
+      if (typeof App !== 'undefined' && App.showToast) {
+        App.showToast(err.message || "Gagal merevisi transaksi outbound!", "error");
+      }
+      return false;
+    }
+  },
+
+  deleteOutbound: function(logId) {
+    const data = Storage.getData();
+    const log = (data.wmsLogs || []).find(l => l.id === logId);
+    if (!log) return false;
+
+    if (typeof window !== 'undefined' && window.confirm && !confirm(`Hapus catatan outbound "${log.itemName}"?\nJika belum dibatalkan, stok akan otomatis dikembalikan ke gudang WMS.`)) {
+      return false;
+    }
+
+    if (log.status !== "DIBATALKAN") {
+      const qty = log.rawQty || parseInt(String(log.qty).replace(/\D/g, '')) || 0;
+      const item = (data.wmsItems || []).find(i => i.sku === log.sku || i.id === log.itemId);
+      const shopProd = (data.shopProducts || []).find(p => p.sku === log.sku || p.id === log.itemId);
+      if (item) item.stock = (Number(item.stock) || 0) + qty;
+      if (shopProd) shopProd.stock = Math.max(0, (Number(shopProd.stock) || 0) - qty);
+    }
+
+    data.wmsLogs = data.wmsLogs.filter(l => l.id !== logId);
     Storage.saveData(data);
-    if (typeof Storage !== 'undefined' && Storage.saveWarehouseRecord) Storage.saveWarehouseRecord(item);
-
-    App.closeModal('wms-outbound-modal');
-    App.showToast(`Berhasil mengeluarkan ${qty} ${item.unit} dari stok ${item.name}!`, "success");
+    if (typeof App !== 'undefined' && App.showToast) App.showToast("Catatan outbound telah dihapus.", "info");
     this.render();
+    return true;
   },
 
   // MODAL STOCK OPNAME

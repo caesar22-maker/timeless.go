@@ -922,8 +922,8 @@ const Shop = {
     const notes = document.getElementById("order-notes").value.trim();
 
     // Selesaikan koordinat tujuan pengiriman secara akurat untuk rute peta
-    let destinationCoords = null;
-    if (typeof MapService !== "undefined") {
+    let destinationCoords = cust.coords || cust.destinationCoords || null;
+    if (!destinationCoords && typeof MapService !== "undefined") {
       destinationCoords = await MapService.resolveDestinationCoords(customerAddress);
     }
 
@@ -1114,6 +1114,11 @@ const Shop = {
     Storage.saveData(data);
     if (typeof Storage !== 'undefined' && Storage.saveOrder) Storage.saveOrder(newOrder);
     if (typeof Storage !== 'undefined' && Storage.saveDocument) Storage.saveDocument(invoiceDoc);
+
+    // Kirim notifikasi otomatis seketika ke perangkat administrator (Chime + Web Push + Broadcast + Bell)
+    if (typeof App !== 'undefined' && App.notifyAdminOfNewOrder) {
+      App.notifyAdminOfNewOrder(newOrder);
+    }
 
     this.cart = [];
     App.closeModal('shop-checkout-modal');
@@ -1553,6 +1558,22 @@ const Shop = {
     if (existingId) {
       const idx = data.shopProducts.findIndex(p => p.id === existingId);
       if (idx !== -1) data.shopProducts[idx] = prodObj;
+
+      // Keep WMS item master attributes synchronized with Product Catalog
+      if (data.wmsItems && Array.isArray(data.wmsItems)) {
+        const matchingWms = data.wmsItems.find(w => 
+          (w.sku && sku && w.sku.toLowerCase() === sku.toLowerCase()) || 
+          (w.name && name && w.name.toLowerCase() === name.toLowerCase())
+        );
+        if (matchingWms) {
+          matchingWms.name = name;
+          matchingWms.sku = sku;
+          matchingWms.category = category;
+          matchingWms.unit = unit;
+          if (image) matchingWms.image = image;
+          if (description) matchingWms.notes = description;
+        }
+      }
     } else {
       // Automatic WMS Stock Deduction & Goods Issue Document on Catalog Product Addition
       if (!data.wmsItems) data.wmsItems = [];
@@ -1653,7 +1674,17 @@ const Shop = {
       });
 
       if (!data.shopProducts) data.shopProducts = [];
-      data.shopProducts.push(prodObj);
+      const existingProdIdx = data.shopProducts.findIndex(p => 
+        (sku && p.sku && p.sku.toLowerCase() === sku.toLowerCase()) || 
+        (name && p.name && p.name.toLowerCase() === name.toLowerCase())
+      );
+      if (existingProdIdx !== -1) {
+        prodObj.id = data.shopProducts[existingProdIdx].id;
+        prodObj.stock = (Number(data.shopProducts[existingProdIdx].stock) || 0) + stock;
+        data.shopProducts[existingProdIdx] = prodObj;
+      } else {
+        data.shopProducts.push(prodObj);
+      }
     }
 
     Storage.saveData(data);

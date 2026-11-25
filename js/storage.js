@@ -57,6 +57,7 @@ const Storage = {
       googleEmail: "toko.fatimah.berkah@gmail.com",
       name: "Toko Sembako Berkah (Ibu Fatimah)",
       address: "Jl. Kolonel Sugiono No. 45 RT 03/RW 04, Gadang, Sukun, Kota Malang, Jawa Timur 65149",
+      coords: [-7.9948, 112.6325],
       phone: "0812-9876-5432",
       avatar: "https://images.unsplash.com/photo-1544005313-94ddf0286df2?w=120&auto=format&fit=crop&q=80"
     },
@@ -64,6 +65,7 @@ const Storage = {
       googleEmail: "bambang.sumberrezeki@gmail.com",
       name: "Toko Grosir Sumber Rezeki (Bpk. Bambang)",
       address: "Jl. Pasar Anyar No. 88, Sukasari, Kota Tangerang, Banten",
+      coords: [-6.1783, 106.6319],
       phone: "0813-2233-4455",
       avatar: "https://images.unsplash.com/photo-1507003211169-0a1dd7228f2d?w=120&auto=format&fit=crop&q=80"
     },
@@ -71,6 +73,7 @@ const Storage = {
       googleEmail: "warung.anita.berkah@gmail.com",
       name: "Warung Kelontong Berkah (Ibu Anita)",
       address: "Jl. Hayam Wuruk No. 12 RT 02/RW 01, Kebon Kelapa, Gambir, Jakarta Pusat",
+      coords: [-6.1674, 106.8249],
       phone: "0856-7890-1234",
       avatar: "https://images.unsplash.com/photo-1534528741775-53994a69daeb?w=120&auto=format&fit=crop&q=80"
     }
@@ -1274,6 +1277,23 @@ const Storage = {
                   w.stock = (sp && typeof sp.stock === 'number') ? (sp.stock + 120) : 120;
                 }
               });
+
+              // WMS Item Master Sync (Starting from Item #1):
+              // Keep SKU, name, category/type, unit, and base attributes consistent with Product Catalog
+              parsed.shopProducts.forEach((p, idx) => {
+                let w = parsed.wmsItems.find(item => item.sku === p.sku || item.id === `WMS-${String(idx + 1).padStart(3, '0')}`);
+                if (!w && parsed.wmsItems[idx]) {
+                  w = parsed.wmsItems[idx];
+                }
+                if (w) {
+                  w.name = p.name;
+                  w.sku = p.sku;
+                  w.category = p.category;
+                  w.unit = p.unit;
+                  if (p.image && (!w.image || w.image.includes('placeholder'))) w.image = p.image;
+                  if (p.description) w.notes = p.description;
+                }
+              });
             }
 
             if (!parsed.wmsLogs || !Array.isArray(parsed.wmsLogs)) parsed.wmsLogs = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.wmsLogs || []));
@@ -1285,6 +1305,8 @@ const Storage = {
             if (!parsed.profile || parsed.profile.name !== 'TIMELESS.GO X ABADI GROSIR' || !parsed.profile.logoUrl || parsed.profile.logoUrl.includes('unsplash.com')) {
               parsed.profile = JSON.parse(JSON.stringify(DEFAULT_STORE_DATA.profile || {}));
             }
+
+            if (!parsed.adminNotifications || !Array.isArray(parsed.adminNotifications)) parsed.adminNotifications = [];
 
             parsed.shopProducts.forEach(p => {
               const singlePrice = p.price || p.retailPrice || (p.tiers && p.tiers[0] ? p.tiers[0].price : 0);
@@ -1303,7 +1325,22 @@ const Storage = {
 
     // Fallback initialize default
     const defaultCopy = (typeof DEFAULT_STORE_DATA !== 'undefined') ? JSON.parse(JSON.stringify(DEFAULT_STORE_DATA)) : {};
-    if (defaultCopy && defaultCopy.shopProducts) {
+    if (defaultCopy && defaultCopy.shopProducts && defaultCopy.wmsItems) {
+      defaultCopy.shopProducts.forEach((p, idx) => {
+        let w = defaultCopy.wmsItems.find(item => item.sku === p.sku || item.id === `WMS-${String(idx + 1).padStart(3, '0')}`);
+        if (!w && defaultCopy.wmsItems[idx]) {
+          w = defaultCopy.wmsItems[idx];
+        }
+        if (w) {
+          w.id = `WMS-${String(idx + 1).padStart(3, '0')}`;
+          w.name = p.name;
+          w.sku = p.sku;
+          w.category = p.category;
+          w.unit = p.unit;
+          if (p.image && (!w.image || w.image.includes('placeholder'))) w.image = p.image;
+          if (p.description) w.notes = p.description;
+        }
+      });
       defaultCopy.shopProducts.forEach(p => {
         const singlePrice = p.price || p.retailPrice || (p.tiers && p.tiers[0] ? p.tiers[0].price : 0);
         p.price = singlePrice;
@@ -1311,6 +1348,7 @@ const Storage = {
         p.tiers = [{ minQty: 1, maxQty: 99999, price: singlePrice, label: "Harga Grosir Satuan" }];
       });
     }
+    if (!defaultCopy.adminNotifications) defaultCopy.adminNotifications = [];
     this.saveLocalData(defaultCopy);
     this._cachedData = defaultCopy;
     return defaultCopy;

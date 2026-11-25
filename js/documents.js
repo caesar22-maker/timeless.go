@@ -25,7 +25,11 @@ const Documents = {
 
     let docs = data.documents || [];
     if (this.currentFilter !== "ALL") {
-      docs = docs.filter(d => d.type === this.currentFilter || d.paymentStatus === this.currentFilter);
+      docs = docs.filter(d => 
+        d.type === this.currentFilter || 
+        d.paymentStatus === this.currentFilter ||
+        (this.currentFilter.includes("Pengeluaran Barang") && d.type && d.type.includes("Pengeluaran Barang"))
+      );
     }
     if (this.searchQuery.trim()) {
       const q = this.searchQuery.toLowerCase();
@@ -130,7 +134,7 @@ const Documents = {
               <option value="Faktur Penjualan" ${this.currentFilter === 'Faktur Penjualan' ? 'selected' : ''}>Faktur Penjualan</option>
               <option value="Surat Jalan (DO)" ${this.currentFilter === 'Surat Jalan (DO)' ? 'selected' : ''}>Surat Jalan (DO)</option>
               <option value="Purchase Order (PO)" ${this.currentFilter === 'Purchase Order (PO)' ? 'selected' : ''}>Purchase Order (PO)</option>
-              <option value="Bukti Pengeluaran Barang" ${this.currentFilter === 'Bukti Pengeluaran Barang' ? 'selected' : ''}>Bukti Pengeluaran Barang</option>
+              <option value="Surat Bukti Pengeluaran Barang" ${this.currentFilter === 'Surat Bukti Pengeluaran Barang' || this.currentFilter === 'Bukti Pengeluaran Barang' ? 'selected' : ''}>Surat Bukti Pengeluaran Barang (Outbound)</option>
               <option value="LUNAS" ${this.currentFilter === 'LUNAS' ? 'selected' : ''}>Status: LUNAS</option>
               <option value="DIPROSES" ${this.currentFilter === 'DIPROSES' ? 'selected' : ''}>Status: DIPROSES</option>
             </select>
@@ -817,15 +821,16 @@ const Documents = {
                 <p class="text-xs uppercase font-bold text-slate-400 mb-1">
                   ${(doc.type && (doc.type.includes('PO') || doc.type.includes('Purchase Order') || doc.type.includes('Berita Acara') || doc.type.includes('Penerimaan'))) 
                     ? 'PIHAK SUPPLIER / PEMASOK:' 
-                    : doc.type === 'Bukti Pengeluaran Barang'
-                      ? 'LOKASI ASAL & TUJUAN PENGELUARAN (TRANSFER):'
+                    : (doc.type && doc.type.includes('Pengeluaran Barang'))
+                      ? 'LOKASI ASAL & TUJUAN PENGELUARAN (OUTBOUND):'
                       : 'DITUJUKAN KEPADA (TUJUAN PENGIRIMAN):'}
                 </p>
                 <h4 class="text-sm font-bold text-slate-900">${Util.escapeHtml(doc.clientName || doc.supplier || '-')}</h4>
-                ${doc.type === 'Bukti Pengeluaran Barang' ? `
+                ${(doc.type && doc.type.includes('Pengeluaran Barang')) ? `
                   <p class="text-xs text-indigo-700 font-bold mt-0.5"><i class="fa-solid fa-warehouse mr-1"></i> <b>Asal Gudang:</b> ${Util.escapeHtml(doc.sourceLocation || 'Gudang Utama WMS')}</p>
-                  <p class="text-xs text-emerald-700 font-bold mt-0.5"><i class="fa-solid fa-store mr-1"></i> <b>Tujuan:</b> ${Util.escapeHtml(doc.destinationLocation || doc.clientAddress || 'Toko Grosir')}</p>
+                  <p class="text-xs text-emerald-700 font-bold mt-0.5"><i class="fa-solid fa-store mr-1"></i> <b>Tujuan:</b> ${Util.escapeHtml(doc.destinationLocation || doc.clientAddress || 'Toko Retail & Etalase Online Shop')}</p>
                   ${doc.refDoc ? `<p class="text-[11px] font-mono text-slate-500 mt-1">No. Ref Mutasi: <b>${Util.escapeHtml(doc.refDoc)}</b></p>` : ''}
+                  ${doc.txId ? `<p class="text-[10px] font-mono text-slate-400">ID Transaksi: <b>${Util.escapeHtml(doc.txId)}</b></p>` : ''}
                 ` : `
                   <p class="text-xs text-slate-600">${Util.escapeHtml(doc.clientPhone || '-')}</p>
                   <p class="text-xs text-slate-700 font-medium mt-1">
@@ -836,7 +841,7 @@ const Documents = {
               </div>
               <div class="md:text-right">
                 <p class="text-xs uppercase font-bold text-slate-400 mb-1">
-                  ${doc.type === 'Surat Jalan (DO)' ? 'INFO ARMADA & PENGIRIMAN:' : doc.type === 'Bukti Pengeluaran Barang' ? 'STATUS PENGELUARAN STOK:' : 'STATUS & METODE BAYAR:'}
+                  ${doc.type === 'Surat Jalan (DO)' ? 'INFO ARMADA & PENGIRIMAN:' : (doc.type && doc.type.includes('Pengeluaran Barang')) ? 'STATUS PENGELUARAN & APPROVAL:' : 'STATUS & METODE BAYAR:'}
                 </p>
                 ${doc.type === 'Surat Jalan (DO)' ? `
                   <div class="text-xs text-slate-700 space-y-0.5">
@@ -844,12 +849,12 @@ const Documents = {
                     <p><strong>Driver:</strong> <span class="font-bold">${doc.driverName || 'Pak Bambang'}</span> ${doc.driverPhone ? `(${doc.driverPhone})` : ''}</p>
                     <p class="text-slate-500 text-[11px]">Metode: ${doc.paymentMethod || 'COD / Tunai'}</p>
                   </div>
-                ` : doc.type === 'Bukti Pengeluaran Barang' ? `
-                  <div class="inline-block px-3 py-1 rounded font-extrabold text-xs uppercase border bg-emerald-50 text-emerald-700 border-emerald-300">
-                    ${doc.paymentStatus || 'TERKIRIM'}
+                ` : (doc.type && doc.type.includes('Pengeluaran Barang')) ? `
+                  <div class="inline-block px-3 py-1 rounded font-extrabold text-xs uppercase border ${doc.status === 'DIBATALKAN' ? 'bg-rose-50 text-rose-700 border-rose-300' : 'bg-emerald-50 text-emerald-700 border-emerald-300'}">
+                    ${doc.status || doc.paymentStatus || 'Disetujui & Dikeluarkan'}
                   </div>
-                  <p class="text-xs font-semibold text-slate-700 mt-1">${doc.paymentMethod || 'Mutasi Pengeluaran Internal'}</p>
-                  <p class="text-[11px] text-slate-500 mt-0.5">Otorisasi: Kepala Gudang</p>
+                  <p class="text-xs font-semibold text-slate-700 mt-1">${doc.paymentMethod || 'Mutasi Outbound Gudang'}</p>
+                  <p class="text-[11px] text-slate-500 mt-0.5">Otorisasi: ${doc.signatureName || (doc.approval && doc.approval.supervisor) || 'Kepala Gudang & Logistik'}</p>
                 ` : `
                   <div class="inline-block px-3 py-1 rounded font-extrabold text-xs uppercase border ${isLunas ? 'bg-emerald-50 text-emerald-700 border-emerald-300' : 'bg-amber-50 text-amber-700 border-amber-300'}">
                     ${doc.paymentStatus}
@@ -865,7 +870,8 @@ const Documents = {
                 <tr>
                   <th class="py-2.5 px-3 border border-slate-300 text-center w-10">No</th>
                   <th class="py-2.5 px-3 border border-slate-300">Deskripsi Barang Grosir</th>
-                  <th class="py-2.5 px-3 border border-slate-300 text-center w-16">Qty</th>
+                  ${(doc.type && doc.type.includes('Pengeluaran Barang')) ? '<th class="py-2.5 px-3 border border-slate-300 text-center w-28">Kategori / Tipe</th>' : ''}
+                  <th class="py-2.5 px-3 border border-slate-300 text-center w-16">${(doc.type && doc.type.includes('Pengeluaran Barang')) ? 'Qty Keluar' : 'Qty'}</th>
                   <th class="py-2.5 px-3 border border-slate-300 text-center w-20">Satuan</th>
                   <th class="py-2.5 px-3 border border-slate-300 text-right w-28">Harga Satuan</th>
                   <th class="py-2.5 px-3 border border-slate-300 text-right w-32">Total</th>
@@ -874,30 +880,36 @@ const Documents = {
               <tbody>
                 ${(doc.items || []).map((it, i) => `
                   <tr>
-                    <td class="py-2 px-3 border border-slate-300 text-center font-medium">${i + 1}</td>
-                    <td class="py-2 px-3 border border-slate-300 font-semibold">${Util.escapeHtml(it.name)}</td>
-                    <td class="py-2 px-3 border border-slate-300 text-center font-bold">${it.qty}</td>
+                    <td class="py-2 px-3 border border-slate-300 text-center font-medium">${it.no || (i + 1)}</td>
+                    <td class="py-2 px-3 border border-slate-300 font-semibold">
+                      ${Util.escapeHtml(it.name)}
+                      ${it.sku ? `<span class="block text-[10px] font-mono text-slate-500 font-normal">SKU: ${it.sku}</span>` : ''}
+                    </td>
+                    ${(doc.type && doc.type.includes('Pengeluaran Barang')) ? `
+                      <td class="py-2 px-3 border border-slate-300 text-center text-slate-600 font-medium">${Util.escapeHtml(it.category || 'Sembako')}</td>
+                    ` : ''}
+                    <td class="py-2 px-3 border border-slate-300 text-center font-bold text-amber-700">${it.qty}</td>
                     <td class="py-2 px-3 border border-slate-300 text-center">${it.unit}</td>
-                    <td class="py-2 px-3 border border-slate-300 text-right font-mono">${Util.formatRupiah(it.price)}</td>
-                    <td class="py-2 px-3 border border-slate-300 text-right font-mono font-bold">${Util.formatRupiah(it.subtotal)}</td>
+                    <td class="py-2 px-3 border border-slate-300 text-right font-mono">${Util.formatRupiah(it.price || 0)}</td>
+                    <td class="py-2 px-3 border border-slate-300 text-right font-mono font-bold">${Util.formatRupiah(it.subtotal || 0)}</td>
                   </tr>
                 `).join('')}
               </tbody>
               <tfoot class="bg-slate-50 font-semibold">
                 ${doc.discount > 0 ? `
                   <tr>
-                    <td colspan="5" class="py-1.5 px-3 border border-slate-300 text-right">Potongan Diskon:</td>
+                    <td colspan="${(doc.type && doc.type.includes('Pengeluaran Barang')) ? '6' : '5'}" class="py-1.5 px-3 border border-slate-300 text-right">Potongan Diskon:</td>
                     <td class="py-1.5 px-3 border border-slate-300 text-right font-mono text-rose-600">- ${Util.formatRupiah(doc.discount)}</td>
                   </tr>
                 ` : ''}
                 ${doc.taxAmount > 0 ? `
                   <tr>
-                    <td colspan="5" class="py-1.5 px-3 border border-slate-300 text-right">PPN (${doc.taxPercent}%):</td>
+                    <td colspan="${(doc.type && doc.type.includes('Pengeluaran Barang')) ? '6' : '5'}" class="py-1.5 px-3 border border-slate-300 text-right">PPN (${doc.taxPercent}%):</td>
                     <td class="py-1.5 px-3 border border-slate-300 text-right font-mono">+ ${Util.formatRupiah(doc.taxAmount)}</td>
                   </tr>
                 ` : ''}
                 <tr class="bg-slate-200 text-sm font-black text-slate-900">
-                  <td colspan="5" class="py-2.5 px-3 border border-slate-300 text-right">TOTAL PEMBAYARAN:</td>
+                  <td colspan="${(doc.type && doc.type.includes('Pengeluaran Barang')) ? '6' : '5'}" class="py-2.5 px-3 border border-slate-300 text-right">TOTAL NILAI BARANG:</td>
                   <td class="py-2.5 px-3 border border-slate-300 text-right font-mono text-indigo-900">${Util.formatRupiah(doc.grandTotal)}</td>
                 </tr>
               </tfoot>
@@ -907,7 +919,7 @@ const Documents = {
             <div class="grid grid-cols-2 gap-6 mt-8 pt-4 border-t border-slate-200">
               <div>
                 <p class="text-xs font-bold uppercase text-slate-500 mb-1">Catatan Dokumen:</p>
-                <p class="text-xs text-slate-600 italic leading-relaxed">${Util.escapeHtml(doc.notes || 'Terima kasih atas kepercayaan Anda bertransaksi dengan Grosir Berkah Abadi.')}</p>
+                <p class="text-xs text-slate-600 italic leading-relaxed">${Util.escapeHtml(doc.notes || 'Pengeluaran resmi dari inventaris gudang WMS untuk display etalase toko retail & online shop.')}</p>
                 ${doc.attachmentUrl ? `
                   <div class="mt-4">
                     <p class="text-xs font-bold text-slate-500 mb-1">Lampiran Foto Bukti:</p>
@@ -933,21 +945,28 @@ const Documents = {
                     <p class="font-bold border-t border-slate-400 pt-1 text-slate-800 text-[11px]">( ${Util.escapeHtml(doc.signatureName || 'Bagian Pengiriman')} )</p>
                   </div>
                 </div>
-              ` : doc.type === 'Bukti Pengeluaran Barang' ? `
-                <div class="flex justify-around text-center text-xs">
+              ` : (doc.type && doc.type.includes('Pengeluaran Barang')) ? `
+                <div class="grid grid-cols-3 gap-2 text-center text-xs">
                   <div class="relative">
-                    <p class="text-slate-500 mb-14">Petugas Gudang (Pengeluar),</p>
-                    <span class="absolute top-4 left-1/2 -translate-x-1/2 text-[9px] font-black text-blue-700/30 uppercase tracking-widest border-2 border-dashed border-blue-700/30 rounded-full w-16 h-16 flex items-center justify-center rotate-[-10deg] pointer-events-none">
-                      GUDANG WMS
+                    <p class="text-slate-500 mb-14 text-[11px]">Petugas Gudang (Pengeluar),</p>
+                    <span class="absolute top-4 left-1/2 -translate-x-1/2 text-[9px] font-black text-amber-700/30 uppercase tracking-widest border-2 border-dashed border-amber-700/30 rounded-full w-16 h-16 flex items-center justify-center rotate-[-10deg] pointer-events-none">
+                      DISPATCH WMS
                     </span>
-                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800">( ${Util.escapeHtml(doc.signatureName || 'Kepala Gudang')} )</p>
+                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800 text-[11px]">( ${Util.escapeHtml(doc.operator || (doc.approval && doc.approval.dispatcher) || 'Staff Dispatch')} )</p>
                   </div>
                   <div class="relative">
-                    <p class="text-slate-500 mb-14">Penerima (Toko / Etalase),</p>
+                    <p class="text-slate-500 mb-14 text-[11px]">Penerima (Toko / Etalase),</p>
                     <span class="absolute top-4 left-1/2 -translate-x-1/2 text-[9px] font-black text-emerald-700/30 uppercase tracking-widest border-2 border-dashed border-emerald-700/30 rounded-full w-16 h-16 flex items-center justify-center rotate-[10deg] pointer-events-none">
-                      DISPLAY TOKO
+                      TOKO RETAIL
                     </span>
-                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800">( ${Util.escapeHtml((doc.clientName || 'Penanggung Jawab Toko').split('(')[0].trim())} )</p>
+                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800 text-[11px]">( ${Util.escapeHtml((doc.clientName || (doc.approval && doc.approval.receiver) || 'Penanggung Jawab Toko').split('(')[0].trim())} )</p>
+                  </div>
+                  <div class="relative">
+                    <p class="text-slate-500 mb-14 text-[11px]">Menyetujui (Supervisor),</p>
+                    <span class="absolute top-4 left-1/2 -translate-x-1/2 text-[9px] font-black text-blue-700/30 uppercase tracking-widest border-2 border-dashed border-blue-700/30 rounded-full w-16 h-16 flex items-center justify-center rotate-[-5deg] pointer-events-none">
+                      APPROVED
+                    </span>
+                    <p class="font-bold border-t border-slate-400 pt-1 text-slate-800 text-[11px]">( ${Util.escapeHtml(doc.signatureName || (doc.approval && doc.approval.supervisor) || 'Kepala Gudang & Logistik')} )</p>
                   </div>
                 </div>
               ` : `

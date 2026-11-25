@@ -74,6 +74,43 @@ const App = {
         }
       }
     });
+
+    // Request notification permission on first user interaction
+    if (typeof document !== "undefined") {
+      document.addEventListener("click", () => {
+        this.requestNotificationPermission();
+      }, { once: true });
+    }
+
+    // Cross-Tab & Cross-Device Notification Listener via BroadcastChannel
+    if (typeof BroadcastChannel !== "undefined") {
+      try {
+        if (!this._orderBroadcastChannel) {
+          this._orderBroadcastChannel = new BroadcastChannel("gba_admin_order_channel");
+          this._orderBroadcastChannel.onmessage = (event) => {
+            if (event.data && event.data.type === "NEW_ORDER" && event.data.order) {
+              this.handleIncomingAdminOrderNotification(event.data.order);
+            }
+          };
+        }
+      } catch (e) {
+        console.warn("BroadcastChannel error:", e);
+      }
+    }
+
+    // Cross-Tab Notification Listener via Storage Event
+    if (typeof window !== "undefined") {
+      window.addEventListener("storage", (e) => {
+        if (e.key === "GBA_ADMIN_NEW_ORDER_ALERT" && e.newValue) {
+          try {
+            const alertObj = JSON.parse(e.newValue);
+            if (alertObj && (alertObj.orderId || alertObj.id)) {
+              this.handleIncomingAdminOrderNotification(alertObj);
+            }
+          } catch (err) {}
+        }
+      });
+    }
   },
 
   // SWITCH NAVIGATION TABS
@@ -270,6 +307,295 @@ const App = {
     if (typeof Storage !== 'undefined' && Storage.updateSyncBadge) {
       Storage.updateSyncBadge();
     }
+
+    // Perbarui lonceng notifikasi admin
+    this.updateAdminNotificationBadge();
+  },
+
+  // ============================================================================
+  // NOTIFIKASI OTOMATIS KE PERANGKAT ADMINISTRATOR ATAS PESANAN BARU PELANGGAN
+  // ============================================================================
+  requestNotificationPermission: function() {
+    if (typeof Notification !== "undefined" && Notification.permission === "default") {
+      try {
+        Notification.requestPermission().then(perm => {
+          console.log("Status izin notifikasi sistem:", perm);
+        }).catch(() => {});
+      } catch (e) {}
+    }
+  },
+
+  notifyAdminOfNewOrder: function(order) {
+    if (!order) return;
+
+    // 1. Bunyikan Chime Audio di Perangkat Admin
+    if (typeof Storage !== 'undefined' && Storage.playOrderChime) {
+      Storage.playOrderChime();
+    }
+
+    // 2. Kirim Notifikasi Native Browser (Desktop / Mobile Push Notification)
+    if (typeof Notification !== "undefined") {
+      if (Notification.permission === "granted") {
+        try {
+          const notif = new Notification(`🔔 Pesanan Baru Masuk! #${order.id}`, {
+            body: `Pembeli: ${order.customerName}\nTotal: ${Util.formatRupiah(order.totalAmount)}\nMetode: ${order.paymentMethod}\nAlamat: ${order.customerAddress}`,
+            icon: "images/logo.jpg",
+            tag: "new-order-" + order.id,
+            requireInteraction: true
+          });
+          notif.onclick = () => {
+            window.focus();
+            if (this.switchTab) this.switchTab('tracking');
+            if (typeof Orders !== 'undefined' && Orders.openRouteMapModal) {
+              Orders.openRouteMapModal(order);
+            }
+          };
+        } catch (err) {
+          console.warn("Native Notification trigger error:", err);
+        }
+      } else if (Notification.permission !== "denied") {
+        this.requestNotificationPermission();
+      }
+    }
+
+    // 3. Broadcast Real-Time Antar-Tab / Antar-Jendela Browser
+    try {
+      if (typeof BroadcastChannel !== "undefined") {
+        if (!this._orderBroadcastChannel) {
+          this._orderBroadcastChannel = new BroadcastChannel("gba_admin_order_channel");
+        }
+        this._orderBroadcastChannel.postMessage({
+          type: "NEW_ORDER",
+          order: order,
+          timestamp: Date.now()
+        });
+      }
+      if (typeof localStorage !== "undefined") {
+        localStorage.setItem("GBA_ADMIN_NEW_ORDER_ALERT", JSON.stringify({
+          orderId: order.id,
+          customerName: order.customerName,
+          customerPhone: order.customerPhone || "-",
+          customerAddress: order.customerAddress || "-",
+          totalAmount: order.totalAmount,
+          paymentMethod: order.paymentMethod,
+          orderDate: order.orderDate || new Date().toISOString().replace('T', ' ').slice(0, 16),
+          time: Date.now()
+        }));
+      }
+    } catch (bcErr) {
+      console.warn("Broadcast error:", bcErr);
+    }
+
+    // 4. Catat ke Antrean Notifikasi Admin di Database Lokal
+    const data = Storage.getData();
+    if (!data.adminNotifications) data.adminNotifications = [];
+    const existingNotif = data.adminNotifications.find(n => n.orderId === order.id);
+    if (!existingNotif) {
+      data.adminNotifications.unshift({
+        id: "NOTIF-" + Date.now().toString().slice(-6),
+        orderId: order.id,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone || "-",
+        customerAddress: order.customerAddress || "-",
+        totalAmount: order.totalAmount,
+        paymentMethod: order.paymentMethod,
+        date: order.orderDate || new Date().toISOString().replace('T', ' ').slice(0, 16),
+        itemsCount: (order.items || []).length,
+        read: false
+      });
+      Storage.saveData(data);
+    }
+
+    // 5. Tampilkan Notifikasi Visual di Layar Admin
+    this.updateAdminNotificationBadge();
+    const isEmployee = Storage.isEmployee();
+    if (isEmployee) {
+      this.showToast(`🔔 [NOTIFIKASI ADMIN] Pesanan #${order.id} diterima dari ${order.customerName} senilai ${Util.formatRupiah(order.totalAmount)}!`, "success", 7000);
+    }
+  },
+
+  handleIncomingAdminOrderNotification: function(order) {
+    if (!order || (!order.id && !order.orderId)) return;
+    const orderId = order.id || order.orderId;
+
+    // Pastikan tidak menduplikasi notifikasi jika sudah pernah diproses di session ini
+    if (this._lastNotifiedOrderId === orderId) return;
+    this._lastNotifiedOrderId = orderId;
+
+    // Bunyikan chime & kirim push notifikasi jika perangkat admin
+    if (typeof Storage !== 'undefined' && Storage.playOrderChime) {
+      Storage.playOrderChime();
+    }
+
+    if (typeof Notification !== "undefined" && Notification.permission === "granted") {
+      try {
+        new Notification(`🔔 Pesanan Baru Masuk! #${orderId}`, {
+          body: `Pembeli: ${order.customerName}\nTotal: ${Util.formatRupiah(order.totalAmount)}\nAlamat: ${order.customerAddress || '-'}`,
+          icon: "images/logo.jpg",
+          tag: "incoming-order-" + orderId
+        });
+      } catch (e) {}
+    }
+
+    // Simpan ke antrean notifikasi admin
+    const data = Storage.getData();
+    if (!data.adminNotifications) data.adminNotifications = [];
+    if (!data.adminNotifications.some(n => n.orderId === orderId)) {
+      data.adminNotifications.unshift({
+        id: "NOTIF-" + Date.now().toString().slice(-6),
+        orderId: orderId,
+        customerName: order.customerName,
+        customerPhone: order.customerPhone || "-",
+        customerAddress: order.customerAddress || "-",
+        totalAmount: order.totalAmount,
+        paymentMethod: order.paymentMethod || "Transfer / COD",
+        date: order.orderDate || new Date().toISOString().replace('T', ' ').slice(0, 16),
+        itemsCount: (order.items || []).length,
+        read: false
+      });
+      Storage.saveData(data);
+    }
+
+    this.updateAdminNotificationBadge();
+    if (Storage.isEmployee()) {
+      this.showToast(`🔔 [PESANAN BARU MASUK] #${orderId} dari ${order.customerName}!`, "success", 8000);
+      if (this.currentTab === 'tracking' && typeof Orders !== 'undefined') {
+        Orders.renderTrackingPanel();
+      }
+    }
+  },
+
+  updateAdminNotificationBadge: function() {
+    const container = document.getElementById("admin-notif-bell-container");
+    if (!container) return;
+
+    const isEmployee = Storage.isEmployee();
+    if (!isEmployee) {
+      container.classList.add("hidden");
+      return;
+    }
+
+    const data = Storage.getData();
+    const unreadCount = (data.adminNotifications || []).filter(n => !n.read).length;
+
+    container.classList.remove("hidden");
+    container.innerHTML = `
+      <button 
+        onclick="App.openAdminNotificationsModal()" 
+        class="relative p-2 text-slate-600 hover:text-blue-600 hover:bg-slate-100 rounded-xl transition cursor-pointer"
+        title="Pusat Notifikasi Pesanan Masuk (Admin)"
+      >
+        <i class="fa-solid fa-bell text-lg ${unreadCount > 0 ? 'text-amber-500 animate-bounce' : 'text-slate-600'}"></i>
+        ${unreadCount > 0 ? `
+          <span id="admin-notif-count-badge" class="absolute -top-1 -right-1 min-w-[20px] h-5 px-1 bg-rose-600 text-white rounded-full text-[10px] font-black flex items-center justify-center animate-pulse shadow-sm border-2 border-white">
+            ${unreadCount > 9 ? '9+' : unreadCount}
+          </span>
+        ` : ''}
+      </button>
+    `;
+  },
+
+  openAdminNotificationsModal: function() {
+    const data = Storage.getData();
+    const notifs = data.adminNotifications || [];
+    const unreadCount = notifs.filter(n => !n.read).length;
+
+    const modalHtml = `
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" id="admin-notif-modal">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden modal-content-scale max-h-[92vh] flex flex-col">
+          <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <div class="w-8 h-8 rounded-full bg-amber-500/20 text-amber-400 flex items-center justify-center text-sm font-bold">
+                <i class="fa-solid fa-bell"></i>
+              </div>
+              <div>
+                <h3 class="text-base font-bold">Notifikasi Pesanan Masuk Pelanggan</h3>
+                <p class="text-xs text-slate-400">Peringatan otomatis real-time ke perangkat administrator saat pembeli berbelanja</p>
+              </div>
+            </div>
+            <button onclick="App.closeModal('admin-notif-modal')" class="text-white/80 hover:text-white text-lg">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <div class="p-4 bg-slate-50 border-b border-slate-200 flex items-center justify-between text-xs">
+            <span class="font-bold text-slate-700">
+              Total ${notifs.length} Notifikasi (${unreadCount} Belum Dibaca)
+            </span>
+            ${unreadCount > 0 ? `
+              <button onclick="App.markAllNotificationsRead()" class="text-blue-600 hover:text-blue-800 font-bold flex items-center gap-1">
+                <i class="fa-solid fa-check-double"></i> Tandai Semua Terbaca
+              </button>
+            ` : ''}
+          </div>
+
+          <div class="p-6 overflow-y-auto space-y-3 flex-1 divide-y divide-slate-100">
+            ${notifs.length === 0 ? `
+              <div class="text-center py-12 text-slate-400 space-y-2">
+                <i class="fa-solid fa-bell-slash text-4xl text-slate-300"></i>
+                <p class="text-sm font-semibold">Belum ada notifikasi pesanan baru.</p>
+                <p class="text-xs text-slate-400">Setiap ada pelanggan yang melakukan checkout di Online Shop, notifikasi akan langsung muncul di sini.</p>
+              </div>
+            ` : notifs.map(n => `
+              <div class="pt-3 first:pt-0 ${n.read ? 'opacity-85' : 'bg-blue-50/40 p-3 rounded-xl border border-blue-200'}">
+                <div class="flex items-start justify-between gap-3">
+                  <div class="space-y-1 min-w-0">
+                    <div class="flex items-center gap-2">
+                      <span class="font-mono font-bold text-xs text-indigo-700 bg-indigo-50 px-2 py-0.5 rounded border border-indigo-200">${n.orderId}</span>
+                      <span class="text-[11px] text-slate-400">${n.date}</span>
+                      ${!n.read ? '<span class="px-1.5 py-0.2 rounded text-[9px] font-black bg-rose-500 text-white uppercase">Baru</span>' : ''}
+                    </div>
+                    <h4 class="font-bold text-sm text-slate-900">${Util.escapeHtml(n.customerName)}</h4>
+                    <p class="text-xs text-slate-600 flex items-center gap-1">
+                      <i class="fa-solid fa-location-dot text-rose-500 text-[10px]"></i> ${Util.escapeHtml(n.customerAddress)}
+                    </p>
+                    <p class="text-xs text-slate-500">
+                      Total Belanja: <strong class="text-emerald-700 font-mono">${Util.formatRupiah(n.totalAmount)}</strong> • Metode: <span class="font-semibold text-slate-700">${n.paymentMethod}</span>
+                    </p>
+                  </div>
+                  <div class="flex flex-col gap-1.5 flex-shrink-0">
+                    <button 
+                      onclick="App.closeModal('admin-notif-modal'); Shop.directEmployeeProcess('${n.orderId}');" 
+                      class="px-3 py-1.5 bg-blue-600 hover:bg-blue-700 text-white rounded-lg text-xs font-bold shadow-xs flex items-center gap-1"
+                    >
+                      <i class="fa-solid fa-clipboard-check"></i> Proses
+                    </button>
+                    <button 
+                      onclick="App.closeModal('admin-notif-modal'); Documents.previewInvoice('${n.orderId}');" 
+                      class="px-3 py-1 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs font-semibold flex items-center gap-1 border border-slate-300"
+                    >
+                      <i class="fa-solid fa-print"></i> Nota
+                    </button>
+                  </div>
+                </div>
+              </div>
+            `).join('')}
+          </div>
+
+          <div class="p-4 bg-slate-50 border-t border-slate-200 flex items-center justify-between">
+            <button type="button" onclick="App.requestNotificationPermission()" class="text-xs text-slate-500 hover:text-slate-800 flex items-center gap-1">
+              <i class="fa-solid fa-gear"></i> Izin Notifikasi Web
+            </button>
+            <button type="button" onclick="App.closeModal('admin-notif-modal')" class="px-4 py-1.5 bg-slate-800 hover:bg-slate-900 text-white rounded-lg text-xs font-bold">
+              Tutup
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  markAllNotificationsRead: function() {
+    const data = Storage.getData();
+    if (data.adminNotifications) {
+      data.adminNotifications.forEach(n => n.read = true);
+      Storage.saveData(data);
+    }
+    this.updateAdminNotificationBadge();
+    this.closeModal('admin-notif-modal');
+    this.openAdminNotificationsModal();
+    this.showToast("Semua notifikasi ditandai telah dibaca.", "info");
   },
 
   // LOGIN MODAL (GOOGLE AUTH + PASSWORD T1MELESS, PASSWORD NEVER SHOWN)
@@ -610,11 +936,17 @@ const App = {
         return;
       }
       const existing = Storage.getCustomerAccount() || {};
+      const def = (Storage.DEFAULT_CUSTOMER_ACCOUNTS || []).find(a => a.googleEmail.toLowerCase() === String(email).toLowerCase()) || {};
+      const targetAddress = def.address || existing.address || "Jl. Kolonel Sugiono No. 45 RT 03/RW 04, Gadang, Sukun, Kota Malang, Jawa Timur 65149";
+      const targetCoords = def.coords || existing.coords || [-7.9948, 112.6325];
+
       const saved = Storage.setCustomerAccount({
         googleEmail: email,
         name: name,
-        phone: existing.phone || "0812-9876-5432",
-        address: existing.address || "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162",
+        phone: def.phone || existing.phone || "0812-9876-5432",
+        address: targetAddress,
+        coords: targetCoords,
+        destinationCoords: targetCoords,
         avatar: avatar,
         connectedAt: new Date().toISOString()
       });
@@ -635,7 +967,7 @@ const App = {
     }
   },
 
-  registerGoogleAccount: function(event, targetTab) {
+  registerGoogleAccount: async function(event, targetTab) {
     event.preventDefault();
     const email = document.getElementById("custom-google-email")?.value.trim();
     const name = document.getElementById("custom-google-name")?.value.trim();
@@ -653,12 +985,20 @@ const App = {
       const existing = Storage.getCustomerAccount() || {};
       const phoneInput = document.getElementById("custom-google-phone")?.value.trim();
       const addressInput = document.getElementById("custom-google-address")?.value.trim();
+      const targetAddress = addressInput || existing.address || "Jl. Kolonel Sugiono No. 45 RT 03/RW 04, Gadang, Sukun, Kota Malang, Jawa Timur 65149";
+      
+      let targetCoords = existing.coords || [-7.9948, 112.6325];
+      if (typeof MapService !== 'undefined' && targetAddress) {
+        targetCoords = await MapService.resolveDestinationCoords(targetAddress);
+      }
 
       const saved = Storage.setCustomerAccount({
         googleEmail: email,
         name: name,
         phone: phoneInput || existing.phone || "0812-9876-5432",
-        address: addressInput || existing.address || "Jl. Raya Kendalpayak No.1A, Segaran, Kendalpayak, Kec. Pakisaji, Kabupaten Malang, Jawa Timur 65162",
+        address: targetAddress,
+        coords: targetCoords,
+        destinationCoords: targetCoords,
         avatar: avatar,
         connectedAt: new Date().toISOString()
       });
