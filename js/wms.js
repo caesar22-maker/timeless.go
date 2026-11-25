@@ -158,6 +158,9 @@ const WMS = {
           <button onclick="WMS.openStockOpnameModal()" class="px-3.5 py-2 bg-purple-600 hover:bg-purple-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition">
             <i class="fa-solid fa-clipboard-check"></i> Stock Opname
           </button>
+          <button onclick="WMS.openBarcodeScannerModal()" class="px-3.5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition" title="Pindai / Scan Barcode SKU Master Gudang">
+            <i class="fa-solid fa-barcode text-amber-400"></i> Scan Barcode SKU
+          </button>
           <button onclick="WMS.openItemModal()" class="px-3.5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center gap-1.5 shadow-sm transition">
             <i class="fa-solid fa-plus"></i> Tambah Master Barang
           </button>
@@ -490,6 +493,13 @@ const WMS = {
                     <td class="py-3 px-4 text-center">
                       <div class="flex items-center justify-center gap-1.5">
                         <button 
+                          onclick="WMS.openBarcodeModal('${item.id}')" 
+                          class="p-1.5 text-blue-600 hover:text-white hover:bg-blue-600 rounded-lg transition border border-blue-200"
+                          title="Lihat & Cetak Barcode SKU & Label Rak"
+                        >
+                          <i class="fa-solid fa-barcode"></i>
+                        </button>
+                        <button 
                           onclick="WMS.openInboundModal('${item.id}')" 
                           class="p-1.5 text-emerald-600 hover:text-white hover:bg-emerald-600 rounded-lg transition border border-emerald-200"
                           title="Restok Inbound (Otomatis Buat BAPB)"
@@ -498,7 +508,7 @@ const WMS = {
                         </button>
                         <button 
                           onclick="WMS.openItemModal('${item.id}')" 
-                          class="p-1.5 text-blue-600 hover:text-white hover:bg-blue-600 rounded-lg transition border border-blue-200"
+                          class="p-1.5 text-slate-600 hover:text-white hover:bg-slate-700 rounded-lg transition border border-slate-200"
                           title="Edit Teks, Rak & Detail Barang"
                         >
                           <i class="fa-solid fa-pen-to-square"></i>
@@ -682,20 +692,27 @@ const WMS = {
                     <span class="text-[9px] text-slate-400 block text-right mt-0.5">${pct}% dari kapasitas (${capacity})</span>
                   </div>
 
-                  <div class="grid grid-cols-2 gap-1.5">
+                  <div class="grid grid-cols-3 gap-1">
+                    <button 
+                      onclick="WMS.openBarcodeModal('${item.id}')" 
+                      class="py-1 px-1 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1"
+                      title="Lihat & Cetak Barcode SKU"
+                    >
+                      <i class="fa-solid fa-barcode text-[9px]"></i> Label
+                    </button>
                     <button 
                       onclick="WMS.openInboundModal('${item.id}')" 
-                      class="py-1 px-1.5 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1"
+                      class="py-1 px-1 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1"
                       title="Restok Inbound (Otomatis Buat BAPB)"
                     >
-                      <i class="fa-solid fa-plus text-[9px]"></i> Inbound
+                      <i class="fa-solid fa-plus text-[9px]"></i> Masuk
                     </button>
                     <button 
                       onclick="WMS.openItemModal('${item.id}')" 
-                      class="py-1 px-1.5 bg-slate-100 hover:bg-blue-600 hover:text-white text-slate-700 border border-slate-200 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1"
+                      class="py-1 px-1 bg-slate-100 hover:bg-slate-700 hover:text-white text-slate-700 border border-slate-200 rounded-lg text-[10px] font-bold transition flex items-center justify-center gap-1"
                       title="Lihat Detail & Edit Lokasi"
                     >
-                      <i class="fa-solid fa-pen-to-square text-[9px]"></i> Detail
+                      <i class="fa-solid fa-pen-to-square text-[9px]"></i> Edit
                     </button>
                   </div>
                 </div>
@@ -846,19 +863,31 @@ const WMS = {
     }
   },
 
-  saveInbound: function(event) {
-    event.preventDefault();
+  saveInbound: function(event = null, customPayload = null) {
+    if (event && event.preventDefault) event.preventDefault();
     const data = Storage.getData();
-    const itemId = document.getElementById("inbound-item-id").value;
-    const qty = Number(document.getElementById("inbound-qty").value) || 0;
-    const price = Number(document.getElementById("inbound-price").value) || 0;
-    const supplier = document.getElementById("inbound-supplier").value.trim();
-    const refDoc = document.getElementById("inbound-ref").value.trim();
-    const operator = document.getElementById("inbound-operator").value.trim() || "Staff Penerima Gudang";
-    const notes = document.getElementById("inbound-notes").value.trim();
 
-    const item = (data.wmsItems || []).find(i => i.id === itemId);
-    if (!item) return;
+    let itemId, qty, price, supplier, refDoc, operator, notes;
+    if (customPayload) {
+      itemId = customPayload.itemId || customPayload.id;
+      qty = Number(customPayload.qty) || 0;
+      price = Number(customPayload.price) || 0;
+      supplier = customPayload.supplier || "";
+      refDoc = customPayload.refDoc || customPayload.poRef || "";
+      operator = customPayload.operator || "Staff Penerima Gudang";
+      notes = customPayload.notes || "";
+    } else {
+      itemId = document.getElementById("inbound-item-id")?.value;
+      qty = Number(document.getElementById("inbound-qty")?.value) || 0;
+      price = Number(document.getElementById("inbound-price")?.value) || 0;
+      supplier = (document.getElementById("inbound-supplier")?.value || "").trim();
+      refDoc = (document.getElementById("inbound-ref")?.value || "").trim();
+      operator = (document.getElementById("inbound-operator")?.value || "Staff Penerima Gudang").trim();
+      notes = (document.getElementById("inbound-notes")?.value || "").trim();
+    }
+
+    const item = (data.wmsItems || []).find(i => i.id === itemId || i.sku === itemId || (i.name && itemId && i.name.toLowerCase() === itemId.toLowerCase()));
+    if (!item) return { success: false, error: "Barang tidak ditemukan" };
 
     // 1. Update WMS Item stock
     item.stock = (Number(item.stock) || 0) + qty;
@@ -881,6 +910,7 @@ const WMS = {
     const receiptDoc = {
       id: "DOC-" + Date.now().toString().slice(-6),
       docNumber: docNumber,
+      refDoc: refDoc || docNumber,
       type: "Berita Acara Penerimaan Barang",
       date: todayStr,
       dueDate: todayStr,
@@ -928,8 +958,11 @@ const WMS = {
     if (typeof Storage !== 'undefined' && Storage.saveWarehouseRecord) Storage.saveWarehouseRecord(item);
 
     App.closeModal('wms-inbound-modal');
-    App.showToast(`Berhasil menambah ${qty} ${item.unit} ${item.name}! Dokumen ${docNumber} (Berita Acara Penerimaan Barang) otomatis diterbitkan di menu Dokumen.`, "success", 6000);
+    if (typeof App !== 'undefined' && App.showToast) {
+      App.showToast(`Berhasil menambah ${qty} ${item.unit} ${item.name}! Dokumen ${docNumber} (Berita Acara Penerimaan Barang) otomatis diterbitkan di menu Dokumen.`, "success", 6000);
+    }
     this.render();
+    return { success: true, docNumber, receiptDoc };
   },
 
   // SINKRONISASI MASTER ITEM WMS DARI PRODUCT CATALOG (MULAI DARI ITEM #1)
@@ -1889,6 +1922,346 @@ const WMS = {
       Storage.saveData(data);
       App.showToast(`Barang "${item.name}" berhasil dihapus dari inventaris rak WMS.`, "info");
       this.render();
+    }
+  },
+
+  // ==========================================
+  // BARCODE & QR CODE LABEL MANAGEMENT (WMS)
+  // ==========================================
+  generateBarcodeSvg: function(text) {
+    if (!text) text = "1905260001";
+    const cleanText = String(text).toUpperCase().replace(/[^0-9A-Z\-]/g, '');
+    let bars = [1, 0, 1, 0]; // start guard
+    for (let i = 0; i < cleanText.length; i++) {
+      const code = cleanText.charCodeAt(i);
+      const pattern = [
+        (code >> 4) & 1 ? 2 : 1,
+        (code >> 3) & 1 ? 1 : 2,
+        (code >> 2) & 1 ? 2 : 1,
+        (code >> 1) & 1 ? 1 : 2,
+        code & 1 ? 2 : 1,
+        1
+      ];
+      bars.push(...pattern);
+    }
+    bars.push(1, 0, 1, 1, 0, 1); // stop guard
+
+    let x = 12;
+    const height = 48;
+    let rects = '';
+    let isBar = true;
+    for (const w of bars) {
+      if (isBar) {
+        rects += `<rect x="${x}" y="0" width="${w * 2}" height="${height}" fill="#0f172a" />`;
+      }
+      x += w * 2;
+      isBar = !isBar;
+    }
+    const totalWidth = x + 12;
+    return `
+      <svg xmlns="http://www.w3.org/2000/svg" viewBox="0 0 ${totalWidth} 72" class="w-full max-w-[280px] h-auto mx-auto select-none">
+        <rect width="100%" height="100%" fill="#ffffff" />
+        <g>${rects}</g>
+        <text x="${totalWidth / 2}" y="65" text-anchor="middle" font-family="monospace" font-size="12" font-weight="bold" fill="#0f172a" letter-spacing="3">${cleanText}</text>
+      </svg>
+    `;
+  },
+
+  openBarcodeModal: function(itemId) {
+    const data = Storage.getData();
+    const item = (data.wmsItems || []).find(i => i.id === itemId || i.sku === itemId);
+    if (!item) {
+      App.showToast("Barang WMS tidak ditemukan.", "error");
+      return;
+    }
+
+    const barcodeSvg = this.generateBarcodeSvg(item.sku || item.id);
+    const qrData = `SKU:${item.sku}|RAK:${item.rack}|BIN:${item.bin}|NAMA:${item.name}`;
+    const qrUrl = `https://api.qrserver.com/v1/create-qr-code/?size=160x160&margin=0&data=${encodeURIComponent(qrData)}`;
+
+    const modalHtml = `
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" id="wms-barcode-modal">
+        <div class="bg-white rounded-2xl max-w-lg w-full shadow-2xl border border-slate-200 overflow-hidden modal-content-scale max-h-[92vh] flex flex-col">
+          <!-- Header -->
+          <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <span class="p-2 bg-blue-600/30 text-blue-400 rounded-xl text-lg border border-blue-500/30">
+                <i class="fa-solid fa-barcode"></i>
+              </span>
+              <div>
+                <h3 class="text-base font-bold">Label Barcode SKU & Lokasi Rak</h3>
+                <p class="text-xs text-slate-400">Standar Barcode 1D & QR Code 2D untuk Manajemen Rak & Picking Gudang</p>
+              </div>
+            </div>
+            <button onclick="App.closeModal('wms-barcode-modal')" class="text-white/80 hover:text-white text-lg">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Printable Label Card -->
+          <div class="p-6 overflow-y-auto space-y-4 bg-slate-50 flex-1">
+            <div id="wms-printable-barcode-label" class="bg-white p-5 rounded-2xl border-2 border-slate-900 shadow-sm space-y-3">
+              <!-- Label Top Header -->
+              <div class="flex items-center justify-between border-b border-slate-200 pb-2.5">
+                <div>
+                  <span class="text-[10px] font-black uppercase text-blue-700 tracking-wider">TIMELESS.GO X ABADI GROSIR</span>
+                  <h4 class="text-sm font-black text-slate-900 leading-snug line-clamp-1">${Util.escapeHtml(item.name)}</h4>
+                </div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-slate-100 text-slate-800 border border-slate-300 font-mono">${item.id}</span>
+              </div>
+
+              <!-- Barcode Display -->
+              <div class="p-2.5 bg-slate-50 rounded-xl border border-slate-200 text-center">
+                ${barcodeSvg}
+              </div>
+
+              <!-- Location Matrix & QR Code Grid -->
+              <div class="grid grid-cols-3 gap-2.5 items-center bg-slate-50 p-3 rounded-xl border border-slate-200">
+                <div class="col-span-2 space-y-1 text-xs">
+                  <div class="flex items-center gap-1.5">
+                    <span class="text-[10px] font-semibold text-slate-400 uppercase">Lokasi Rak:</span>
+                    <strong class="text-blue-900 font-mono text-xs bg-blue-100 px-1.5 py-0.2 rounded">${item.rack}</strong>
+                  </div>
+                  <div class="flex items-center gap-1.5 text-[11px] text-slate-600">
+                    <span>Bin: <b class="font-mono text-slate-800">${item.bin || 'Bin 01'}</b></span>
+                    <span>&bull;</span>
+                    <span>Lorong: <b class="font-mono text-slate-800">${item.aisle || '-'}</b></span>
+                  </div>
+                  <div class="text-[11px] text-slate-600">
+                    <span>Tingkat: <b class="font-mono text-slate-800">${item.tier || 'Level 1'}</b></span>
+                    <span>&bull;</span>
+                    <span>Zona: <b class="text-slate-800">${item.zone || '-'}</b></span>
+                  </div>
+                  <div class="text-[10px] text-slate-500 font-mono pt-0.5">
+                    Batch: ${item.batchNo || '-'} | Exp: ${item.expDate ? Util.formatDate(item.expDate) : '-'}
+                  </div>
+                </div>
+
+                <!-- QR Code Box -->
+                <div class="flex flex-col items-center justify-center p-1.5 bg-white rounded-lg border border-slate-200 shadow-2xs">
+                  <img src="${qrUrl}" alt="QR SKU" class="w-20 h-20 object-contain" />
+                  <span class="text-[9px] font-bold text-slate-500 font-mono mt-1">SCAN QR RAK</span>
+                </div>
+              </div>
+
+              <!-- Stock & Supplier Footer -->
+              <div class="flex items-center justify-between text-[11px] text-slate-500 pt-1 border-t border-slate-100">
+                <span>Stok Fisik: <strong class="text-slate-900 font-bold font-mono">${item.stock} ${item.unit}</strong></span>
+                <span class="truncate max-w-[180px]">${item.supplier || 'PT Mitra Distributor'}</span>
+              </div>
+            </div>
+
+            <!-- Notice -->
+            <div class="p-3 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-start gap-2">
+              <i class="fa-solid fa-circle-info text-blue-600 mt-0.5 text-sm flex-shrink-0"></i>
+              <p class="leading-relaxed">
+                Label siap dicetak langsung pada kertas stiker / printer thermal label barcode (50x30mm, 80x50mm, atau A4). Barcode dapat dipindai menggunakan barcode scanner USB, Bluetooth, maupun aplikasi smartphone.
+              </p>
+            </div>
+          </div>
+
+          <!-- Actions -->
+          <div class="px-6 py-3.5 bg-slate-100 border-t border-slate-200 flex items-center justify-between">
+            <button 
+              type="button" 
+              onclick="App.copyToClipboard('${item.sku}')" 
+              class="px-3.5 py-2 bg-white hover:bg-slate-200 text-slate-700 border border-slate-300 rounded-xl text-xs font-bold transition flex items-center gap-1.5"
+            >
+              <i class="fa-solid fa-copy"></i> Salin SKU (${item.sku})
+            </button>
+            <div class="flex items-center gap-2">
+              <button type="button" onclick="App.closeModal('wms-barcode-modal')" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-200 rounded-xl font-bold transition">
+                Tutup
+              </button>
+              <button 
+                type="button" 
+                onclick="window.print()" 
+                class="px-5 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl text-xs font-bold shadow-md transition flex items-center gap-1.5"
+              >
+                <i class="fa-solid fa-print"></i> Cetak Label Rak
+              </button>
+            </div>
+          </div>
+        </div>
+      </div>
+    `;
+
+    App.closeModal('wms-barcode-modal');
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+  },
+
+  openBarcodeScannerModal: function() {
+    const data = Storage.getData();
+    const items = data.wmsItems || [];
+
+    const modalHtml = `
+      <div class="fixed inset-0 z-50 flex items-center justify-center p-4 modal-backdrop" id="wms-scanner-modal">
+        <div class="bg-white rounded-2xl max-w-xl w-full shadow-2xl border border-slate-200 overflow-hidden modal-content-scale max-h-[92vh] flex flex-col">
+          <!-- Header -->
+          <div class="px-6 py-4 bg-slate-900 text-white flex items-center justify-between">
+            <div class="flex items-center gap-2.5">
+              <span class="p-2 bg-amber-500/20 text-amber-400 rounded-xl text-lg border border-amber-500/30">
+                <i class="fa-solid fa-barcode"></i>
+              </span>
+              <div>
+                <h3 class="text-base font-bold">Scanner Barcode SKU & Pencarian Rak</h3>
+                <p class="text-xs text-slate-400">Pindai barcode fisik menggunakan scanner USB/Bluetooth atau ketik SKU</p>
+              </div>
+            </div>
+            <button onclick="App.closeModal('wms-scanner-modal')" class="text-white/80 hover:text-white text-lg">
+              <i class="fa-solid fa-xmark"></i>
+            </button>
+          </div>
+
+          <!-- Body -->
+          <div class="p-6 overflow-y-auto space-y-4 flex-1 bg-slate-50">
+            <!-- Scan Input Box -->
+            <div class="bg-white p-4 rounded-xl border-2 border-blue-500/80 shadow-sm space-y-2">
+              <label class="block text-xs font-bold uppercase text-slate-700 flex items-center justify-between">
+                <span>Pindai Barcode / Masukkan SKU *</span>
+                <span class="text-[10px] text-emerald-600 font-mono font-bold flex items-center gap-1"><span class="w-2 h-2 rounded-full bg-emerald-500 animate-pulse"></span> Siap Memindai</span>
+              </label>
+              <div class="relative">
+                <i class="fa-solid fa-barcode absolute left-3 top-3 text-slate-400 text-base"></i>
+                <input 
+                  type="text" 
+                  id="barcode-scanner-input" 
+                  autofocus
+                  placeholder="Arahkan barcode scanner atau ketik SKU (contoh: 1905260001)..." 
+                  oninput="WMS.handleBarcodeScanInput(this.value)"
+                  onkeydown="if(event.key === 'Enter'){ event.preventDefault(); WMS.handleBarcodeScanInput(this.value, true); }"
+                  class="w-full pl-10 pr-3 py-2.5 text-sm rounded-xl border border-slate-300 focus:outline-none focus:ring-2 focus:ring-blue-600 font-mono font-bold text-slate-900"
+                />
+              </div>
+              <p class="text-[11px] text-slate-400">Scanner barcode USB atau keyboard wedge akan otomatis menekan Enter setelah pemindaian.</p>
+            </div>
+
+            <!-- Scan Result Display Card -->
+            <div id="barcode-scan-result" class="space-y-3">
+              <div class="p-6 bg-white rounded-xl border border-slate-200 text-center text-slate-400 space-y-1">
+                <i class="fa-solid fa-qrcode text-3xl text-slate-300"></i>
+                <p class="text-xs font-semibold text-slate-500">Belum ada barcode yang dipindai</p>
+                <p class="text-[11px] text-slate-400">Gunakan scanner USB atau masukkan nomor SKU barang untuk melihat denah rak.</p>
+              </div>
+            </div>
+          </div>
+
+          <!-- Footer Actions -->
+          <div class="px-6 py-3.5 bg-slate-100 border-t border-slate-200 flex items-center justify-between">
+            <span class="text-xs text-slate-500 font-mono">${items.length} Master SKU Terdaftar</span>
+            <button type="button" onclick="App.closeModal('wms-scanner-modal')" class="px-5 py-2 bg-slate-800 hover:bg-slate-900 text-white rounded-xl text-xs font-bold transition">
+              Tutup Scanner
+            </button>
+          </div>
+        </div>
+      </div>
+    `;
+
+    App.closeModal('wms-scanner-modal');
+    document.body.insertAdjacentHTML('beforeend', modalHtml);
+
+    setTimeout(() => {
+      const input = document.getElementById('barcode-scanner-input');
+      if (input) input.focus();
+    }, 150);
+  },
+
+  handleBarcodeScanInput: function(query, isEnter = false) {
+    const resultContainer = document.getElementById('barcode-scan-result');
+    if (!resultContainer) return;
+
+    const cleanQ = (query || '').trim().toLowerCase();
+    if (!cleanQ) {
+      resultContainer.innerHTML = `
+        <div class="p-6 bg-white rounded-xl border border-slate-200 text-center text-slate-400 space-y-1">
+          <i class="fa-solid fa-qrcode text-3xl text-slate-300"></i>
+          <p class="text-xs font-semibold text-slate-500">Belum ada barcode yang dipindai</p>
+        </div>
+      `;
+      return;
+    }
+
+    const data = Storage.getData();
+    const items = data.wmsItems || [];
+    const match = items.find(i => 
+      (i.sku && i.sku.toLowerCase() === cleanQ) || 
+      (i.id && i.id.toLowerCase() === cleanQ) ||
+      (i.name && i.name.toLowerCase().includes(cleanQ))
+    );
+
+    if (match) {
+      resultContainer.innerHTML = `
+        <div class="bg-white p-4 rounded-xl border-2 border-emerald-500 shadow-sm space-y-3 animate-fade-in">
+          <div class="flex items-start justify-between gap-3 border-b border-slate-100 pb-3">
+            <div class="flex items-center gap-3">
+              <img src="${match.image || 'https://via.placeholder.com/80'}" class="w-14 h-14 rounded-xl object-cover border border-slate-200 flex-shrink-0" />
+              <div>
+                <span class="px-2 py-0.5 rounded text-[10px] font-bold bg-emerald-100 text-emerald-800 font-mono">DITEMUKAN &bull; ${match.sku}</span>
+                <h4 class="font-bold text-slate-900 text-sm mt-0.5 leading-snug">${Util.escapeHtml(match.name)}</h4>
+                <p class="text-[11px] text-slate-500">${match.category} &bull; Satuan: ${match.unit}</p>
+              </div>
+            </div>
+            <span class="px-2.5 py-1 rounded-full text-xs font-bold ${match.status === 'Kritis' ? 'bg-rose-100 text-rose-700' : match.status === 'Menipis' ? 'bg-amber-100 text-amber-700' : 'bg-emerald-100 text-emerald-700'}">
+              ${match.status || 'Aman'}
+            </span>
+          </div>
+
+          <!-- Position Details -->
+          <div class="grid grid-cols-2 gap-2 bg-slate-50 p-3 rounded-lg border border-slate-200 text-xs">
+            <div>
+              <span class="text-[10px] text-slate-400 font-semibold uppercase block">Lokasi Rak</span>
+              <strong class="text-blue-900 font-mono text-sm">${match.rack}</strong>
+              <span class="text-[11px] text-slate-500 block">Bin: ${match.bin || 'Bin 01'}</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 font-semibold uppercase block">Zona & Lorong</span>
+              <strong class="text-slate-800 font-medium">${match.zone || '-'}</strong>
+              <span class="text-[11px] text-slate-500 block">${match.aisle || '-'}</span>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 font-semibold uppercase block">Stok Fisik WMS</span>
+              <strong class="text-emerald-700 font-mono text-sm">${match.stock} ${match.unit}</strong>
+            </div>
+            <div>
+              <span class="text-[10px] text-slate-400 font-semibold uppercase block">Supplier</span>
+              <span class="text-[11px] text-slate-700 truncate block">${match.supplier || '-'}</span>
+            </div>
+          </div>
+
+          <!-- Quick Action Buttons -->
+          <div class="grid grid-cols-3 gap-2 pt-1">
+            <button 
+              onclick="App.closeModal('wms-scanner-modal'); WMS.openBarcodeModal('${match.id}');" 
+              class="py-2 px-2.5 bg-blue-50 hover:bg-blue-600 hover:text-white text-blue-700 border border-blue-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 shadow-xs"
+            >
+              <i class="fa-solid fa-barcode"></i> Cetak Label
+            </button>
+            <button 
+              onclick="App.closeModal('wms-scanner-modal'); WMS.openInboundModal('${match.id}');" 
+              class="py-2 px-2.5 bg-emerald-50 hover:bg-emerald-600 hover:text-white text-emerald-700 border border-emerald-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 shadow-xs"
+            >
+              <i class="fa-solid fa-box-archive"></i> + Inbound
+            </button>
+            <button 
+              onclick="App.closeModal('wms-scanner-modal'); WMS.openOutboundModal();" 
+              class="py-2 px-2.5 bg-amber-50 hover:bg-amber-600 hover:text-white text-amber-700 border border-amber-200 rounded-xl text-xs font-bold transition flex items-center justify-center gap-1 shadow-xs"
+            >
+              <i class="fa-solid fa-truck-ramp-box"></i> - Outbound
+            </button>
+          </div>
+        </div>
+      `;
+      if (isEnter) {
+        App.showToast(`Barang "${match.name}" ditemukan di ${match.rack}!`, "success");
+      }
+    } else {
+      resultContainer.innerHTML = `
+        <div class="p-6 bg-rose-50 rounded-xl border border-rose-200 text-center text-rose-700 space-y-1 animate-fade-in">
+          <i class="fa-solid fa-triangle-exclamation text-2xl text-rose-500"></i>
+          <p class="text-xs font-bold">Barang dengan SKU/Barcode "${Util.escapeHtml(query)}" tidak ditemukan</p>
+          <p class="text-[11px] text-rose-600">Pastikan kode SKU sesuai dengan data master 250 produk UMKM.</p>
+        </div>
+      `;
     }
   },
 

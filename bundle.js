@@ -11,15 +11,15 @@ html = html.replace(
   `<style>\n/* Inlined Custom Styles */\n${cssContent}\n</style>`
 );
 
-// Inlined JS scripts in order
+// Inlined JS scripts in order matching index.html
 const jsFiles = [
   'data.js',
   'storage.js',
   'map.js',
-  'shop.js',
-  'orders.js',
   'wms.js',
   'documents.js',
+  'orders.js',
+  'shop.js',
   'inventory.js',
   'app.js'
 ];

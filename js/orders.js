@@ -22,6 +22,9 @@ const Orders = {
   ],
 
   getStageInfo: function(status) {
+    if (status === "Dibatalkan") {
+      return { key: "Dibatalkan", label: "Dibatalkan", icon: "fa-ban", step: 0, color: "rose" };
+    }
     const found = this.STAGES.find(s => s.key === status);
     return found || this.STAGES[0];
   },
@@ -529,6 +532,16 @@ const Orders = {
             </div>
           </div>
 
+          ${order.status === 'Dibatalkan' ? `
+            <div class="mt-4 p-3.5 bg-rose-50 border border-rose-200 rounded-xl flex items-center gap-3 text-xs text-rose-800">
+              <i class="fa-solid fa-triangle-exclamation text-rose-600 text-lg flex-shrink-0"></i>
+              <div>
+                <span class="font-bold">Status Pesanan: Dibatalkan</span>
+                <p class="text-[11px] text-rose-700 mt-0.5">Pesanan ini telah dibatalkan oleh staf/admin, dan seluruh stok kuantitas produk telah dikembalikan otomatis ke Katalog Toko & WMS.</p>
+              </div>
+            </div>
+          ` : ''}
+
           <!-- Stepper 5 Stages -->
           <div class="pt-6 pb-2">
             <div class="relative">
@@ -991,6 +1004,16 @@ const Orders = {
                         >
                           <i class="fa-solid fa-truck-ramp-box text-purple-600"></i> Surat Jalan
                         </button>
+
+                        ${order.status !== 'Dibatalkan' ? `
+                          <button 
+                            onclick="Orders.confirmCancelOrder('${order.id}')" 
+                            class="px-2.5 py-1.5 bg-rose-50 hover:bg-rose-100 text-rose-700 rounded-lg text-xs font-semibold transition border border-rose-200"
+                            title="Batalkan Pesanan & Kembalikan Stok ke Toko & WMS"
+                          >
+                            <i class="fa-solid fa-ban text-rose-600"></i> Batal
+                          </button>
+                        ` : ''}
                       </div>
                     </div>
 
@@ -1076,6 +1099,48 @@ const Orders = {
                     <span class="text-xs">${st.label}</span>
                   </label>
                 `).join('')}
+              </div>
+            </div>
+
+            <!-- Dynamic Section: Picking List & Barcode Verification -->
+            <div class="bg-amber-50/70 p-4 rounded-xl border border-amber-200 space-y-3">
+              <div class="flex items-center justify-between">
+                <h4 class="text-xs font-bold text-amber-900 uppercase flex items-center gap-1.5">
+                  <i class="fa-solid fa-clipboard-check text-amber-600"></i> Verifikasi Barcode & Lokasi Rak Barang (Picking List)
+                </h4>
+                <span class="text-[10px] text-amber-800 bg-amber-100 font-bold px-2 py-0.5 rounded border border-amber-300">
+                  ${(order.items || []).length} Item Barang
+                </span>
+              </div>
+              <p class="text-[11px] text-slate-600">
+                Periksa fisik barang dari rak WMS dan verifikasi kesesuaian barcode/SKU sebelum pengemasan:
+              </p>
+              <div class="space-y-2 max-h-48 overflow-y-auto pr-1">
+                ${(order.items || []).map((it, idx) => {
+                  const wmsItem = (data.wmsItems || []).find(w => (it.sku && w.sku === it.sku) || (w.name && w.name.trim().toLowerCase() === it.name.trim().toLowerCase()));
+                  const rackLoc = wmsItem ? `${wmsItem.zone || 'Gudang'} - Rak ${wmsItem.rack || '01'} (Bin ${wmsItem.bin || 'A'})` : 'Gudang Utama - Rak Umum';
+                  const itemBarcode = it.sku || (wmsItem ? wmsItem.sku : 'SKU-' + (idx+1));
+                  return `
+                    <div class="bg-white p-2.5 rounded-lg border border-amber-200/80 flex items-center justify-between gap-3 text-xs shadow-2xs">
+                      <div class="flex items-center gap-2.5 min-w-0">
+                        <input type="checkbox" id="pick-check-${idx}" class="w-4 h-4 text-emerald-600 rounded focus:ring-emerald-500 cursor-pointer" checked />
+                        <div class="min-w-0">
+                          <div class="font-bold text-slate-900 truncate">${Util.escapeHtml(it.name)}</div>
+                          <div class="text-[11px] text-slate-500 flex items-center gap-2 font-mono">
+                            <span class="text-blue-700 font-bold"><i class="fa-solid fa-barcode"></i> ${itemBarcode}</span>
+                            <span>•</span>
+                            <span class="text-amber-800 font-semibold"><i class="fa-solid fa-cubes-stacked"></i> ${rackLoc}</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div class="text-right shrink-0">
+                        <span class="font-mono font-extrabold text-blue-900 bg-blue-50 px-2 py-0.5 rounded border border-blue-200">
+                          ${it.qty} ${it.unit || 'Pack'}
+                        </span>
+                      </div>
+                    </div>
+                  `;
+                }).join('')}
               </div>
             </div>
 
@@ -1216,11 +1281,27 @@ const Orders = {
             </div>
 
             <!-- Action Buttons -->
-            <div class="flex items-center justify-end gap-3 pt-3 border-t border-slate-200">
-              <button type="button" onclick="App.closeModal('process-order-modal')" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-xl font-bold">Batal</button>
-              <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center gap-1.5">
-                <i class="fa-solid fa-floppy-disk"></i> Simpan & Kirim Update Live
-              </button>
+            <div class="flex items-center justify-between gap-3 pt-3 border-t border-slate-200">
+              ${order.status !== 'Dibatalkan' ? `
+                <button 
+                  type="button" 
+                  onclick="Orders.confirmCancelOrder('${order.id}')" 
+                  class="px-3.5 py-2 bg-rose-50 hover:bg-rose-100 text-rose-700 border border-rose-300 rounded-xl font-bold text-xs transition flex items-center gap-1.5"
+                  title="Batalkan pesanan dan kembalikan seluruh kuantitas ke stok Toko & WMS"
+                >
+                  <i class="fa-solid fa-ban text-rose-600"></i> Batalkan & Kembalikan Stok
+                </button>
+              ` : `
+                <span class="text-xs font-bold text-rose-600 flex items-center gap-1">
+                  <i class="fa-solid fa-ban"></i> Pesanan Ini Dibatalkan
+                </span>
+              `}
+              <div class="flex items-center gap-2">
+                <button type="button" onclick="App.closeModal('process-order-modal')" class="px-4 py-2 text-xs text-slate-600 hover:bg-slate-100 rounded-xl font-bold">Tutup</button>
+                <button type="submit" class="px-6 py-2.5 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-md transition flex items-center gap-1.5">
+                  <i class="fa-solid fa-floppy-disk"></i> Simpan & Kirim Update Live
+                </button>
+              </div>
             </div>
 
           </form>
@@ -1926,6 +2007,118 @@ const Orders = {
       App.showToast(`Pengiriman ${order.id} berhasil dihapus.`, "info");
       this.renderTrackingPanel();
     }
+  },
+
+  confirmCancelOrder: function(orderId) {
+    if (confirm(`Apakah Anda yakin ingin membatalkan pesanan "${orderId}"?\n\nSeluruh stok kuantitas produk akan dikembalikan secara otomatis ke Katalog Toko dan WMS.`)) {
+      this.cancelOrder(orderId);
+    }
+  },
+
+  cancelOrder: function(orderId) {
+    if (!Storage.isEmployee()) {
+      App.openLoginModal();
+      return;
+    }
+    const data = Storage.getData();
+    const order = (data.orders || []).find(o => o.id === orderId);
+    if (!order) {
+      App.showToast("Pesanan tidak ditemukan!", "error");
+      return;
+    }
+
+    if (order.status === "Dibatalkan") {
+      App.showToast(`Pesanan ${order.id} sudah berstatus Dibatalkan sebelumnya.`, "info");
+      return;
+    }
+
+    if (!data.shopProducts) data.shopProducts = [];
+    if (!data.wmsItems) data.wmsItems = [];
+    if (!data.wmsLogs) data.wmsLogs = [];
+
+    const restoredItemsList = [];
+
+    // Atomically restore stock to shopProducts and wmsItems
+    (order.items || []).forEach(it => {
+      const qty = Number(it.qty) || 0;
+      if (qty <= 0) return;
+
+      // 1. Restore to shop catalog
+      const prod = data.shopProducts.find(p => 
+        p.id === it.productId || 
+        (it.sku && p.sku === it.sku) || 
+        (p.name && p.name.trim().toLowerCase() === it.name.trim().toLowerCase())
+      );
+      if (prod) {
+        prod.stock = (Number(prod.stock) || 0) + qty;
+      }
+
+      // 2. Restore to WMS storage
+      let wmsItem = data.wmsItems.find(w => 
+        (it.sku && w.sku && w.sku === it.sku) ||
+        (prod && prod.sku && w.sku && w.sku === prod.sku) ||
+        (w.name && w.name.trim().toLowerCase() === it.name.trim().toLowerCase()) ||
+        (it.productId && w.id === it.productId)
+      );
+      let prevWmsStock = 0;
+      if (wmsItem) {
+        prevWmsStock = Number(wmsItem.stock) || 0;
+        wmsItem.stock = prevWmsStock + qty;
+      }
+
+      // 3. Record WMS inbound audit log
+      data.wmsLogs.unshift({
+        id: "LOG-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+        timestamp: new Date().toISOString().replace("T", " ").slice(0, 16),
+        type: "inbound",
+        sku: it.sku || (wmsItem ? wmsItem.sku : (prod ? prod.sku : "-")),
+        name: it.name,
+        qty: qty,
+        beforeStock: prevWmsStock,
+        afterStock: wmsItem ? wmsItem.stock : 0,
+        source: `Pembatalan Pesanan ${order.id}`,
+        destination: "Rak Gudang WMS & Toko",
+        user: "Sistem Administrasi / Admin Toko",
+        notes: `Stok produk dikembalikan karena pembatalan pesanan ${order.id} (${order.customerName})`
+      });
+
+      restoredItemsList.push(`${it.name} (+${qty} ${it.unit || 'Pack'})`);
+    });
+
+    // Update status and progress
+    order.status = "Dibatalkan";
+    order.progressPercent = 0;
+
+    const now = new Date().toISOString().replace("T", " ").slice(0, 16);
+    if (!order.checkpoints) order.checkpoints = [];
+    order.checkpoints.unshift({
+      time: now,
+      title: "Pesanan Dibatalkan & Stok Dikembalikan",
+      location: "Sistem Administrasi / Gudang",
+      desc: `Pesanan dibatalkan oleh admin. Seluruh kuantitas barang telah dikembalikan secara aman ke stok Toko dan sistem WMS.`
+    });
+
+    // Update document status if present
+    if (data.documents && Array.isArray(data.documents)) {
+      data.documents.forEach(doc => {
+        if (doc.orderId === order.id || doc.docNumber === order.suratJalanNumber) {
+          doc.status = "Dibatalkan";
+          doc.notes = (doc.notes ? doc.notes + " | " : "") + "Dibatalkan oleh admin pada " + now;
+        }
+      });
+    }
+
+    Storage.saveData(data);
+    if (typeof Storage !== 'undefined' && Storage.saveOrder) Storage.saveOrder(order);
+
+    App.closeModal('process-order-modal');
+    App.closeModal('employee-orders-modal');
+
+    App.showToast(`Pesanan ${order.id} berhasil dibatalkan. Stok barang (${restoredItemsList.join(', ')}) telah dikembalikan ke Toko & WMS!`, "success");
+
+    this.renderTrackingPanel();
+    if (typeof Shop !== 'undefined' && Shop.render) Shop.render();
+    if (typeof WMS !== 'undefined' && WMS.render) WMS.render();
   }
 };
 
