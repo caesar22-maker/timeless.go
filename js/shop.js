@@ -1073,6 +1073,8 @@ const Shop = {
       });
     });
 
+    newOrder.stockDeducted = true;
+
     // ========================================================
     // 2. OTOMATIS MEMBUAT DOKUMEN FAKTUR PENJUALAN DI DOKUMEN
     // ========================================================
@@ -1328,11 +1330,19 @@ const Shop = {
         doc.paymentStatus = "LUNAS";
       }
 
+      // Pastikan kuantitas stok produk otomatis berkurang saat pembayaran/pesanan dikonfirmasi
+      if (typeof Storage !== 'undefined' && Storage.deductStockForOrder) {
+        Storage.deductStockForOrder(order);
+      }
+
       Storage.saveData(data);
       if (typeof Storage !== 'undefined' && Storage.saveOrder) Storage.saveOrder(order);
       if (doc && typeof Storage !== 'undefined' && Storage.saveDocument) Storage.saveDocument(doc);
 
-      App.showToast("Pembayaran berhasil dikonfirmasi! Faktur diperbarui menjadi LUNAS & pesanan siap dipacking.", "success");
+      this.render();
+      if (typeof WMS !== 'undefined' && WMS.render) WMS.render();
+
+      App.showToast("Pembayaran berhasil dikonfirmasi! Faktur diperbarui menjadi LUNAS & stok telah tersinkron.", "success");
       App.closeModal('order-payment-modal');
       Orders.openCustomerTrackingModal(orderId);
     }

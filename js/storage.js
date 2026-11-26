@@ -1395,9 +1395,123 @@ const Storage = {
         const topDocs = data.documents.slice(0, 10).map(d => this.docToCloud(d));
         await this.client.from('documents').upsert(topDocs, { onConflict: 'id' });
       }
+      // Sync modified products
+      if (Array.isArray(data.shopProducts) && data.shopProducts.length > 0) {
+        const topProds = data.shopProducts.slice(0, 25).map(p => this.productToCloud(p));
+        await this.client.from('products').upsert(topProds, { onConflict: 'id' });
+      }
+      // Sync modified warehouse records
+      if (Array.isArray(data.wmsItems) && data.wmsItems.length > 0) {
+        const topWms = data.wmsItems.slice(0, 25).map(w => this.wmsToCloud(w));
+        await this.client.from('warehouse_records').upsert(topWms, { onConflict: 'id' });
+      }
     } catch (e) {
       console.warn("Background sync error:", e);
     }
+  },
+
+  // ============================================================================
+  // ATOMIC INVENTORY & STOCK DEDUCTION FOR ORDERS (IMMEDIATE & CONFIRMED)
+  // ============================================================================
+  deductStockForOrder: function(orderOrId) {
+    const data = this.getData();
+    let order = orderOrId;
+    if (typeof orderOrId === 'string') {
+      order = (data.orders || []).find(o => o.id === orderOrId);
+    }
+    if (!order) return { success: false, reason: "Order not found" };
+
+    // Idempotency: Prevent double deducting
+    if (order.stockDeducted) {
+      return { success: true, alreadyDeducted: true };
+    }
+
+    if (!data.shopProducts) data.shopProducts = [];
+    if (!data.wmsItems) data.wmsItems = [];
+    if (!data.wmsLogs) data.wmsLogs = [];
+
+    const orderItems = Array.isArray(order.items) ? order.items : [];
+    const modifiedProducts = [];
+    const modifiedWmsItems = [];
+
+    orderItems.forEach(it => {
+      const qtyPurchased = Number(it.qty) || 1;
+
+      // 1. Kurangi stok di katalog Online Shop / Product Catalog
+      const prod = data.shopProducts.find(p => 
+        (it.productId && p.id === it.productId) || 
+        (it.sku && p.sku === it.sku) || 
+        (it.name && p.name && p.name.trim().toLowerCase() === it.name.trim().toLowerCase())
+      );
+
+      if (prod) {
+        const prevShopStock = Number(prod.stock) || 0;
+        prod.stock = Math.max(0, prevShopStock - qtyPurchased);
+        modifiedProducts.push(prod);
+      }
+
+      // 2. Kurangi stok di Gudang WMS
+      let wmsItem = data.wmsItems.find(w => 
+        (it.sku && w.sku && w.sku === it.sku) ||
+        (prod && prod.sku && w.sku && w.sku === prod.sku) ||
+        (it.name && w.name && w.name.trim().toLowerCase() === it.name.trim().toLowerCase()) ||
+        (it.productId && w.id === it.productId)
+      );
+
+      if (wmsItem) {
+        const prevWmsStock = Number(wmsItem.stock) || 0;
+        wmsItem.stock = Math.max(0, prevWmsStock - qtyPurchased);
+
+        // Update WMS stock status
+        const minS = Number(wmsItem.minStock) || 10;
+        if (wmsItem.stock <= (minS / 2)) {
+          wmsItem.status = "Kritis";
+        } else if (wmsItem.stock <= minS) {
+          wmsItem.status = "Menipis";
+        } else {
+          wmsItem.status = "Aman";
+        }
+        modifiedWmsItems.push(wmsItem);
+      }
+
+      // 3. Catat Riwayat Mutasi Keluar (OUTBOUND) di WMS jika belum dicatat
+      const existingLog = data.wmsLogs.find(l => l.refDoc === order.id && (l.sku === (it.sku || (wmsItem ? wmsItem.sku : '')) || l.itemName === it.name));
+      if (!existingLog) {
+        data.wmsLogs.unshift({
+          id: "LOG-" + Date.now() + "-" + Math.floor(100 + Math.random() * 900),
+          date: order.orderDate || new Date().toISOString().replace("T", " ").slice(0, 16),
+          type: "OUTBOUND",
+          itemId: wmsItem ? wmsItem.id : (prod ? prod.id : "WMS-OUT"),
+          itemName: it.name,
+          sku: (wmsItem ? wmsItem.sku : (prod ? prod.sku : (it.sku || ""))),
+          qty: `-${qtyPurchased} ${it.unit || 'Pack'}`,
+          refDoc: order.id,
+          operator: `Sistem Online Shop (${order.customerName || 'Pelanggan'})`,
+          notes: `Pengeluaran barang otomatis atas pesanan #${order.id}. Pembeli: ${order.customerName}. Sisa stok fisik gudang: ${wmsItem ? wmsItem.stock : 0} ${it.unit || 'Pack'}.`
+        });
+      }
+    });
+
+    order.stockDeducted = true;
+
+    // Simpan ke storage dan perbarui cache
+    this.saveData(data);
+
+    // Sinkronkan produk dan WMS yang berubah ke Supabase Cloud jika terhubung
+    if (this.client && this.isSupabaseConfigured()) {
+      modifiedProducts.forEach(p => this.saveProduct(p));
+      modifiedWmsItems.forEach(w => this.saveWarehouseRecord(w));
+    }
+
+    // Refresh modul yang sedang aktif di UI
+    if (typeof Shop !== 'undefined' && typeof Shop.render === 'function') {
+      Shop.render();
+    }
+    if (typeof WMS !== 'undefined' && typeof WMS.render === 'function') {
+      WMS.render();
+    }
+
+    return { success: true, deductedItems: orderItems.length };
   },
 
   // ============================================================================
@@ -1695,7 +1809,8 @@ const Util = {
 
 if (typeof window !== 'undefined') {
   window.Storage = Storage;
+  window.Util = Util;
 }
 if (typeof module !== 'undefined' && module.exports) {
-  module.exports = { Storage };
+  module.exports = { Storage, Util };
 }

@@ -52,25 +52,38 @@ const Orders = {
   setTrackingOrder: function(orderId) {
     this.selectedTrackingOrderId = orderId;
     localStorage.setItem("GBA_LAST_ORDER_ID", orderId);
-    this.renderTrackingPanel();
+
+    // Buka modal Live Tracking langsung agar pengguna mendapatkan respons visual seketika
+    this.openCustomerTrackingModal(orderId);
+
+    // Perbarui juga tampilan simulator panel di latar belakang jika tersedia
     const data = Storage.getData();
     const order = (data.orders || []).find(o => o.id === orderId);
-    if (order) {
-      setTimeout(() => this.initLeafletMap(order), 180);
+    const detailContainer = document.getElementById("tracking-panel-detail-container");
+    if (detailContainer && order) {
+      detailContainer.innerHTML = this.renderTrackingDetailHtml(order, 'panel');
+      setTimeout(() => this.initLeafletMap(order, 'tracking-leaflet-map'), 200);
     }
   },
 
   // ==========================================
-  // REAL LEAFLET GOOGLE MAPS-STYLE LIVE TRACKING
-  // ==========================================
-  // ==========================================
   // REAL LEAFLET GOOGLE MAPS-STYLE LIVE TRACKING (SYNCHRONIZED TWO PINS)
   // ==========================================
-  initLeafletMap: async function(order) {
+  initLeafletMap: async function(order, targetMapId = null) {
     if (!order) return;
     this.currentOrderTracked = order;
 
-    const mapEl = document.getElementById("tracking-leaflet-map");
+    // Deteksi container peta target: prioritas targetMapId, modal jika terbuka, atau panel
+    let mapElementId = targetMapId;
+    if (!mapElementId) {
+      if (document.getElementById("tracking-leaflet-map-modal")) {
+        mapElementId = "tracking-leaflet-map-modal";
+      } else {
+        mapElementId = "tracking-leaflet-map";
+      }
+    }
+
+    const mapEl = document.getElementById(mapElementId);
     if (!mapEl) return;
 
     if (typeof L === "undefined") {
@@ -96,7 +109,7 @@ const Orders = {
     else if (order.status === "Dalam Pengiriman" && progressPercent < 60) progressPercent = 75;
 
     try {
-      const syncResult = await MapService.renderSynchronizedMap("tracking-leaflet-map", {
+      const syncResult = await MapService.renderSynchronizedMap(mapElementId, {
         customerAddress: order.customerAddress,
         customerName: order.customerName,
         customerPhone: order.customerPhone,
@@ -182,6 +195,10 @@ const Orders = {
   // ==========================================
   openRouteMapModal: async function(orderOrCust = null) {
     let order = orderOrCust;
+    if (typeof orderOrCust === 'string') {
+      const data = Storage.getData();
+      order = (data.orders || []).find(o => o.id === orderOrCust);
+    }
     if (!order) {
       const data = Storage.getData();
       order = (data.orders && data.orders[0]) || {
@@ -334,8 +351,9 @@ const Orders = {
     // Default to targetOrderId, or last placed order, or first available order
     let selectedOrder = null;
     if (targetOrderId) {
-      selectedOrder = orders.find(o => o.id === targetOrderId);
-    } else {
+      selectedOrder = (typeof targetOrderId === 'object') ? targetOrderId : orders.find(o => o.id === targetOrderId);
+    }
+    if (!selectedOrder) {
       const lastId = localStorage.getItem("GBA_LAST_ORDER_ID");
       if (lastId) {
         selectedOrder = orders.find(o => o.id === lastId);
@@ -343,6 +361,9 @@ const Orders = {
       if (!selectedOrder && orders.length > 0) {
         selectedOrder = orders[0];
       }
+    }
+    if (selectedOrder) {
+      this.selectedTrackingOrderId = selectedOrder.id;
     }
 
     const modalHtml = `
@@ -393,7 +414,7 @@ const Orders = {
 
             <!-- Tracking Container -->
             <div id="tracking-detail-container">
-              ${selectedOrder ? this.renderTrackingDetailHtml(selectedOrder) : this.renderNoOrderFoundHtml()}
+              ${selectedOrder ? this.renderTrackingDetailHtml(selectedOrder, 'modal') : this.renderNoOrderFoundHtml()}
             </div>
 
           </div>
@@ -415,7 +436,7 @@ const Orders = {
     App.closeModal('customer-tracking-modal');
     document.body.insertAdjacentHTML('beforeend', modalHtml);
     if (selectedOrder) {
-      setTimeout(() => this.initLeafletMap(selectedOrder), 220);
+      setTimeout(() => this.initLeafletMap(selectedOrder, 'tracking-leaflet-map-modal'), 220);
     }
   },
 
@@ -462,7 +483,7 @@ const Orders = {
     `;
   },
 
-  renderTrackingDetailHtml: function(order) {
+  renderTrackingDetailHtml: function(order, context = 'panel') {
     const stageInfo = this.getStageInfo(order.status);
     const currentStep = stageInfo.step;
     const progressPercent = order.progressPercent || (currentStep === 1 ? 15 : currentStep === 2 ? 35 : currentStep === 3 ? 60 : currentStep === 4 ? 85 : 100);
@@ -645,7 +666,7 @@ const Orders = {
 
           <!-- Interactive Leaflet Map Box -->
           <div class="relative rounded-xl overflow-hidden border border-slate-700 shadow-inner my-2">
-            <div id="tracking-leaflet-map" style="height: 380px; width: 100%; border-radius: 0.75rem; z-index: 10;"></div>
+            <div id="${context === 'modal' ? 'tracking-leaflet-map-modal' : 'tracking-leaflet-map'}" style="height: 380px; width: 100%; border-radius: 0.75rem; z-index: 10;"></div>
 
             <!-- Floating Live Telemetry Badge -->
             <div class="absolute top-3 left-3 z-[400] bg-slate-900/90 backdrop-blur-md px-3.5 py-2.5 rounded-xl border border-slate-700 text-xs shadow-xl space-y-0.5 pointer-events-none">
@@ -829,6 +850,10 @@ const Orders = {
       location: order.customerAddress || "Toko Pelanggan",
       desc: `Barang diterima langsung oleh pelanggan (${order.customerName}). Seluruh paket dalam kondisi lengkap dan baik.`
     });
+
+    if (typeof Storage !== 'undefined' && Storage.deductStockForOrder) {
+      Storage.deductStockForOrder(order);
+    }
 
     Storage.saveData(data);
     if (typeof Storage !== 'undefined' && Storage.saveOrder) Storage.saveOrder(order);
@@ -1434,6 +1459,10 @@ const Orders = {
       }
     }
 
+    if (typeof Storage !== 'undefined' && Storage.deductStockForOrder) {
+      Storage.deductStockForOrder(order);
+    }
+
     Storage.saveData(data);
     if (typeof Storage !== 'undefined' && Storage.saveOrder) Storage.saveOrder(order);
 
@@ -1656,9 +1685,9 @@ const Orders = {
                             <i class="fa-solid fa-pen-to-square"></i> Edit
                           </button>
                           <button 
-                            onclick="Orders.setTrackingOrder('${o.id}')" 
-                            class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs transition"
-                            title="Tinjau Simulasi Rute & Tracking"
+                            onclick="Orders.openCustomerTrackingModal('${o.id}')" 
+                            class="p-1.5 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-lg text-xs transition cursor-pointer"
+                            title="Buka Live Tracking & Peta Rute Pengiriman"
                           >
                             <i class="fa-solid fa-location-crosshairs text-indigo-600"></i>
                           </button>
@@ -2044,56 +2073,60 @@ const Orders = {
 
     const restoredItemsList = [];
 
-    // Atomically restore stock to shopProducts and wmsItems
-    (order.items || []).forEach(it => {
-      const qty = Number(it.qty) || 0;
-      if (qty <= 0) return;
+    // Atomically restore stock to shopProducts and wmsItems if previously deducted
+    const shouldRestore = order.stockDeducted !== false;
+    if (shouldRestore) {
+      (order.items || []).forEach(it => {
+        const qty = Number(it.qty) || 0;
+        if (qty <= 0) return;
 
-      // 1. Restore to shop catalog
-      const prod = data.shopProducts.find(p => 
-        p.id === it.productId || 
-        (it.sku && p.sku === it.sku) || 
-        (p.name && p.name.trim().toLowerCase() === it.name.trim().toLowerCase())
-      );
-      if (prod) {
-        prod.stock = (Number(prod.stock) || 0) + qty;
-      }
+        // 1. Restore to shop catalog
+        const prod = data.shopProducts.find(p => 
+          p.id === it.productId || 
+          (it.sku && p.sku === it.sku) || 
+          (p.name && p.name.trim().toLowerCase() === it.name.trim().toLowerCase())
+        );
+        if (prod) {
+          prod.stock = (Number(prod.stock) || 0) + qty;
+        }
 
-      // 2. Restore to WMS storage
-      let wmsItem = data.wmsItems.find(w => 
-        (it.sku && w.sku && w.sku === it.sku) ||
-        (prod && prod.sku && w.sku && w.sku === prod.sku) ||
-        (w.name && w.name.trim().toLowerCase() === it.name.trim().toLowerCase()) ||
-        (it.productId && w.id === it.productId)
-      );
-      let prevWmsStock = 0;
-      if (wmsItem) {
-        prevWmsStock = Number(wmsItem.stock) || 0;
-        wmsItem.stock = prevWmsStock + qty;
-      }
+        // 2. Restore to WMS storage
+        let wmsItem = data.wmsItems.find(w => 
+          (it.sku && w.sku && w.sku === it.sku) ||
+          (prod && prod.sku && w.sku && w.sku === prod.sku) ||
+          (w.name && w.name.trim().toLowerCase() === it.name.trim().toLowerCase()) ||
+          (it.productId && w.id === it.productId)
+        );
+        let prevWmsStock = 0;
+        if (wmsItem) {
+          prevWmsStock = Number(wmsItem.stock) || 0;
+          wmsItem.stock = prevWmsStock + qty;
+        }
 
-      // 3. Record WMS inbound audit log
-      data.wmsLogs.unshift({
-        id: "LOG-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
-        timestamp: new Date().toISOString().replace("T", " ").slice(0, 16),
-        type: "inbound",
-        sku: it.sku || (wmsItem ? wmsItem.sku : (prod ? prod.sku : "-")),
-        name: it.name,
-        qty: qty,
-        beforeStock: prevWmsStock,
-        afterStock: wmsItem ? wmsItem.stock : 0,
-        source: `Pembatalan Pesanan ${order.id}`,
-        destination: "Rak Gudang WMS & Toko",
-        user: "Sistem Administrasi / Admin Toko",
-        notes: `Stok produk dikembalikan karena pembatalan pesanan ${order.id} (${order.customerName})`
+        // 3. Record WMS inbound audit log
+        data.wmsLogs.unshift({
+          id: "LOG-" + Date.now() + "-" + Math.floor(Math.random() * 1000),
+          timestamp: new Date().toISOString().replace("T", " ").slice(0, 16),
+          type: "inbound",
+          sku: it.sku || (wmsItem ? wmsItem.sku : (prod ? prod.sku : "-")),
+          name: it.name,
+          qty: qty,
+          beforeStock: prevWmsStock,
+          afterStock: wmsItem ? wmsItem.stock : 0,
+          source: `Pembatalan Pesanan ${order.id}`,
+          destination: "Rak Gudang WMS & Toko",
+          user: "Sistem Administrasi / Admin Toko",
+          notes: `Stok produk dikembalikan karena pembatalan pesanan ${order.id} (${order.customerName})`
+        });
+
+        restoredItemsList.push(`${it.name} (+${qty} ${it.unit || 'Pack'})`);
       });
-
-      restoredItemsList.push(`${it.name} (+${qty} ${it.unit || 'Pack'})`);
-    });
+    }
 
     // Update status and progress
     order.status = "Dibatalkan";
     order.progressPercent = 0;
+    order.stockDeducted = false;
 
     const now = new Date().toISOString().replace("T", " ").slice(0, 16);
     if (!order.checkpoints) order.checkpoints = [];
