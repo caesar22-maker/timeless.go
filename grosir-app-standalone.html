@@ -17052,23 +17052,27 @@ const Storage = {
     try {
       // Sync recent orders
       if (Array.isArray(data.orders) && data.orders.length > 0) {
-        const topOrders = data.orders.slice(0, 10).map(o => this.orderToCloud(o));
+        const topOrders = data.orders.slice(0, 20).map(o => this.orderToCloud(o));
         await this.client.from('orders').upsert(topOrders, { onConflict: 'id' });
       }
       // Sync recent documents
       if (Array.isArray(data.documents) && data.documents.length > 0) {
-        const topDocs = data.documents.slice(0, 10).map(d => this.docToCloud(d));
+        const topDocs = data.documents.slice(0, 20).map(d => this.docToCloud(d));
         await this.client.from('documents').upsert(topDocs, { onConflict: 'id' });
       }
-      // Sync modified products
+      // Sync modified products in safe batches of 50 to guarantee 100% catalog synchronization
       if (Array.isArray(data.shopProducts) && data.shopProducts.length > 0) {
-        const topProds = data.shopProducts.slice(0, 25).map(p => this.productToCloud(p));
-        await this.client.from('products').upsert(topProds, { onConflict: 'id' });
+        for (let i = 0; i < data.shopProducts.length; i += 50) {
+          const batch = data.shopProducts.slice(i, i + 50).map(p => this.productToCloud(p));
+          await this.client.from('products').upsert(batch, { onConflict: 'id' });
+        }
       }
-      // Sync modified warehouse records
+      // Sync modified warehouse records in safe batches of 50
       if (Array.isArray(data.wmsItems) && data.wmsItems.length > 0) {
-        const topWms = data.wmsItems.slice(0, 25).map(w => this.wmsToCloud(w));
-        await this.client.from('warehouse_records').upsert(topWms, { onConflict: 'id' });
+        for (let i = 0; i < data.wmsItems.length; i += 50) {
+          const batch = data.wmsItems.slice(i, i + 50).map(w => this.wmsToCloud(w));
+          await this.client.from('warehouse_records').upsert(batch, { onConflict: 'id' });
+        }
       }
     } catch (e) {
       console.warn("Background sync error:", e);
@@ -17137,6 +17141,30 @@ const Storage = {
           wmsItem.status = "Aman";
         }
         modifiedWmsItems.push(wmsItem);
+      } else if (prod) {
+        const cat = prod.category || "Sembako";
+        const rackLetter = cat === "Sembako" ? "A" : cat === "Makanan & Snack" ? "B" : cat === "Minuman" ? "C" : "D";
+        const rackNum = String(Math.floor(1 + Math.random() * 5)).padStart(2, '0');
+        const remainingStock = Math.max(0, Number(prod.stock));
+        wmsItem = {
+          id: "WMS-" + String((data.wmsItems.length || 0) + 1).padStart(3, '0'),
+          name: it.name,
+          sku: it.sku || (prod && prod.sku ? prod.sku : ("SKU-" + Math.floor(1000000000 + Math.random() * 9000000000))),
+          category: cat,
+          rack: `Rak ${rackLetter}-${rackNum}-01`,
+          zone: `Zona ${rackLetter} (${cat})`,
+          stock: remainingStock,
+          minStock: 10,
+          unit: it.unit || "Pack",
+          status: remainingStock <= 5 ? "Kritis" : remainingStock <= 10 ? "Menipis" : "Aman",
+          image: prod ? prod.image : (it.image || "https://images.unsplash.com/photo-1582293041079-7814c2f12063?w=500&auto=format&fit=crop&q=80"),
+          supplier: "Distributor Resmi " + cat,
+          batchNo: "BATCH-" + new Date().toISOString().slice(0, 10).replace(/-/g, ""),
+          expDate: "2028-12-31",
+          notes: prod ? prod.description : "Barang master tersinkronisasi otomatis dari Online Shop"
+        };
+        data.wmsItems.unshift(wmsItem);
+        modifiedWmsItems.push(wmsItem);
       }
 
       // 3. Catat Riwayat Mutasi Keluar (OUTBOUND) di WMS jika belum dicatat
@@ -17168,7 +17196,26 @@ const Storage = {
       modifiedWmsItems.forEach(w => this.saveWarehouseRecord(w));
     }
 
-    // Refresh modul yang sedang aktif di UI
+    // Broadcast update across tabs
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        if (!this._stockBroadcastChannel) {
+          this._stockBroadcastChannel = new BroadcastChannel("gba_stock_sync_channel");
+        }
+        this._stockBroadcastChannel.postMessage({
+          type: "STOCK_UPDATED",
+          orderId: order.id,
+          timestamp: Date.now()
+        });
+      } catch (e) {}
+    }
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem("GBA_LAST_STOCK_SYNC", String(Date.now()));
+      }
+    } catch (e) {}
+
+    // Refresh modul yang sedang aktif di UI (Online Shop & Product Catalog)
     if (typeof Shop !== 'undefined' && typeof Shop.render === 'function') {
       Shop.render();
     }
@@ -17475,6 +17522,30 @@ const Util = {
 if (typeof window !== 'undefined') {
   window.Storage = Storage;
   window.Util = Util;
+
+  // Real-time Cross-Tab Storage Sync for Online Shop and Product Catalog
+  if (typeof window.addEventListener === 'function') {
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY || e.key === 'GBA_LAST_STOCK_SYNC') {
+        Storage._cachedData = null;
+        if (typeof Shop !== 'undefined' && typeof Shop.render === 'function') Shop.render();
+        if (typeof WMS !== 'undefined' && typeof WMS.render === 'function') WMS.render();
+      }
+    });
+  }
+
+  if (typeof BroadcastChannel !== 'undefined') {
+    try {
+      const stockBc = new BroadcastChannel('gba_stock_sync_channel');
+      stockBc.onmessage = (event) => {
+        if (event.data && event.data.type === 'STOCK_UPDATED') {
+          Storage._cachedData = null;
+          if (typeof Shop !== 'undefined' && typeof Shop.render === 'function') Shop.render();
+          if (typeof WMS !== 'undefined' && typeof WMS.render === 'function') WMS.render();
+        }
+      };
+    } catch (err) {}
+  }
 }
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { Storage, Util };
@@ -24380,7 +24451,18 @@ const Shop = {
                   class="w-full h-full object-cover group-hover:scale-105 transition duration-300"
                   onerror="this.src='https://via.placeholder.com/400?text=Grosir+Produk'"
                 />
-                ${product.badge ? `
+                ${product.stock <= 0 ? `
+                  <div class="absolute inset-0 bg-slate-900/50 backdrop-blur-[1px] flex items-center justify-center pointer-events-none">
+                    <span class="px-3 py-1 bg-rose-600 text-white text-xs font-black uppercase tracking-wider rounded-lg shadow-md flex items-center gap-1.5">
+                      <i class="fa-solid fa-ban"></i> STOK HABIS
+                    </span>
+                  </div>
+                ` : ''}
+                ${product.stock <= 0 ? `
+                  <span class="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-md text-[11px] font-black bg-rose-700 text-white uppercase tracking-wider shadow-xs">
+                    HABIS
+                  </span>
+                ` : product.badge ? `
                   <span class="absolute top-2.5 left-2.5 px-2.5 py-0.5 rounded-md text-[11px] font-black bg-rose-600 text-white uppercase tracking-wider shadow-xs">
                     ${product.badge}
                   </span>
@@ -24403,7 +24485,7 @@ const Shop = {
                   >
                     ${Util.escapeHtml(product.name)}
                   </h4>
-                  <p class="text-xs text-slate-400 mb-2">Kemasan: <span class="font-semibold text-slate-600">${product.unit}</span> | Stok: <span class="font-bold ${product.stock < 15 ? 'text-rose-600' : 'text-slate-700'}">${product.stock} ${product.unit}</span></p>
+                  <p class="text-xs text-slate-400 mb-2">Kemasan: <span class="font-semibold text-slate-600">${product.unit}</span> | Stok: <span class="font-bold ${product.stock <= 0 ? 'text-rose-600 font-black' : product.stock < 15 ? 'text-amber-600' : 'text-slate-700'}">${product.stock} ${product.unit}</span></p>
 
                   <!-- Single Price Box (1 Tingkatan Harga) -->
                   <!-- Single Price & Stock Availability Box -->
@@ -24413,8 +24495,14 @@ const Shop = {
                       <span class="text-base font-extrabold text-blue-700 font-mono">${Util.formatRupiah(productPrice)}<span class="text-[10px] font-normal text-slate-500">/${product.unit.split(' ')[0]}</span></span>
                     </div>
                     <div class="text-[10px] text-slate-500 flex items-center justify-between mt-1 pt-1 border-t border-blue-100">
-                      <span class="text-slate-600 font-medium"><i class="fa-solid fa-boxes-stacked text-blue-600 mr-1"></i>Stok: <strong class="${product.stock < 15 ? 'text-rose-600' : 'text-slate-800'}">${product.stock} ${product.unit}</strong></span>
-                      <span class="font-bold text-emerald-700"><i class="fa-solid fa-circle-check text-[10px]"></i> Tersedia</span>
+                      <span class="text-slate-600 font-medium"><i class="fa-solid fa-boxes-stacked text-blue-600 mr-1"></i>Stok: <strong class="${product.stock <= 0 ? 'text-rose-600 font-black' : product.stock < 15 ? 'text-amber-600 font-bold' : 'text-slate-800'}">${product.stock} ${product.unit}</strong></span>
+                      ${product.stock <= 0 ? `
+                        <span class="font-bold text-rose-600"><i class="fa-solid fa-circle-xmark text-[10px]"></i> Stok Habis</span>
+                      ` : product.stock <= 10 ? `
+                        <span class="font-bold text-amber-600"><i class="fa-solid fa-triangle-exclamation text-[10px]"></i> Sisa ${product.stock}</span>
+                      ` : `
+                        <span class="font-bold text-emerald-700"><i class="fa-solid fa-circle-check text-[10px]"></i> Tersedia</span>
+                      `}
                     </div>
                   </div>
                 </div>
@@ -24423,13 +24511,23 @@ const Shop = {
                 <div class="pt-2 border-t border-slate-100 flex items-center gap-1.5">
                   ${!isEmployee ? `
                     <!-- Buyer Actions: Add to Cart & Details -->
-                    <button 
-                      onclick="Shop.quickAddToCart('${product.id}', 1)" 
-                      class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
-                      title="Tambah 1 ke Keranjang Belanja"
-                    >
-                      <i class="fa-solid fa-cart-plus"></i> + Keranjang
-                    </button>
+                    ${product.stock <= 0 ? `
+                      <button 
+                        disabled 
+                        class="flex-1 py-2 bg-slate-100 text-slate-400 border border-slate-200 rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 cursor-not-allowed"
+                        title="Maaf, stok produk ini saat ini habis"
+                      >
+                        <i class="fa-solid fa-ban text-rose-500"></i> Stok Habis
+                      </button>
+                    ` : `
+                      <button 
+                        onclick="Shop.quickAddToCart('${product.id}', 1)" 
+                        class="flex-1 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs flex items-center justify-center gap-1.5 shadow-sm transition"
+                        title="Tambah 1 ke Keranjang Belanja"
+                      >
+                        <i class="fa-solid fa-cart-plus"></i> + Keranjang
+                      </button>
+                    `}
                     <button 
                       onclick="Shop.openDetailModal('${product.id}')" 
                       class="py-2 px-3 bg-slate-100 hover:bg-slate-200 text-slate-700 rounded-xl font-bold text-xs flex items-center justify-center gap-1 transition"
@@ -24598,27 +24696,44 @@ const Shop = {
     }
     const data = Storage.getData();
     const product = data.shopProducts.find(p => p.id === productId);
-    if (!product) return;
+    if (!product) {
+      App.showToast("Produk tidak ditemukan!", "error");
+      return;
+    }
 
-    if (product.stock <= 0) {
-      App.showToast(`Maaf, stok produk "${product.name}" saat ini habis.`, "error");
+    const availableStock = Number(product.stock) || 0;
+    if (availableStock <= 0) {
+      App.showToast(`Maaf, stok produk "${product.name}" saat ini habis (0 ${product.unit}). Pembelian tidak dapat diproses.`, "error");
       return;
     }
 
     const existingIndex = this.cart.findIndex(it => it.productId === productId);
+    const currentQtyInCart = existingIndex !== -1 ? (Number(this.cart[existingIndex].qty) || 0) : 0;
+    const requestedAdd = Math.max(1, Number(addQty) || 1);
+
+    if (currentQtyInCart + requestedAdd > availableStock) {
+      const remainingCanAdd = Math.max(0, availableStock - currentQtyInCart);
+      if (remainingCanAdd <= 0) {
+        App.showToast(`Stok tidak mencukupi! Anda telah memasukkan seluruh stok yang tersedia (${availableStock} ${product.unit}) ke keranjang belanja.`, "warning");
+      } else {
+        App.showToast(`Stok tidak mencukupi! Hanya dapat menambahkan ${remainingCanAdd} ${product.unit} lagi (tersedia: ${availableStock}, di keranjang: ${currentQtyInCart}).`, "warning");
+      }
+      return;
+    }
+
     if (existingIndex !== -1) {
-      this.cart[existingIndex].qty += addQty;
+      this.cart[existingIndex].qty += requestedAdd;
     } else {
       this.cart.push({
         productId: product.id,
         name: product.name,
         unit: product.unit,
         image: product.image,
-        qty: Math.max(product.minOrder || 1, addQty)
+        qty: requestedAdd
       });
     }
 
-    App.showToast(`"${product.name}" ditambahkan ke keranjang belanja!`, "success");
+    App.showToast(`"${product.name}" (${requestedAdd} ${product.unit}) ditambahkan ke keranjang belanja!`, "success");
     this.render();
   },
 
@@ -24661,7 +24776,7 @@ const Shop = {
                 <h3 class="text-lg font-black text-slate-900 leading-snug">${Util.escapeHtml(product.name)}</h3>
                 <p class="text-xs text-slate-500">Kategori: <span class="font-bold text-slate-700">${product.category}</span></p>
                 <p class="text-xs text-slate-500">Satuan Kemasan: <span class="font-bold text-slate-700">${product.unit}</span></p>
-                <p class="text-xs text-slate-500">Ketersediaan Stok Fisik: <span class="font-bold text-emerald-700">${product.stock} ${product.unit} (Tersedia)</span></p>
+                <p class="text-xs text-slate-500">Ketersediaan Stok Fisik: <span class="font-bold ${product.stock <= 0 ? 'text-rose-600 font-black' : product.stock < 15 ? 'text-amber-600 font-bold' : 'text-emerald-700 font-bold'}">${product.stock} ${product.unit} ${product.stock <= 0 ? '(Stok Habis)' : product.stock <= 10 ? '(Stok Menipis)' : '(Tersedia)'}</span></p>
                 <p class="text-xs text-slate-500">Status Akses: <span class="font-bold ${isEmployee ? 'text-blue-700' : 'text-emerald-700'}">${isEmployee ? 'Product Catalog (Read-Only)' : 'Online Shop (Siap Dipesan)'}</span></p>
               </div>
             </div>
@@ -24691,33 +24806,49 @@ const Shop = {
             <!-- Role-Specific Action or Notice -->
             ${!isEmployee ? `
               <!-- BUYER PURCHASING CONTROLS -->
-              <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
-                <div>
-                  <span class="text-xs font-bold text-slate-700 block">Tentukan Jumlah Pembelian:</span>
-                  <span class="text-[11px] text-slate-500">Stok fisik tersedia: <strong class="text-emerald-700">${product.stock} ${product.unit}</strong></span>
-                </div>
-                <div class="flex items-center gap-3">
-                  <div class="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-2xs">
-                    <button type="button" onclick="Shop.adjustDetailQty(-1, ${productPrice})" class="w-8 h-8 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">-</button>
-                    <input type="number" id="detail-qty-input" min="1" max="${product.stock}" value="1" oninput="Shop.updateDetailSubtotal(${productPrice})" class="w-12 text-center text-xs font-bold font-mono py-1 border-x border-slate-200 focus:outline-none" />
-                    <button type="button" onclick="Shop.adjustDetailQty(1, ${productPrice})" class="w-8 h-8 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">+</button>
+              ${product.stock <= 0 ? `
+                <div class="bg-rose-50 border border-rose-200 p-4 rounded-xl text-center space-y-2">
+                  <div class="inline-flex items-center justify-center w-10 h-10 rounded-full bg-rose-100 text-rose-600">
+                    <i class="fa-solid fa-ban text-lg"></i>
                   </div>
-                  <div class="text-right">
-                    <span class="text-[10px] text-slate-400 block">Subtotal:</span>
-                    <span class="text-xs font-extrabold text-blue-700 font-mono" id="detail-subtotal-val">${Util.formatRupiah(productPrice)}</span>
+                  <h4 class="font-bold text-rose-800 text-sm">Stok Produk Ini Sedang Habis (0 ${product.unit})</h4>
+                  <p class="text-xs text-rose-600">Mohon maaf, Anda tidak dapat melakukan pemesanan untuk produk ini hingga stok kembali tersedia di gudang.</p>
+                </div>
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+                  <button onclick="App.closeModal('shop-detail-modal')" class="px-5 py-2 text-xs font-bold text-slate-600 hover:bg-slate-100 rounded-xl transition">Tutup</button>
+                  <button disabled class="px-5 py-2 bg-slate-200 text-slate-400 rounded-xl font-bold text-xs cursor-not-allowed flex items-center gap-1.5">
+                    <i class="fa-solid fa-ban"></i> Stok Habis
+                  </button>
+                </div>
+              ` : `
+                <div class="bg-slate-50 p-4 rounded-xl border border-slate-200 flex flex-col sm:flex-row sm:items-center justify-between gap-3">
+                  <div>
+                    <span class="text-xs font-bold text-slate-700 block">Tentukan Jumlah Pembelian:</span>
+                    <span class="text-[11px] text-slate-500">Stok fisik tersedia: <strong class="text-emerald-700 font-bold">${product.stock} ${product.unit}</strong></span>
+                  </div>
+                  <div class="flex items-center gap-3">
+                    <div class="flex items-center border border-slate-300 rounded-xl bg-white overflow-hidden shadow-2xs">
+                      <button type="button" onclick="Shop.adjustDetailQty(-1, ${productPrice})" class="w-8 h-8 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">-</button>
+                      <input type="number" id="detail-qty-input" min="1" max="${product.stock}" value="1" oninput="Shop.updateDetailSubtotal(${productPrice})" class="w-12 text-center text-xs font-bold font-mono py-1 border-x border-slate-200 focus:outline-none" />
+                      <button type="button" onclick="Shop.adjustDetailQty(1, ${productPrice})" class="w-8 h-8 flex items-center justify-center font-bold text-slate-600 hover:bg-slate-100">+</button>
+                    </div>
+                    <div class="text-right">
+                      <span class="text-[10px] text-slate-400 block">Subtotal:</span>
+                      <span class="text-xs font-extrabold text-blue-700 font-mono" id="detail-subtotal-val">${Util.formatRupiah(productPrice)}</span>
+                    </div>
                   </div>
                 </div>
-              </div>
 
-              <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
-                <button onclick="App.closeModal('shop-detail-modal')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
-                <button onclick="Shop.addFromDetailModal('${product.id}')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1.5">
-                  <i class="fa-solid fa-cart-plus"></i> + Ke Keranjang
-                </button>
-                <button onclick="Shop.buyNowFromDetail('${product.id}')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1.5">
-                  <i class="fa-solid fa-bolt"></i> Beli Sekarang
-                </button>
-              </div>
+                <div class="flex items-center justify-end gap-2 pt-3 border-t border-slate-200">
+                  <button onclick="App.closeModal('shop-detail-modal')" class="px-4 py-2 text-xs font-semibold text-slate-600 hover:bg-slate-100 rounded-xl transition">Batal</button>
+                  <button onclick="Shop.addFromDetailModal('${product.id}')" class="px-4 py-2 bg-blue-600 hover:bg-blue-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-cart-plus"></i> + Ke Keranjang
+                  </button>
+                  <button onclick="Shop.buyNowFromDetail('${product.id}')" class="px-4 py-2 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-xs shadow-sm transition flex items-center gap-1.5">
+                    <i class="fa-solid fa-bolt"></i> Beli Sekarang
+                  </button>
+                </div>
+              `}
             ` : `
               <!-- ADMIN MONITORING VIEW (PURCHASING DISABLED) -->
               <div class="p-3.5 bg-blue-50 border border-blue-200 rounded-xl text-xs text-blue-900 flex items-center gap-3">
@@ -24766,11 +24897,26 @@ const Shop = {
     const input = document.getElementById("detail-qty-input");
     const subtotalEl = document.getElementById("detail-subtotal-val");
     if (!input || !subtotalEl) return;
-    const qty = Math.max(1, Number(input.value) || 1);
+    const max = Number(input.max) || 99999;
+    let qty = Number(input.value) || 1;
+    if (qty > max) {
+      qty = max;
+      input.value = max;
+      if (typeof App !== 'undefined' && App.showToast) {
+        App.showToast(`Jumlah disesuaikan dengan batas stok tersedia (${max}).`, "warning");
+      }
+    }
+    qty = Math.max(1, qty);
     subtotalEl.textContent = Util.formatRupiah(qty * unitPrice);
   },
 
   addFromDetailModal: function(productId) {
+    const data = Storage.getData();
+    const product = (data.shopProducts || []).find(p => p.id === productId);
+    if (!product || Number(product.stock) <= 0) {
+      App.showToast("Maaf, produk ini sedang habis dan tidak dapat dipesan.", "error");
+      return;
+    }
     const input = document.getElementById("detail-qty-input");
     const qty = Number(input?.value) || 1;
     this.quickAddToCart(productId, qty);
@@ -24782,8 +24928,20 @@ const Shop = {
       App.showToast("Mode Product Catalog (Admin): Pembelian dinonaktifkan.", "info");
       return;
     }
+    const data = Storage.getData();
+    const product = (data.shopProducts || []).find(p => p.id === productId);
+    if (!product || Number(product.stock) <= 0) {
+      App.showToast("Maaf, produk ini sedang habis dan tidak dapat dipesan.", "error");
+      return;
+    }
     const input = document.getElementById("detail-qty-input");
     const qty = Number(input?.value) || 1;
+    const existingIndex = this.cart.findIndex(it => it.productId === productId);
+    const currentInCart = existingIndex !== -1 ? (Number(this.cart[existingIndex].qty) || 0) : 0;
+    if (currentInCart + qty > Number(product.stock)) {
+      App.showToast(`Stok tidak mencukupi! Tersedia: ${product.stock} ${product.unit}, sudah di keranjang: ${currentInCart}.`, "warning");
+      return;
+    }
     this.quickAddToCart(productId, qty);
     App.closeModal('shop-detail-modal');
     setTimeout(() => {
@@ -24820,25 +24978,43 @@ const Shop = {
             ` : `
               <div class="divide-y divide-slate-200 border border-slate-200 rounded-xl overflow-hidden" id="cart-items-list">
                 ${this.cart.map((item, idx) => {
-                  const product = data.shopProducts.find(p => p.id === item.productId);
+                  const product = (data.shopProducts || []).find(p => p.id === item.productId);
                   if (!product) return '';
                   const unitPrice = this.getPriceForQty(product, item.qty);
                   const subtotal = unitPrice * item.qty;
+                  const availableStock = Number(product.stock) || 0;
+                  const isOutOfStock = availableStock <= 0;
+                  const isExceedingStock = item.qty > availableStock;
 
                   return `
-                    <div class="p-3 bg-white flex items-center justify-between gap-3">
+                    <div class="p-3 bg-white flex items-center justify-between gap-3 ${isOutOfStock ? 'bg-rose-50/50' : ''}">
                       <img src="${product.image || 'https://via.placeholder.com/60'}" class="w-14 h-14 rounded-lg object-cover border border-slate-200 flex-shrink-0" />
                       <div class="flex-1 min-w-0">
                         <h4 class="font-bold text-xs text-slate-800 truncate">${Util.escapeHtml(product.name)}</h4>
-                        <p class="text-[11px] text-slate-500 font-mono">Harga Satuan: <span class="font-bold text-blue-700">${Util.formatRupiah(unitPrice)}</span> / ${product.unit.split(' ')[0]}</p>
-                        <span class="text-[10px] text-slate-400">1 Tingkat Harga Satuan UMKM</span>
+                        <p class="text-[11px] text-slate-500 font-mono">
+                          Harga Satuan: <span class="font-bold text-blue-700">${Util.formatRupiah(unitPrice)}</span> / ${product.unit.split(' ')[0]}
+                          <span class="ml-1.5 font-sans ${isOutOfStock ? 'text-rose-600 font-bold' : isExceedingStock ? 'text-amber-600 font-bold' : 'text-slate-500'}">
+                            (Stok: ${availableStock} ${product.unit})
+                          </span>
+                        </p>
+                        ${isOutOfStock ? `
+                          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-black bg-rose-100 text-rose-700 mt-0.5">
+                            <i class="fa-solid fa-ban"></i> STOK HABIS - Hapus item untuk checkout
+                          </span>
+                        ` : isExceedingStock ? `
+                          <span class="inline-flex items-center gap-1 px-1.5 py-0.5 rounded text-[10px] font-bold bg-amber-100 text-amber-800 mt-0.5">
+                            <i class="fa-solid fa-triangle-exclamation"></i> Melebihi stok (${availableStock} ${product.unit})
+                          </span>
+                        ` : `
+                          <span class="text-[10px] text-slate-400">1 Tingkat Harga Satuan UMKM</span>
+                        `}
                       </div>
                       
                       <!-- Qty changer -->
                       <div class="flex items-center gap-1.5">
                         <button onclick="Shop.updateCartQty(${idx}, -1)" class="w-7 h-7 rounded bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 text-xs">-</button>
-                        <span class="w-8 text-center text-xs font-bold font-mono">${item.qty}</span>
-                        <button onclick="Shop.updateCartQty(${idx}, 1)" class="w-7 h-7 rounded bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 text-xs">+</button>
+                        <span class="w-8 text-center text-xs font-bold font-mono ${isOutOfStock || isExceedingStock ? 'text-rose-600 font-bold' : ''}">${item.qty}</span>
+                        <button onclick="Shop.updateCartQty(${idx}, 1)" ${isOutOfStock || item.qty >= availableStock ? 'disabled class="w-7 h-7 rounded bg-slate-100 text-slate-300 font-bold text-xs cursor-not-allowed"' : 'class="w-7 h-7 rounded bg-slate-100 hover:bg-slate-200 font-bold text-slate-700 text-xs"'} title="${item.qty >= availableStock ? 'Mencapai batas stok tersedia' : 'Tambah 1'}">+</button>
                       </div>
 
                       <div class="text-right min-w-[90px]">
@@ -24852,7 +25028,13 @@ const Shop = {
             `}
           </div>
 
-          ${this.cart.length > 0 ? `
+          ${this.cart.length > 0 ? (() => {
+            const hasStockIssue = this.cart.some(it => {
+              const p = (data.shopProducts || []).find(prod => prod.id === it.productId);
+              return !p || Number(p.stock) <= 0 || it.qty > Number(p.stock);
+            });
+
+            return `
             <div class="p-5 bg-slate-50 border-t border-slate-200 space-y-3">
               <div class="flex justify-between items-center text-sm font-bold text-slate-800">
                 <span>Total Estimasi Belanja:</span>
@@ -24862,12 +25044,22 @@ const Shop = {
                 <button onclick="Shop.clearCart()" class="px-3 py-2 text-xs text-rose-600 hover:bg-rose-50 rounded-lg font-semibold transition">
                   Kosongkan Keranjang
                 </button>
-                <button onclick="Shop.openCheckoutModal()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center gap-2">
-                  <i class="fa-solid fa-file-signature"></i> Proses Checkout Pesanan Grosir
-                </button>
+                ${hasStockIssue ? `
+                  <div class="flex flex-col items-end gap-1">
+                    <button disabled class="px-5 py-2.5 bg-slate-300 text-slate-500 rounded-xl font-bold text-xs cursor-not-allowed flex items-center gap-1.5 shadow-none">
+                      <i class="fa-solid fa-ban"></i> Stok Tidak Cukup untuk Checkout
+                    </button>
+                    <span class="text-[10px] text-rose-600 font-bold">Sesuaikan jumlah atau hapus barang yang habis</span>
+                  </div>
+                ` : `
+                  <button onclick="Shop.openCheckoutModal()" class="px-6 py-2.5 bg-emerald-600 hover:bg-emerald-700 text-white rounded-xl font-bold text-sm shadow-md transition flex items-center gap-2">
+                    <i class="fa-solid fa-file-signature"></i> Proses Checkout Pesanan Grosir
+                  </button>
+                `}
               </div>
             </div>
-          ` : ''}
+          `;
+          })() : ''}
         </div>
       </div>
     `;
@@ -24890,6 +25082,18 @@ const Shop = {
 
   updateCartQty: function(index, delta) {
     if (!this.cart[index]) return;
+    const data = Storage.getData();
+    const item = this.cart[index];
+    const product = (data.shopProducts || []).find(p => p.id === item.productId);
+    const availableStock = product ? (Number(product.stock) || 0) : 0;
+
+    if (delta > 0) {
+      if (item.qty + delta > availableStock) {
+        App.showToast(`Stok tidak mencukupi! Sisa stok produk "${item.name}" hanya ${availableStock} ${product ? product.unit : ''}.`, "warning");
+        return;
+      }
+    }
+
     this.cart[index].qty += delta;
     if (this.cart[index].qty <= 0) {
       this.cart.splice(index, 1);
@@ -24917,8 +25121,26 @@ const Shop = {
   // OPEN CHECKOUT MODAL (ENFORCE CUSTOMER ACCOUNT REQUIREMENT)
   openCheckoutModal: function() {
     App.closeModal('shop-cart-modal');
+
+    const data = Storage.getData();
+
+    // 1. Validasi ketersediaan stok produk sebelum membuka form checkout
+    for (const it of this.cart) {
+      const p = (data.shopProducts || []).find(prod => prod.id === it.productId);
+      const availableStock = p ? (Number(p.stock) || 0) : 0;
+      if (!p || availableStock <= 0) {
+        App.showToast(`Maaf, stok produk "${it.name}" saat ini habis (0). Hapus produk dari keranjang untuk melanjutkan.`, "error");
+        this.openCartModal();
+        return;
+      }
+      if (it.qty > availableStock) {
+        App.showToast(`Stok "${it.name}" tidak mencukupi! Tersedia: ${availableStock} ${p.unit}, di keranjang: ${it.qty}. Mohon sesuaikan jumlah.`, "warning");
+        this.openCartModal();
+        return;
+      }
+    }
     
-    // 1. Enforce Customer Account (Google Account, Name, and Complete Address)
+    // 2. Enforce Customer Account (Google Account, Name, and Complete Address)
     if (!Storage.hasCustomerAccount()) {
       App.showToast("Sebelum checkout, wajib melengkapi data Akun Google, Nama, dan Alamat Lengkap Anda!", "warning");
       App.openCustomerProfileModal(() => Shop.openCheckoutModal());
@@ -25089,6 +25311,24 @@ const Shop = {
     const data = Storage.getData();
     const cust = Storage.getCustomerAccount() || {};
 
+    // 1. Validasi ketersediaan stok fisik sebelum pesanan dibuat
+    for (const it of this.cart) {
+      const p = (data.shopProducts || []).find(prod => prod.id === it.productId);
+      const availableStock = p ? (Number(p.stock) || 0) : 0;
+      if (!p || availableStock <= 0) {
+        App.showToast(`Maaf, produk "${it.name}" saat ini telah habis. Pesanan tidak dapat diproses.`, "error");
+        App.closeModal('shop-checkout-modal');
+        this.openCartModal();
+        return;
+      }
+      if (it.qty > availableStock) {
+        App.showToast(`Stok "${it.name}" tidak mencukupi (${availableStock} ${p.unit} tersedia, di keranjang: ${it.qty}).`, "warning");
+        App.closeModal('shop-checkout-modal');
+        this.openCartModal();
+        return;
+      }
+    }
+
     const customerName = document.getElementById("order-cust-name").value.trim();
     const customerPhone = document.getElementById("order-cust-phone").value.trim();
     const customerAddress = document.getElementById("order-cust-address").value.trim();
@@ -25169,89 +25409,6 @@ const Shop = {
     localStorage.setItem("GBA_LAST_ORDER_ID", orderId);
 
     // ========================================================
-    // 1. PENGURANGAN STOK KATALOG & SINKRONISASI STOK FITUR WMS
-    // ========================================================
-    if (!data.wmsItems) data.wmsItems = [];
-    if (!data.wmsLogs) data.wmsLogs = [];
-
-    orderItems.forEach(it => {
-      const qtyPurchased = Number(it.qty) || 1;
-
-      // A. Kurangi stok di katalog Online Shop
-      const prod = data.shopProducts.find(p => p.id === it.productId || (it.sku && p.sku === it.sku) || (p.name && p.name.trim().toLowerCase() === it.name.trim().toLowerCase()));
-      if (prod) {
-        const prevShopStock = Number(prod.stock) || 0;
-        prod.stock = Math.max(0, prevShopStock - qtyPurchased);
-      }
-
-      // B. Cari barang di fitur WMS (wmsItems) atau masukkan otomatis jika belum terdaftar di WMS
-      let wmsItem = data.wmsItems.find(w => 
-        (it.sku && w.sku && w.sku === it.sku) ||
-        (prod && prod.sku && w.sku && w.sku === prod.sku) ||
-        (w.name && w.name.trim().toLowerCase() === it.name.trim().toLowerCase()) ||
-        (it.productId && w.id === it.productId)
-      );
-
-      let prevWmsStock = 0;
-      if (wmsItem) {
-        prevWmsStock = Number(wmsItem.stock) || 0;
-        wmsItem.stock = Math.max(0, prevWmsStock - qtyPurchased);
-
-        // Perbarui status peringatan stok WMS
-        const minS = Number(wmsItem.minStock) || 10;
-        if (wmsItem.stock <= (minS / 2)) {
-          wmsItem.status = "Kritis";
-        } else if (wmsItem.stock <= minS) {
-          wmsItem.status = "Menipis";
-        } else {
-          wmsItem.status = "Aman";
-        }
-      } else {
-        // Jika belum tercatat di WMS, daftarkan otomatis ke Master Barang WMS
-        const cat = prod ? (prod.category || "Sembako") : "Sembako";
-        const rackLetter = cat === "Sembako" ? "A" : cat === "Makanan & Snack" ? "B" : cat === "Minuman" ? "C" : "D";
-        const rackNum = String(Math.floor(1 + Math.random() * 5)).padStart(2, '0');
-        const remainingStock = prod ? Number(prod.stock) : Math.max(0, 50 - qtyPurchased);
-        prevWmsStock = remainingStock + qtyPurchased;
-
-        wmsItem = {
-          id: "WMS-" + String((data.wmsItems.length || 0) + 1).padStart(3, '0'),
-          name: it.name,
-          sku: it.sku || (prod && prod.sku ? prod.sku : ("SKU-" + Math.floor(1000000000 + Math.random() * 9000000000))),
-          category: cat,
-          rack: `Rak ${rackLetter}-${rackNum}-01`,
-          zone: `Zona ${rackLetter} (${cat})`,
-          stock: remainingStock,
-          minStock: 10,
-          unit: it.unit || "Pack",
-          status: remainingStock <= 5 ? "Kritis" : remainingStock <= 10 ? "Menipis" : "Aman",
-          image: prod ? prod.image : (it.image || "https://images.unsplash.com/photo-1582293041079-7814c2f12063?w=500&auto=format&fit=crop&q=80"),
-          supplier: "Distributor Resmi " + cat,
-          batchNo: "BATCH-" + dateOnly.replace(/-/g, ""),
-          expDate: "2028-12-31",
-          notes: prod ? prod.description : "Barang master tersinkronisasi otomatis dari Online Shop"
-        };
-        data.wmsItems.unshift(wmsItem);
-      }
-
-      // C. Catat Riwayat Mutasi Keluar (OUTBOUND) di WMS secara otomatis
-      data.wmsLogs.unshift({
-        id: "LOG-" + Date.now() + "-" + Math.floor(100 + Math.random() * 900),
-        date: orderDate,
-        type: "OUTBOUND",
-        itemId: wmsItem.id,
-        itemName: it.name,
-        sku: wmsItem.sku,
-        qty: `-${qtyPurchased} ${it.unit}`,
-        refDoc: orderId,
-        operator: `Sistem Online Shop (${customerName})`,
-        notes: `Pengeluaran barang otomatis atas pesanan #${orderId}. Pembeli: ${customerName}. Metode: ${paymentMethod}. Sisa stok fisik gudang: ${wmsItem.stock} ${it.unit}.`
-      });
-    });
-
-    newOrder.stockDeducted = true;
-
-    // ========================================================
     // 2. OTOMATIS MEMBUAT DOKUMEN FAKTUR PENJUALAN DI DOKUMEN
     // ========================================================
     if (!data.documents) data.documents = [];
@@ -25293,6 +25450,13 @@ const Shop = {
     if (typeof Storage !== 'undefined' && Storage.saveOrder) Storage.saveOrder(newOrder);
     if (typeof Storage !== 'undefined' && Storage.saveDocument) Storage.saveDocument(invoiceDoc);
 
+    // ========================================================
+    // 3. PENGURANGAN STOK ATOMIK & SINKRONISASI STOK ONLINE SHOP & WMS
+    // ========================================================
+    if (typeof Storage !== 'undefined' && Storage.deductStockForOrder) {
+      Storage.deductStockForOrder(newOrder);
+    }
+
     // Kirim notifikasi otomatis seketika ke perangkat administrator (Chime + Web Push + Broadcast + Bell)
     if (typeof App !== 'undefined' && App.notifyAdminOfNewOrder) {
       App.notifyAdminOfNewOrder(newOrder);
@@ -25302,7 +25466,7 @@ const Shop = {
     App.closeModal('shop-checkout-modal');
     this.render();
 
-    App.showToast(`Pesanan #${orderId} berhasil dibuat! Faktur penjualan otomatis diterbitkan & stok gudang WMS telah diperbarui.`, "success");
+    App.showToast(`Pesanan #${orderId} berhasil dibuat! Stok produk Online Shop & Gudang WMS otomatis terpotong seketika.`, "success");
 
     // Show comprehensive payment modal
     this.showOrderPaymentModal(newOrder);
@@ -27199,9 +27363,12 @@ const App = {
     this.updateAdminNotificationBadge();
     if (Storage.isEmployee()) {
       this.showToast(`🔔 [PESANAN BARU MASUK] #${orderId} dari ${order.customerName}!`, "success", 8000);
-      if (this.currentTab === 'tracking' && typeof Orders !== 'undefined') {
-        Orders.renderTrackingPanel();
-      }
+      Storage._cachedData = null;
+      if (this.currentTab === 'shop' && typeof Shop !== 'undefined') Shop.render();
+      if (this.currentTab === 'wms' && typeof WMS !== 'undefined') WMS.render();
+      if (this.currentTab === 'orders' && typeof Orders !== 'undefined') Orders.render();
+      if (this.currentTab === 'tracking' && typeof Orders !== 'undefined') Orders.renderTrackingPanel();
+      if (this.currentTab === 'docs' && typeof Documents !== 'undefined') Documents.render();
     }
   },
 

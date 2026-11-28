@@ -478,9 +478,12 @@ const App = {
     this.updateAdminNotificationBadge();
     if (Storage.isEmployee()) {
       this.showToast(`🔔 [PESANAN BARU MASUK] #${orderId} dari ${order.customerName}!`, "success", 8000);
-      if (this.currentTab === 'tracking' && typeof Orders !== 'undefined') {
-        Orders.renderTrackingPanel();
-      }
+      Storage._cachedData = null;
+      if (this.currentTab === 'shop' && typeof Shop !== 'undefined') Shop.render();
+      if (this.currentTab === 'wms' && typeof WMS !== 'undefined') WMS.render();
+      if (this.currentTab === 'orders' && typeof Orders !== 'undefined') Orders.render();
+      if (this.currentTab === 'tracking' && typeof Orders !== 'undefined') Orders.renderTrackingPanel();
+      if (this.currentTab === 'docs' && typeof Documents !== 'undefined') Documents.render();
     }
   },
 

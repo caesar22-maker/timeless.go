@@ -1387,23 +1387,27 @@ const Storage = {
     try {
       // Sync recent orders
       if (Array.isArray(data.orders) && data.orders.length > 0) {
-        const topOrders = data.orders.slice(0, 10).map(o => this.orderToCloud(o));
+        const topOrders = data.orders.slice(0, 20).map(o => this.orderToCloud(o));
         await this.client.from('orders').upsert(topOrders, { onConflict: 'id' });
       }
       // Sync recent documents
       if (Array.isArray(data.documents) && data.documents.length > 0) {
-        const topDocs = data.documents.slice(0, 10).map(d => this.docToCloud(d));
+        const topDocs = data.documents.slice(0, 20).map(d => this.docToCloud(d));
         await this.client.from('documents').upsert(topDocs, { onConflict: 'id' });
       }
-      // Sync modified products
+      // Sync modified products in safe batches of 50 to guarantee 100% catalog synchronization
       if (Array.isArray(data.shopProducts) && data.shopProducts.length > 0) {
-        const topProds = data.shopProducts.slice(0, 25).map(p => this.productToCloud(p));
-        await this.client.from('products').upsert(topProds, { onConflict: 'id' });
+        for (let i = 0; i < data.shopProducts.length; i += 50) {
+          const batch = data.shopProducts.slice(i, i + 50).map(p => this.productToCloud(p));
+          await this.client.from('products').upsert(batch, { onConflict: 'id' });
+        }
       }
-      // Sync modified warehouse records
+      // Sync modified warehouse records in safe batches of 50
       if (Array.isArray(data.wmsItems) && data.wmsItems.length > 0) {
-        const topWms = data.wmsItems.slice(0, 25).map(w => this.wmsToCloud(w));
-        await this.client.from('warehouse_records').upsert(topWms, { onConflict: 'id' });
+        for (let i = 0; i < data.wmsItems.length; i += 50) {
+          const batch = data.wmsItems.slice(i, i + 50).map(w => this.wmsToCloud(w));
+          await this.client.from('warehouse_records').upsert(batch, { onConflict: 'id' });
+        }
       }
     } catch (e) {
       console.warn("Background sync error:", e);
@@ -1472,6 +1476,30 @@ const Storage = {
           wmsItem.status = "Aman";
         }
         modifiedWmsItems.push(wmsItem);
+      } else if (prod) {
+        const cat = prod.category || "Sembako";
+        const rackLetter = cat === "Sembako" ? "A" : cat === "Makanan & Snack" ? "B" : cat === "Minuman" ? "C" : "D";
+        const rackNum = String(Math.floor(1 + Math.random() * 5)).padStart(2, '0');
+        const remainingStock = Math.max(0, Number(prod.stock));
+        wmsItem = {
+          id: "WMS-" + String((data.wmsItems.length || 0) + 1).padStart(3, '0'),
+          name: it.name,
+          sku: it.sku || (prod && prod.sku ? prod.sku : ("SKU-" + Math.floor(1000000000 + Math.random() * 9000000000))),
+          category: cat,
+          rack: `Rak ${rackLetter}-${rackNum}-01`,
+          zone: `Zona ${rackLetter} (${cat})`,
+          stock: remainingStock,
+          minStock: 10,
+          unit: it.unit || "Pack",
+          status: remainingStock <= 5 ? "Kritis" : remainingStock <= 10 ? "Menipis" : "Aman",
+          image: prod ? prod.image : (it.image || "https://images.unsplash.com/photo-1582293041079-7814c2f12063?w=500&auto=format&fit=crop&q=80"),
+          supplier: "Distributor Resmi " + cat,
+          batchNo: "BATCH-" + new Date().toISOString().slice(0, 10).replace(/-/g, ""),
+          expDate: "2028-12-31",
+          notes: prod ? prod.description : "Barang master tersinkronisasi otomatis dari Online Shop"
+        };
+        data.wmsItems.unshift(wmsItem);
+        modifiedWmsItems.push(wmsItem);
       }
 
       // 3. Catat Riwayat Mutasi Keluar (OUTBOUND) di WMS jika belum dicatat
@@ -1503,7 +1531,26 @@ const Storage = {
       modifiedWmsItems.forEach(w => this.saveWarehouseRecord(w));
     }
 
-    // Refresh modul yang sedang aktif di UI
+    // Broadcast update across tabs
+    if (typeof BroadcastChannel !== 'undefined') {
+      try {
+        if (!this._stockBroadcastChannel) {
+          this._stockBroadcastChannel = new BroadcastChannel("gba_stock_sync_channel");
+        }
+        this._stockBroadcastChannel.postMessage({
+          type: "STOCK_UPDATED",
+          orderId: order.id,
+          timestamp: Date.now()
+        });
+      } catch (e) {}
+    }
+    try {
+      if (typeof localStorage !== 'undefined') {
+        localStorage.setItem("GBA_LAST_STOCK_SYNC", String(Date.now()));
+      }
+    } catch (e) {}
+
+    // Refresh modul yang sedang aktif di UI (Online Shop & Product Catalog)
     if (typeof Shop !== 'undefined' && typeof Shop.render === 'function') {
       Shop.render();
     }
@@ -1810,6 +1857,30 @@ const Util = {
 if (typeof window !== 'undefined') {
   window.Storage = Storage;
   window.Util = Util;
+
+  // Real-time Cross-Tab Storage Sync for Online Shop and Product Catalog
+  if (typeof window.addEventListener === 'function') {
+    window.addEventListener('storage', (e) => {
+      if (e.key === STORAGE_KEY || e.key === 'GBA_LAST_STOCK_SYNC') {
+        Storage._cachedData = null;
+        if (typeof Shop !== 'undefined' && typeof Shop.render === 'function') Shop.render();
+        if (typeof WMS !== 'undefined' && typeof WMS.render === 'function') WMS.render();
+      }
+    });
+  }
+
+  if (typeof BroadcastChannel !== 'undefined') {
+    try {
+      const stockBc = new BroadcastChannel('gba_stock_sync_channel');
+      stockBc.onmessage = (event) => {
+        if (event.data && event.data.type === 'STOCK_UPDATED') {
+          Storage._cachedData = null;
+          if (typeof Shop !== 'undefined' && typeof Shop.render === 'function') Shop.render();
+          if (typeof WMS !== 'undefined' && typeof WMS.render === 'function') WMS.render();
+        }
+      };
+    } catch (err) {}
+  }
 }
 if (typeof module !== 'undefined' && module.exports) {
   module.exports = { Storage, Util };
